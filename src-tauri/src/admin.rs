@@ -4,28 +4,37 @@
 // enabling/disabling via profiles.status) happens directly in the frontend through
 // supabase-js against RLS-protected tables — no Rust involvement needed there.
 //
-// The service-role key lives only in this process's environment (loaded from .env via
-// dotenvy, same trust tier as the WARRAQ_ADMIN_* bootstrap credentials) and is never sent
-// to the webview. Every privileged command here re-validates the caller's own Supabase
-// access token and requires their profile to be an active admin before doing anything.
+// The service-role key lives only in this process's environment (a runtime .env loaded via
+// dotenvy if present, else the value baked into the binary at build time — see build.rs and
+// env_or_embedded() below, same trust tier as the WARRAQ_ADMIN_* bootstrap credentials) and
+// is never sent to the webview. Every privileged command here re-validates the caller's own
+// Supabase access token and requires their profile to be an active admin before doing
+// anything.
 
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
+/// Reads a runtime env var (real OS env or a .env dropped next to the exe, loaded via
+/// dotenvy in lib.rs), falling back to the value baked into the binary at build time from
+/// the build machine's .env (see build.rs) so a distributed install works out of the box.
+fn env_or_embedded(key: &str, embedded: Option<&'static str>) -> Option<String> {
+    std::env::var(key).ok().or_else(|| embedded.map(String::from)).filter(|v| !v.is_empty())
+}
+
 fn supabase_url() -> Result<String, String> {
-    let project_id = std::env::var("PROJECT_ID")
-        .map_err(|_| "Server is missing PROJECT_ID in its environment.".to_string())?;
+    let project_id = env_or_embedded("PROJECT_ID", option_env!("PROJECT_ID"))
+        .ok_or_else(|| "Server is missing PROJECT_ID in its environment.".to_string())?;
     Ok(format!("https://{project_id}.supabase.co"))
 }
 
 fn service_key() -> Result<String, String> {
-    std::env::var("SECRET_KEY")
-        .map_err(|_| "Server is missing SECRET_KEY in its environment.".to_string())
+    env_or_embedded("SECRET_KEY", option_env!("SECRET_KEY"))
+        .ok_or_else(|| "Server is missing SECRET_KEY in its environment.".to_string())
 }
 
 fn anon_key() -> Result<String, String> {
-    std::env::var("PUBLISHABLE_KEY")
-        .map_err(|_| "Server is missing PUBLISHABLE_KEY in its environment.".to_string())
+    env_or_embedded("PUBLISHABLE_KEY", option_env!("PUBLISHABLE_KEY"))
+        .ok_or_else(|| "Server is missing PUBLISHABLE_KEY in its environment.".to_string())
 }
 
 fn validate_password(password: &str) -> Result<(), String> {
@@ -248,15 +257,15 @@ pub async fn admin_bootstrap_if_needed() -> Result<bool, String> {
         return Ok(false);
     }
 
-    let username = std::env::var("WARRAQ_ADMIN_USERNAME").map_err(|_| {
+    let username = env_or_embedded("WARRAQ_ADMIN_USERNAME", option_env!("WARRAQ_ADMIN_USERNAME")).ok_or_else(|| {
         "No administrator account exists yet and WARRAQ_ADMIN_USERNAME is not set. Add WARRAQ_ADMIN_USERNAME and WARRAQ_ADMIN_PASSWORD to a .env file next to the application (or the environment) and restart Warraq.".to_string()
     })?;
-    let password = std::env::var("WARRAQ_ADMIN_PASSWORD").map_err(|_| {
+    let password = env_or_embedded("WARRAQ_ADMIN_PASSWORD", option_env!("WARRAQ_ADMIN_PASSWORD")).ok_or_else(|| {
         "No administrator account exists yet and WARRAQ_ADMIN_PASSWORD is not set. Add WARRAQ_ADMIN_USERNAME and WARRAQ_ADMIN_PASSWORD to a .env file next to the application (or the environment) and restart Warraq.".to_string()
     })?;
     let username = validate_username(&username)?;
     validate_password(&password)?;
-    let email_env = std::env::var("WARRAQ_ADMIN_EMAIL").ok();
+    let email_env = env_or_embedded("WARRAQ_ADMIN_EMAIL", option_env!("WARRAQ_ADMIN_EMAIL"));
     let email = identity_email(&username, email_env.as_deref());
 
     let user_id = match create_auth_user(&client, &url, &service, &email, &password).await {
