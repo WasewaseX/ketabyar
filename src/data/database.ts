@@ -1,8 +1,10 @@
 import { supabase } from "./supabaseClient";
+import { sweepReservations } from "./repositories/library";
 
 /**
- * Verifies the Supabase connection is reachable and promotes any reservation queue that
- * became stale outside of a return (e.g. a fresh copy added directly onto the shelf).
+ * Verifies the Supabase connection is reachable, expires ready holds whose pickup window has
+ * passed, and promotes any reservation queue that became stale outside of a return (e.g. a
+ * fresh copy added directly onto the shelf).
  * Throws if the project is unreachable, which the Boot screen in App.tsx surfaces as a
  * blocking "no connection" state — this app is online-only, there is no local fallback.
  */
@@ -15,6 +17,6 @@ export async function initializeDatabase(): Promise<void> {
   }
   const { data: session } = await supabase.auth.getSession();
   if (session.session) {
-    await supabase.rpc("advance_reservation_queue", { p_book_id: null });
+    await sweepReservations();
   }
 }
