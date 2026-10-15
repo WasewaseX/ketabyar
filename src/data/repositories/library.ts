@@ -401,7 +401,17 @@ export async function updateReservation(reservationId: string, patch: { expiresA
   await audit("update_reservation", "reservation", reservationId, update);
 }
 
+/**
+ * Expires ready holds whose pickup window has passed and hands their copies to the next queued
+ * member, or back to the shelf (see migration 0022). Failures are ignored so a database that
+ * does not have the function yet still boots and lists reservations.
+ */
+export async function sweepReservations(): Promise<void> {
+  await supabase.rpc("sweep_reservations");
+}
+
 export async function reservations(): Promise<Reservation[]> {
+  await sweepReservations();
   return unwrap(await supabase.from("reservation_details").select("*").order("requested_at", { ascending: false })) as Reservation[];
 }
 
