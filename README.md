@@ -85,7 +85,8 @@ src-tauri/
 `-- Cargo.toml               # Rust dependencies
 
 supabase/
-`-- migrations/             # Postgres schema, RLS policies, and business-rule functions
+|-- migrations/             # Postgres schema, RLS policies, and business-rule functions
+`-- tests/                  # SQL tests, run against a throwaway local Postgres
 
 scripts/
 `-- import_catalog.py       # One-off import of the recovered book inventory (see below)
@@ -134,6 +135,7 @@ pnpm dev          # Start Vite
 pnpm build        # Type-check and build frontend assets
 pnpm typecheck    # Run TypeScript checking
 pnpm test         # Run Vitest tests
+pnpm test:sql     # Apply every migration to a temp local Postgres and run supabase/tests (needs initdb/pg_ctl/psql on PATH)
 pnpm rust:check   # Check the Rust/Tauri application
 pnpm tauri dev    # Run the desktop app
 pnpm tauri build  # Build the production desktop installer (Windows/macOS/Linux)
@@ -154,6 +156,8 @@ Once signed in, an administrator manages every other account from **Settings →
 ## Database
 
 All schema, Row Level Security policies, and business-rule functions (checkout/return, reservation accept/decline, member bans, shelf provisioning) live in `supabase/migrations/`, applied directly to the project via `psql`. There is no `supabase` CLI dependency — the migrations are plain numbered `.sql` files, applied in order.
+
+Reservation holds expire on their own: `sweep_reservations()` (migration 0022) moves overdue `ready` holds to `expired`, returns their copies to the shelf, and promotes the next queued member. The App runs it at boot and whenever it loads reservations; if `pg_cron` is enabled on the project, the migration also schedules it every 15 minutes so the Website stays accurate while the App is closed.
 
 Circulation rules and the library's institutional profile (name, address, loan/renewal limits, fines, reservation durations) live in the shared `library_settings` table (Settings → General/Library Profile/Rules/Fines), not in per-device preferences — every staff device sees the same rules. Purely local UI preferences (theme, accent color, font size, close-to-tray, integration API keys) stay in the Tauri Store per device.
 
