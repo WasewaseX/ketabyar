@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:sql": "node scripts/test_sql.mjs",
     "rust:check": "cargo check --manifest-path src-tauri/Cargo.toml",
     "preview": "vite preview",
     "tauri": "tauri",
