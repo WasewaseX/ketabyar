@@ -5,7 +5,8 @@
  * the long tail that ISBN/title lookups can't resolve (medical texts, French/Arabic titles, etc).
  *
  * Pipeline per book:
- *   1. If a checksum-valid ISBN exists, try Google Books / Open Library first (exact + free).
+ *   1. If a checksum-valid ISBN exists, try Google Books / Open Library first (free, but the
+ *      record's title must match too — a valid check digit doesn't prove it's the same book).
  *   2. Otherwise (or if that misses) scrape image search (Bing, then DuckDuckGo) for candidates.
  *   3. Send each candidate to a vision model with the title + author and ask, strictly:
  *        "is this the front cover of THIS book?" → {is_cover, matches_book, confidence}
@@ -28,6 +29,7 @@
  */
 import { createClient } from "@supabase/supabase-js";
 import { readFileSync } from "node:fs";
+import { ISBN_TITLE_MIN, openLibraryIsbnRecord, titleScore, validIsbnOf } from "./cover_match.mjs";
 
 // ---------------------------------------------------------------- flags
 const flag = (name) => process.argv.includes(name);
@@ -78,30 +80,6 @@ if (!VISION_KEY) {
 const supabase = createClient(env.VITE_SUPABASE_URL, env.SECRET_KEY, {
   auth: { persistSession: false },
 });
-
-// ---------------------------------------------------------------- ISBN helpers
-const cleanIsbn = (v) => (v ?? "").replace(/[^0-9Xx]/g, "").toUpperCase();
-
-function isValidIsbn10(s) {
-  if (!/^\d{9}[\dX]$/.test(s)) return false;
-  let sum = 0;
-  for (let i = 0; i < 10; i++) sum += (s[i] === "X" ? 10 : Number(s[i])) * (10 - i);
-  return sum % 11 === 0;
-}
-function isValidIsbn13(s) {
-  if (!/^\d{13}$/.test(s)) return false;
-  let sum = 0;
-  for (let i = 0; i < 13; i++) sum += Number(s[i]) * (i % 2 ? 3 : 1);
-  return sum % 10 === 0;
-}
-function validIsbnOf(book) {
-  for (const raw of [book.isbn13, book.isbn10]) {
-    const s = cleanIsbn(raw);
-    if (s.length === 13 && isValidIsbn13(s)) return s;
-    if (s.length === 10 && isValidIsbn10(s)) return s;
-  }
-  return null;
-}
 
 // ---------------------------------------------------------------- http helpers
 async function fetchText(url, timeoutMs = 15000) {
@@ -187,13 +165,20 @@ const googleThumb = (info) => {
   return link ? link.replace("http://", "https://").replace("&edge=curl", "") + "&zoom=1" : null;
 };
 
-/** Exact, free shortcuts when a checksum-valid ISBN is available — no vision call needed. */
-async function isbnCover(isbn) {
+/** Free shortcuts when a checksum-valid ISBN is available — no vision call needed, but the
+ *  record behind the ISBN must still share the catalogue title, since a hand-typed ISBN can
+ *  pass its check digit and belong to another book (see cover_match.mjs). */
+async function isbnCover(isbn, title) {
   const g = await fetchJson(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}&maxResults=1`);
-  const gUrl = googleThumb(g?.items?.[0]?.volumeInfo);
-  if (gUrl && (await isRealImage(gUrl))) return { url: gUrl, via: "google:isbn" };
+  const info = g?.items?.[0]?.volumeInfo;
+  const gUrl = googleThumb(info);
+  if (gUrl && titleScore(title, info) >= ISBN_TITLE_MIN && (await isRealImage(gUrl))) {
+    return { url: gUrl, via: "google:isbn" };
+  }
   const ol = `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg?default=false`;
-  if (await isRealImage(ol)) return { url: ol, via: "openlibrary:isbn" };
+  if (titleScore(title, await openLibraryIsbnRecord(isbn)) >= ISBN_TITLE_MIN && (await isRealImage(ol))) {
+    return { url: ol, via: "openlibrary:isbn" };
+  }
   return null;
 }
 
@@ -259,9 +244,9 @@ async function findCover(book) {
   const authors = book.book_authors.map((ba) => ba.authors.name).join(", ");
   const isbn = validIsbnOf(book);
 
-  // 1) Exact ISBN shortcut (no vision spend).
+  // 1) ISBN shortcut, title-checked (no vision spend).
   if (isbn) {
-    const hit = await isbnCover(isbn);
+    const hit = await isbnCover(isbn, book.title);
     if (hit) return { ...hit, confidence: 1 };
   }
 

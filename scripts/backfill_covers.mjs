@@ -2,8 +2,8 @@
  * Backfills `books.cover_url` for catalogue records that have no cover yet.
  *
  * Sources, in order of confidence:
- *   1. Google Books, looked up by a checksum-valid ISBN   (exact match)
- *   2. Open Library covers, by a checksum-valid ISBN      (exact match)
+ *   1. Google Books, looked up by a checksum-valid ISBN   (title-checked)
+ *   2. Open Library covers, by a checksum-valid ISBN      (title-checked)
  *   3. Google Books, by title + author                    (fuzzy, score-gated)
  *   4. Open Library search, by title                      (fuzzy, score-gated)
  *
@@ -21,6 +21,13 @@
  */
 import { createClient } from "@supabase/supabase-js";
 import { readFileSync } from "node:fs";
+import {
+  ISBN_TITLE_MIN,
+  openLibraryIsbnRecord,
+  similarity,
+  titleScore,
+  validIsbnOf,
+} from "./cover_match.mjs";
 
 const DRY_RUN = process.argv.includes("--dry-run");
 const LIMIT = (() => {
@@ -53,63 +60,6 @@ if (!env.VITE_SUPABASE_URL || !env.SECRET_KEY) {
 const supabase = createClient(env.VITE_SUPABASE_URL, env.SECRET_KEY, {
   auth: { persistSession: false },
 });
-
-// ---------------------------------------------------------------- ISBN helpers
-
-const cleanIsbn = (v) => (v ?? "").replace(/[^0-9Xx]/g, "").toUpperCase();
-
-function isValidIsbn10(s) {
-  if (!/^\d{9}[\dX]$/.test(s)) return false;
-  let sum = 0;
-  for (let i = 0; i < 10; i++) sum += (s[i] === "X" ? 10 : Number(s[i])) * (10 - i);
-  return sum % 11 === 0;
-}
-
-function isValidIsbn13(s) {
-  if (!/^\d{13}$/.test(s)) return false;
-  let sum = 0;
-  for (let i = 0; i < 13; i++) sum += Number(s[i]) * (i % 2 ? 3 : 1);
-  return sum % 10 === 0;
-}
-
-/** Only checksum-valid ISBNs are trusted: a large share of the stored ISBNs fail their
- *  check digit, and looking those up returns confident matches for the wrong book. */
-function validIsbnOf(book) {
-  for (const raw of [book.isbn13, book.isbn10]) {
-    const s = cleanIsbn(raw);
-    if (s.length === 13 && isValidIsbn13(s)) return s;
-    if (s.length === 10 && isValidIsbn10(s)) return s;
-  }
-  return null;
-}
-
-// ---------------------------------------------------------------- title matching
-
-const STOPWORDS = new Set([
-  "de","la","le","les","des","du","et","en","au","aux","the","of","and","in","to","el","y","por","para",
-]);
-
-const normalize = (s) =>
-  (s ?? "")
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase()
-    .replace(/\(.*?\)/g, " ")
-    .replace(/[^a-z0-9\s]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-
-const tokens = (s) => normalize(s).split(" ").filter((t) => t.length > 2 && !STOPWORDS.has(t));
-
-/** Sørensen–Dice over significant tokens. */
-function similarity(a, b) {
-  const A = new Set(tokens(a));
-  const B = new Set(tokens(b));
-  if (!A.size || !B.size) return 0;
-  let shared = 0;
-  for (const t of A) if (B.has(t)) shared++;
-  return (2 * shared) / (A.size + B.size);
-}
 
 // ---------------------------------------------------------------- http helpers
 
@@ -174,13 +124,23 @@ async function findCover(book) {
   const authors = book.book_authors.map((ba) => ba.authors.name).join(" ");
   const isbn = validIsbnOf(book);
 
+  // A checksum-valid ISBN can still belong to another book, so each ISBN hit must also
+  // share its title with the catalogue entry (see cover_match.mjs).
   if (isbn) {
     const data = await google(`isbn:${isbn}`);
-    const url = googleThumb(data?.items?.[0]?.volumeInfo);
-    if (url && (await isRealImage(url))) return { url, via: "google:isbn", score: 1 };
+    const info = data?.items?.[0]?.volumeInfo;
+    const googleScore = titleScore(book.title, info);
+    const url = googleThumb(info);
+    if (url && googleScore >= ISBN_TITLE_MIN && (await isRealImage(url))) {
+      return { url, via: "google:isbn", score: +googleScore.toFixed(2), matched: info.title };
+    }
 
+    const record = await openLibraryIsbnRecord(isbn);
+    const olScore = titleScore(book.title, record);
     const ol = `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg?default=false`;
-    if (await isRealImage(ol)) return { url: ol, via: "openlibrary:isbn", score: 1 };
+    if (olScore >= ISBN_TITLE_MIN && (await isRealImage(ol))) {
+      return { url: ol, via: "openlibrary:isbn", score: +olScore.toFixed(2), matched: record.title };
+    }
   }
 
   const data = await google(`${book.title} ${authors}`.trim());
