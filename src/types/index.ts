@@ -169,6 +169,11 @@ export interface LibrarySettings {
   self_renewal_allowed: boolean;
   grace_period_enabled: boolean;
   grace_period_days: number;
+  fines_enabled: boolean;
+  fine_per_day: number;
+  max_fine_amount: number;
+  fine_currency: string;
+  fines_payment_method: string;
   notify_overdue: boolean;
   notify_due_soon: boolean;
   notify_due_soon_days: number;
@@ -180,7 +185,7 @@ export interface LibrarySettings {
 /** Per-device UI preferences only — everything shared across staff now lives in LibrarySettings. */
 export interface Preferences {
   onboardingComplete: boolean;
-  locale: "en" | "fr" | "ar";
+  locale: "en" | "fr" | "ar" | "fa";
   theme: "light" | "dark" | "system";
   accentColor: string;
   fontSize: "small" | "medium" | "large";

@@ -1,14 +1,15 @@
 import { useState, useMemo, useEffect } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Search, Clock, RotateCcw, RefreshCw, BookOpen, Calendar,
   MapPin, Hash, Eye, Copy as CopyIcon, Globe, Building2, UserCheck, AlertTriangle,
-  Check, X as XIcon, Undo2
+  Check, X as XIcon, Undo2, Banknote
 } from "lucide-react";
 import { useContextMenu } from "../components/ui/ContextMenu";
 
 import {
-  loans, returnCopies, renewLoan, updateLoanDueDate
+  loans, returnCopies, renewLoan, updateLoanDueDate,
+  fines as fetchFines, payFine, waiveFine, type FineRow,
 } from "../data/repositories/library";
 import { useLibrarySettingsStore } from "../store/librarySettingsStore";
 import { queryClient } from "../app/providers";
@@ -247,6 +248,8 @@ export function LoansPage() {
           {t("loans.subtitle", "Every item currently out, overdue, or returned.")}
         </p>
       </div>
+
+      <FinesPanel />
 
       {/* Main Panel */}
       <div className="flex-1 bg-white dark:bg-[#1d2926] border border-black/5 dark:border-white/5 rounded-2xl flex flex-col shadow-card overflow-hidden">
@@ -903,5 +906,123 @@ function LoanDetailsModal({
         </div>
       </div>
     </Modal>
+  );
+}
+
+// ───────────────────────── Fines (Koha-style daily overdue fines) ─────────────────────────
+
+function FinesPanel() {
+  const { t } = useTranslation();
+  const qc = useQueryClient();
+  const settings = useLibrarySettingsStore((s) => s.settings);
+  const [expanded, setExpanded] = useState(false);
+  const [waiveTarget, setWaiveTarget] = useState<FineRow | null>(null);
+  const [waiveReason, setWaiveReason] = useState("");
+
+  const finesQuery = useQuery({ queryKey: ["fines"], queryFn: fetchFines });
+  const open = useMemo(() => (finesQuery.data ?? []).filter((f) => f.status === "open"), [finesQuery.data]);
+  const totalOpen = open.reduce((sum, f) => sum + (f.amount ?? 0), 0);
+
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ["fines"] });
+    qc.invalidateQueries({ queryKey: ["loans"] });
+    qc.invalidateQueries({ queryKey: ["dashboard"] });
+  };
+
+  const payMutation = useMutation({
+    mutationFn: (id: string) => payFine(id),
+    onSuccess: () => { invalidate(); toast.success(t("loans.fines.paid", "Fine marked as paid.")); },
+    onError: (err: any) => toast.error(err.message),
+  });
+
+  const waiveMutation = useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason: string }) => waiveFine(id, reason),
+    onSuccess: () => { invalidate(); setWaiveTarget(null); setWaiveReason(""); toast.success(t("loans.fines.waived", "Fine waived.")); },
+    onError: (err: any) => toast.error(err.message),
+  });
+
+  if (finesQuery.isLoading || open.length === 0) return null;
+
+  const visible = expanded ? open : open.slice(0, 3);
+
+  return (
+    <div className="mb-6 bg-white dark:bg-[#1d2926] border border-amber-500/25 dark:border-amber-400/20 rounded-2xl shadow-card overflow-hidden">
+      <div className="p-4 flex flex-wrap items-center gap-3 bg-amber-500/[0.06] dark:bg-amber-400/[0.05] border-b border-amber-500/20 dark:border-amber-400/15">
+        <div className="flex items-center gap-2 font-bold text-[15px] text-[#122222] dark:text-white">
+          <Banknote size={18} className="text-amber-600 dark:text-amber-400" />
+          {t("loans.fines.title", "Overdue fines")}
+          <span className="text-[12px] font-semibold text-amber-700 dark:text-amber-400 bg-amber-500/10 rounded-full px-2.5 py-0.5">
+            {t("loans.fines.openCount", { count: open.length, defaultValue: "{{count}} open" })}
+          </span>
+        </div>
+        <div className="flex-1" />
+        <div className="text-[13px] text-[#122222]/70 dark:text-white/70">
+          {t("loans.fines.totalOpen", "Total open")}:
+          <span className="font-bold text-[#122222] dark:text-white ms-1.5">
+            {totalOpen.toLocaleString("fa-IR")} {settings.fine_currency === "IRR" ? "تومان" : settings.fine_currency}
+          </span>
+        </div>
+      </div>
+      <div className="divide-y divide-black/5 dark:divide-white/5">
+        {visible.map((f) => (
+          <div key={f.id} className="p-3.5 flex flex-wrap items-center gap-3 text-[13px]">
+            <div className="flex-1 min-w-[200px]">
+              <div className="font-semibold text-[#122222] dark:text-white">{f.member_name}</div>
+              <div className="text-[12px] text-[#122222]/55 dark:text-white/55">
+                {f.title} — {f.reason}
+              </div>
+            </div>
+            <div className="font-bold text-amber-700 dark:text-amber-400">
+              {(f.amount ?? 0).toLocaleString("fa-IR")} {settings.fine_currency === "IRR" ? "تومان" : settings.fine_currency}
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => payMutation.mutate(f.id)}
+                disabled={payMutation.isPending}
+                className="px-3 py-1.5 rounded-lg bg-emerald hover:bg-emerald/90 text-white text-[12px] font-bold transition-colors cursor-pointer disabled:opacity-40"
+              >
+                {t("loans.fines.pay", "Mark paid")}
+              </button>
+              <button
+                onClick={() => { setWaiveTarget(f); setWaiveReason(""); }}
+                className="px-3 py-1.5 rounded-lg bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/15 text-[#122222] dark:text-white text-[12px] font-semibold transition-colors cursor-pointer"
+              >
+                {t("loans.fines.waive", "Waive")}
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+      {open.length > 3 && (
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="w-full p-2.5 text-[12px] font-bold text-amber-700 dark:text-amber-400 hover:bg-amber-500/10 transition-colors cursor-pointer"
+        >
+          {expanded ? t("loans.fines.showLess", "Show less") : t("loans.fines.showAll", { count: open.length, defaultValue: "Show all ({{count}})" })}
+        </button>
+      )}
+
+      {waiveTarget && (
+        <Modal isOpen onClose={() => setWaiveTarget(null)} title={t("loans.fines.waive", "Waive")}>
+          <div className="space-y-4">
+            <p className="text-[13px] text-[#122222]/70 dark:text-white/70">
+              {waiveTarget.member_name} — {(waiveTarget.amount ?? 0).toLocaleString("fa-IR")}
+            </p>
+            <textarea
+              value={waiveReason}
+              onChange={(e) => setWaiveReason(e.target.value)}
+              placeholder={t("loans.fines.waiveReasonPlaceholder", "Reason (optional)")}
+              className="w-full h-20 rounded-lg bg-black/[0.03] dark:bg-white/[0.05] border border-black/10 dark:border-white/10 p-2.5 text-[13px] text-[#122222] dark:text-white outline-none resize-none"
+            />
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="ghost" onClick={() => setWaiveTarget(null)}>{t("cancel", "Cancel")}</Button>
+              <Button type="button" onClick={() => waiveMutation.mutate({ id: waiveTarget.id, reason: waiveReason.trim() || "-" })}>
+                {t("common.confirm", "Confirm")}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+    </div>
   );
 }

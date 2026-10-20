@@ -1,34 +1,12 @@
-import { invoke } from "@tauri-apps/api/core";
-import { supabase, unwrap } from "./supabaseClient";
+import { select, exec, maybeOne, nowIso } from "./localDb";
 import type { PublicUser, UserRole, UserStatus } from "../types";
 
-interface ProfileRow {
-  id: string;
-  username: string;
-  full_name: string;
-  email: string | null;
-  role: UserRole;
-  status: UserStatus;
-  avatar_path: string | null;
-  must_change_password: boolean;
-  created_at: string;
-  last_login_at: string | null;
-}
-
-function toPublicUser(row: ProfileRow): PublicUser {
-  return {
-    id: row.id,
-    username: row.username,
-    full_name: row.full_name,
-    email: row.email,
-    role: row.role,
-    status: row.status,
-    avatar_path: row.avatar_path,
-    must_change_password: row.must_change_password,
-    created_at: row.created_at,
-    last_login_at: row.last_login_at,
-  };
-}
+/**
+ * KetabYar local authentication — a simple shared-PIN gate (chosen for
+ * beginner-friendliness at a single service desk), replacing Warraq's
+ * online Supabase auth. The PIN is stored hashed (SHA-256 + random salt)
+ * inside the local SQLite settings row; nothing leaves the machine.
+ */
 
 export interface LoginAccount {
   username: string;
@@ -37,124 +15,119 @@ export interface LoginAccount {
   avatar_path: string | null;
 }
 
+const LOCAL_ACTOR: PublicUser = {
+  id: "local-ketabdar",
+  username: "ketabdar",
+  full_name: "کتابدار",
+  email: null,
+  role: "admin",
+  status: "active",
+  avatar_path: null,
+  must_change_password: false,
+  created_at: nowIso(),
+  last_login_at: null,
+};
+
+const SESSION_KEY = "ketabyar-session";
+
 export async function getLoginAccounts(): Promise<LoginAccount[]> {
-  try {
-    const res = await invoke<LoginAccount[]>("get_login_accounts");
-    if (res && res.length > 0) return res;
-  } catch {
-    // Fall back to Supabase RPC
-  }
-
-  try {
-    const { data, error } = await supabase.rpc("list_login_accounts");
-    if (!error && data) {
-      return data as LoginAccount[];
-    }
-  } catch {
-    // Ignore fallback failure
-  }
-
-  return [];
+  return [{ username: LOCAL_ACTOR.username, full_name: LOCAL_ACTOR.full_name, role: "admin", avatar_path: null }];
 }
 
-/** Creates the one administrator account from WARRAQ_ADMIN_USERNAME/PASSWORD if no staff profiles exist yet. */
+/** Creates the default PIN (1234) on first boot if none has been set yet. */
 export async function bootstrapAdminIfNeeded(): Promise<boolean> {
-  return invoke<boolean>("admin_bootstrap_if_needed");
+  if (await hasPin()) return false;
+  await setPin("1234");
+  return true;
 }
 
-export async function login(username: string, password: string): Promise<PublicUser> {
-  const email = unwrap(await supabase.rpc("resolve_login_email", { p_username: username }));
-  if (!email) throw new Error("Invalid username or password.");
+async function sha256Hex(text: string): Promise<string> {
+  const data = new TextEncoder().encode(text);
+  const digest = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
 
-  const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
-  if (authError) throw new Error("Invalid username or password.");
+async function randomSalt(): Promise<string> {
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  return Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
 
-  const row = unwrap<ProfileRow>(await supabase.from("profiles").select("*").eq("username", username.trim().toLowerCase()).single());
-  if (row.status !== "active") {
-    await supabase.auth.signOut();
-    throw new Error("This account has been disabled. Contact your administrator.");
-  }
-  await supabase.rpc("touch_last_login");
-  return toPublicUser(row);
+export async function hasPin(): Promise<boolean> {
+  const row = await maybeOne<{ pin_hash: string | null }>(`SELECT pin_hash FROM library_settings WHERE id = 1`);
+  return !!row?.pin_hash;
+}
+
+export async function setPin(newPin: string): Promise<void> {
+  if (!/^\d{4,8}$/.test(newPin)) throw new Error("پین باید بین ۴ تا ۸ رقم باشد.");
+  const salt = await randomSalt();
+  const hash = await sha256Hex(salt + newPin);
+  await exec(`UPDATE library_settings SET pin_hash = ?, pin_salt = ?, updated_at = ? WHERE id = 1`, [hash, salt, nowIso()]);
+}
+
+export async function checkPin(pin: string): Promise<boolean> {
+  const row = await maybeOne<{ pin_hash: string | null; pin_salt: string | null }>(`SELECT pin_hash, pin_salt FROM library_settings WHERE id = 1`);
+  if (!row?.pin_hash || !row?.pin_salt) return false;
+  const hash = await sha256Hex(row.pin_salt + pin);
+  return hash === row.pin_hash;
+}
+
+/** Logs the operator in with the shared PIN. Mirrors the old supabase login() signature. */
+export async function login(pin: string, _password?: string): Promise<PublicUser> {
+  void _password;
+  const ok = await checkPin(pin.trim());
+  if (!ok) throw new Error("پین اشتباه است. دوباره تلاش کنید.");
+  localStorage.setItem(SESSION_KEY, "1");
+  return { ...LOCAL_ACTOR, last_login_at: nowIso() };
 }
 
 export async function logout(): Promise<void> {
-  await supabase.auth.signOut();
+  localStorage.removeItem(SESSION_KEY);
 }
 
 export async function currentSession(): Promise<PublicUser | null> {
-  const { data } = await supabase.auth.getSession();
-  const userId = data.session?.user.id;
-  if (!userId) return null;
-  const { data: profile, error } = await supabase.from("profiles").select("*").eq("id", userId).single();
-  if (error || !profile) return null;
-  return toPublicUser(profile as ProfileRow);
+  return localStorage.getItem(SESSION_KEY) === "1" ? LOCAL_ACTOR : null;
 }
+
+/** PIN change for the desk operator: verifies the current PIN first. Mirrors changeOwnPassword(). */
+export async function changeOwnPassword(currentPin: string, newPin: string): Promise<void> {
+  if (currentPin === newPin) throw new Error("پین جدید باید با پین فعلی متفاوت باشد.");
+  const ok = await checkPin(currentPin);
+  if (!ok) throw new Error("پین فعلی اشتباه است.");
+  await setPin(newPin);
+}
+
+// ── Multi-staff management is not part of the Simple-PIN edition. ──
 
 export async function listUsers(): Promise<PublicUser[]> {
-  const rows = unwrap(await supabase.from("profiles").select("*").order("full_name"));
-  return (rows as ProfileRow[]).map(toPublicUser);
+  return [LOCAL_ACTOR];
 }
 
-async function accessToken(): Promise<string> {
-  const { data } = await supabase.auth.getSession();
-  const token = data.session?.access_token;
-  if (!token) throw new Error("You must be signed in.");
-  return token;
+export async function createUser(input?: { username?: string; fullName?: string; email?: string | null; role?: UserRole; password?: string }): Promise<{ id: string; username: string }> {
+  void input;
+  throw new Error("در نسخهٔ پین ساده، ایجاد کاربر جدید در دسترس نیست.");
 }
 
-export async function createUser(input: {
-  username: string;
-  fullName: string;
-  email?: string | null;
-  role: UserRole;
-  password: string;
-}): Promise<{ id: string; username: string }> {
-  const access_token = await accessToken();
-  return invoke("admin_create_staff", {
-    accessToken: access_token,
-    username: input.username,
-    fullName: input.fullName,
-    email: input.email ?? null,
-    role: input.role,
-    password: input.password,
-  });
+export async function updateUser(_id?: string, _updates?: { fullName?: string; email?: string | null; role?: UserRole; status?: UserStatus }): Promise<void> {
+  throw new Error("در نسخهٔ پین ساده، ویرایش کاربر در دسترس نیست.");
 }
 
-export async function updateUser(
-  id: string,
-  updates: { fullName?: string; email?: string | null; role?: UserRole; status?: UserStatus }
-): Promise<void> {
-  const patch: Record<string, unknown> = {};
-  if (updates.fullName !== undefined) patch.full_name = updates.fullName;
-  if (updates.role !== undefined) patch.role = updates.role;
-  if (updates.status !== undefined) patch.status = updates.status;
-  unwrap(await supabase.from("profiles").update(patch).eq("id", id).select().single());
+export async function resetPassword(_id: string, newPassword: string): Promise<void> {
+  void _id;
+  await setPin(newPassword);
 }
 
-export async function resetPassword(id: string, newPassword: string): Promise<void> {
-  const access_token = await accessToken();
-  await invoke("admin_reset_password", { accessToken: access_token, userId: id, newPassword });
+export async function deleteUser(_id?: string): Promise<void> {
+  throw new Error("در نسخهٔ پین ساده، حذف کاربر در دسترس نیست.");
 }
 
-export async function changeOwnPassword(currentPassword: string, newPassword: string): Promise<void> {
-  if (currentPassword === newPassword) {
-    throw new Error("The new password must be different from your current password.");
+/** Kept so the Tauri diagnostics surface stays honest about the offline mode. */
+export async function applicationDiagnostics(): Promise<{ database: string; mode: string }> {
+  try {
+    const rows = await select<{ n: number }>(`SELECT COUNT(*) AS n FROM books`);
+    void rows;
+    return { database: "sqlite-offline", mode: "local" };
+  } catch {
+    return { database: "sqlite-offline", mode: "starting" };
   }
-  // Re-authenticate first so a left-open session can't be used to silently reset the password
-  // without knowing the current one (the form used to accept any value for the current password).
-  const { data: userData } = await supabase.auth.getUser();
-  const email = userData.user?.email;
-  if (!email) throw new Error("You must be signed in to change your password.");
-  const { error: verifyError } = await supabase.auth.signInWithPassword({ email, password: currentPassword });
-  if (verifyError) throw new Error("Your current password is incorrect.");
-
-  const { error } = await supabase.auth.updateUser({ password: newPassword });
-  if (error) throw new Error(error.message);
-  await supabase.rpc("clear_must_change_password");
 }
 
-export async function deleteUser(id: string): Promise<void> {
-  const access_token = await accessToken();
-  await invoke("admin_delete_staff", { accessToken: access_token, userId: id });
-}

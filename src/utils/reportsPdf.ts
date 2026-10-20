@@ -41,7 +41,7 @@ export interface ReportsPdfInput {
   librarySubtitle?: string;
   generatedAt: Date;
   rangeLabel: string;
-  locale: "en" | "fr" | "ar";
+  locale: "en" | "fr" | "ar" | "fa";
   kpis: { label: string; value: string; sub: string }[];
   sections: {
     id: string;
@@ -58,7 +58,7 @@ export interface ReportsPdfInput {
 
 /** Picks the embedded Arabic-capable font for Arabic locale, otherwise jsPDF's built-in helvetica. */
 function bodyFont(locale: ReportsPdfInput["locale"]): string {
-  return locale === "ar" ? ARABIC_FONT : "helvetica";
+  return (locale === "ar" || locale === "fa") ? ARABIC_FONT : "helvetica";
 }
 
 /** Draws text, toggling jsPDF's per-call R2L reversal only when the string is actually
@@ -99,7 +99,7 @@ function drawPageChrome(doc: jsPDF, input: ReportsPdfInput, pageIndex: number, p
   doc.setTextColor("#c9d6d2");
   drawText(
     doc,
-    input.generatedAt.toLocaleString(input.locale === "ar" ? "ar-DZ" : input.locale === "fr" ? "fr-FR" : "en-US", {
+    input.generatedAt.toLocaleString(input.locale === "fa" ? "fa-IR" : input.locale === "ar" ? "ar-DZ" : input.locale === "fr" ? "fr-FR" : "en-US", {
       dateStyle: "medium",
       timeStyle: "short",
     }),

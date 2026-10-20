@@ -102,7 +102,7 @@ export function AppShell() {
     if (!isDragging) return;
 
     const handleMouseMove = (e: MouseEvent) => {
-      const isRtl = document.documentElement.dir === "rtl" || preferences.locale === "ar";
+      const isRtl = document.documentElement.dir === "rtl" || preferences.locale === "ar" || preferences.locale === "fa";
       let newWidth = isRtl ? (window.innerWidth - e.clientX) : e.clientX;
 
       if (newWidth < 200) newWidth = 200;
@@ -229,7 +229,7 @@ export function AppShell() {
   // ── Locale → html lang + dir + i18n ──────────────────────────────────────
   useEffect(() => {
     document.documentElement.lang = preferences.locale;
-    document.documentElement.dir = preferences.locale === "ar" ? "rtl" : "ltr";
+    document.documentElement.dir = (preferences.locale === "ar" || preferences.locale === "fa") ? "rtl" : "ltr";
     i18n.changeLanguage(preferences.locale);
   }, [preferences.locale, i18n]);
 
@@ -402,7 +402,7 @@ export function AppShell() {
               src="/assets/warraq-sidebar-pattern-dark.png"
               alt=""
               aria-hidden="true"
-              className={`absolute bottom-0 w-full h-auto opacity-[0.16] mix-blend-screen select-none ${preferences.locale === "ar" ? "right-0 scale-x-[-1]" : "left-0"}`}
+              className={`absolute bottom-0 w-full h-auto opacity-[0.16] mix-blend-screen select-none ${(preferences.locale === "ar" || preferences.locale === "fa") ? "right-0 scale-x-[-1]" : "left-0"}`}
             />
 
             {/* Decorative Book Spine Pattern */}
@@ -414,7 +414,7 @@ export function AppShell() {
             <div
               onMouseDown={startResizing}
               className={`absolute top-0 bottom-0 w-[6px] cursor-col-resize z-50 hover:bg-[#b96f3e]/40 transition-colors ${isDragging ? "bg-[#b96f3e]" : ""
-                } ${(preferences.locale === "ar") ? "left-0" : "right-0"
+                } ${(preferences.locale === "ar" || preferences.locale === "fa") ? "left-0" : "right-0"
                 }`}
             />
           )}
@@ -765,13 +765,14 @@ export function AppShell() {
                 <select
                   value={preferences.locale}
                   onChange={(e) => {
-                    const locale = e.target.value as "en" | "fr" | "ar";
+                    const locale = e.target.value as "en" | "fr" | "ar" | "fa";
                     updatePreferences({ locale });
                     document.documentElement.lang = locale;
-                    document.documentElement.dir = locale === "ar" ? "rtl" : "ltr";
+                    document.documentElement.dir = (locale === "ar" || locale === "fa") ? "rtl" : "ltr";
                   }}
                   className="absolute inset-0 opacity-0 cursor-pointer w-full h-full bg-white text-[#122222] dark:bg-[#1d2926] dark:text-white"
                 >
+                  <option value="fa" className="bg-white text-[#122222] dark:bg-[#1d2926] dark:text-white">فارسی (FA)</option>
                   <option value="en" className="bg-white text-[#122222] dark:bg-[#1d2926] dark:text-white">English (EN)</option>
                   <option value="fr" className="bg-white text-[#122222] dark:bg-[#1d2926] dark:text-white">Français (FR)</option>
                   <option value="ar" className="bg-white text-[#122222] dark:bg-[#1d2926] dark:text-white">العربية (AR)</option>
@@ -811,7 +812,7 @@ function ProfileCard({
 }) {
 
   const user = useAuthStore((s) => s.user);
-  const isRtl = preferences.locale === "ar";
+  const isRtl = preferences.locale === "ar" || preferences.locale === "fa";
 
   const toggleTheme = () => {
     const nextTheme = preferences.theme === "dark" ? "light" : "dark";

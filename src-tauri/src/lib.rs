@@ -41,16 +41,16 @@ fn focus_main_window(app: &tauri::AppHandle) {
 }
 
 fn install_tray(app: &tauri::App) -> tauri::Result<()> {
-    let show = MenuItemBuilder::with_id("show", "Show / Hide Warraq").build(app)?;
-    let search = MenuItemBuilder::with_id("search", "Quick Search").build(app)?;
-    let checkout = MenuItemBuilder::with_id("checkout", "New Loan").build(app)?;
-    let return_book = MenuItemBuilder::with_id("return", "Return Book").build(app)?;
-    let settings = MenuItemBuilder::with_id("settings", "Settings").build(app)?;
-    let quit = MenuItemBuilder::with_id("quit", "Quit").build(app)?;
+    let show = MenuItemBuilder::with_id("show", "نمایش / پنهان کردن کتابیار").build(app)?;
+    let search = MenuItemBuilder::with_id("search", "جست‌وجوی سریع").build(app)?;
+    let checkout = MenuItemBuilder::with_id("checkout", "امانت جدید").build(app)?;
+    let return_book = MenuItemBuilder::with_id("return", "بازگشت کتاب").build(app)?;
+    let settings = MenuItemBuilder::with_id("settings", "تنظیمات").build(app)?;
+    let quit = MenuItemBuilder::with_id("quit", "خروج").build(app)?;
     let menu = MenuBuilder::new(app).items(&[&show, &search, &checkout, &return_book, &settings, &quit]).build()?;
-    let tray_builder = TrayIconBuilder::with_id("warraq-tray")
+    let tray_builder = TrayIconBuilder::with_id("ketabyar-tray")
         .menu(&menu)
-        .tooltip("Warraq");
+        .tooltip("کتابیار");
 
     let tray_builder = if let Some(icon) = app.default_window_icon() {
         tray_builder.icon(icon.clone())
@@ -62,10 +62,10 @@ fn install_tray(app: &tauri::App) -> tauri::Result<()> {
         .on_menu_event(|app, event| match event.id.as_ref() {
             "quit" => app.exit(0),
             "show" => focus_main_window(app),
-            "search" => { focus_main_window(app); let _ = app.emit("warraq://quick-search", ()); }
-            "checkout" => { focus_main_window(app); let _ = app.emit("warraq://navigate", "/circulation"); }
-            "return" => { focus_main_window(app); let _ = app.emit("warraq://navigate", "/circulation"); }
-            "settings" => { focus_main_window(app); let _ = app.emit("warraq://navigate", "/settings"); }
+            "search" => { focus_main_window(app); let _ = app.emit("ketabyar://quick-search", ()); }
+            "checkout" => { focus_main_window(app); let _ = app.emit("ketabyar://navigate", "/loans"); }
+            "return" => { focus_main_window(app); let _ = app.emit("ketabyar://navigate", "/loans"); }
+            "settings" => { focus_main_window(app); let _ = app.emit("ketabyar://navigate", "/settings"); }
             _ => {}
         })
         .on_tray_icon_event(|tray, event| {
@@ -86,6 +86,7 @@ pub fn run() {
     dotenvy::dotenv().ok();
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_sql::Builder::default().build())
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_autostart::init(tauri_plugin_autostart::MacosLauncher::LaunchAgent, None))
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
@@ -125,5 +126,5 @@ pub fn run() {
             admin::admin_delete_staff,
         ])
         .run(tauri::generate_context!())
-        .expect("error while running Warraq");
+        .expect("error while running KetabYar");
 }

@@ -392,21 +392,22 @@ function LibraryProfileTab({ prefs, update }: LibraryTabProps) {
 function LocalizationTab({ prefs, update, localPrefs, updateLocal }: LibraryTabProps & { localPrefs: Preferences; updateLocal: (v: Partial<Preferences>) => void }) {
   const { t } = useTranslation();
   const languages = [
+    { code: "fa" as const, label: "Persian", native: "فارسی" },
     { code: "en" as const, label: "English", native: "English" },
     { code: "fr" as const, label: "French", native: "Français" },
     { code: "ar" as const, label: "Arabic", native: "العربية" },
   ];
   const timezones = [
-    "Africa/Algiers", "Africa/Cairo", "Africa/Tunis", "Europe/Paris",
+    "Asia/Tehran", "Africa/Algiers", "Africa/Cairo", "Africa/Tunis", "Europe/Paris",
     "Europe/London", "America/New_York", "America/Los_Angeles", "Asia/Dubai", "Asia/Riyadh",
   ];
   const formats = ["dd/MM/yyyy", "MM/dd/yyyy", "yyyy-MM-dd"] as const;
-  const currencies = ["DZD", "EUR", "USD", "GBP", "MAD", "TND", "SAR", "AED"];
+  const currencies = ["IRR", "DZD", "EUR", "USD", "GBP", "MAD", "TND", "SAR", "AED"];
 
-  const handleLocaleChange = (code: "en" | "fr" | "ar") => {
+  const handleLocaleChange = (code: "en" | "fr" | "ar" | "fa") => {
     updateLocal({ locale: code });
     document.documentElement.lang = code;
-    document.documentElement.dir = code === "ar" ? "rtl" : "ltr";
+    document.documentElement.dir = (code === "ar" || code === "fa") ? "rtl" : "ltr";
   };
 
   return (
@@ -425,14 +426,14 @@ function LocalizationTab({ prefs, update, localPrefs, updateLocal }: LibraryTabP
                   : "border-transparent bg-[#122222]/[0.03] dark:bg-[#ffffff]/[0.03]"
               } hover:brightness-90 hover:scale-[0.98] active:scale-[1.02] active:brightness-110`}
             >
-              <div className="text-[18px] mb-2">{lang.code === "en" ? "🇬🇧" : lang.code === "fr" ? "🇫🇷" : "🇩🇿"}</div>
+              <div className="text-[18px] mb-2">{lang.code === "fa" ? "🇮🇷" : lang.code === "en" ? "🇬🇧" : lang.code === "fr" ? "🇫🇷" : "🇩🇿"}</div>
               <div className="font-bold text-[13px] text-[#122222] dark:text-white">{lang.label}</div>
               <div className="text-[11px] text-[#122222]/50 dark:text-white/50">{lang.native}</div>
               {localPrefs.locale === lang.code && <div className="mt-2 flex items-center gap-1 text-[11px] font-bold text-[#b96f3e]"><CheckCircle2 size={12} /> {t("status.active", "Active")}</div>}
             </button>
           ))}
         </div>
-        {localPrefs.locale === "ar" && (
+        {(localPrefs.locale === "ar" || localPrefs.locale === "fa") && (
           <div className="mt-4 p-3 rounded-lg bg-[#b96f3e]/10 border border-[#b96f3e]/20 flex items-start gap-2">
             <Info size={14} className="text-[#b96f3e] shrink-0 mt-0.5" />
             <p className="text-[12px] text-[#b96f3e]">{t("settings.localization.rtlTip")}</p>
@@ -932,13 +933,10 @@ function DatabaseTab() {
   const [resetting, setResetting] = useState(false);
   const { settings: librarySettings } = useLibrarySettingsStore();
 
-  // Guard against VITE_SUPABASE_URL being undefined — a bare `.replace` here would throw and crash
-  // the whole Database tab render.
-  const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL as string | undefined) ?? "";
   const stats = [
     { label: t("settings.database.infoName"), value: librarySettings.library_name },
-    { label: t("settings.database.infoEngine"), value: "Supabase (Postgres)" },
-    { label: t("settings.database.infoLocation"), value: supabaseUrl ? supabaseUrl.replace("https://", "") : "—" },
+    { label: t("settings.database.infoEngine"), value: "SQLite (آفلاین محلی)" },
+    { label: t("settings.database.infoLocation"), value: "%APPDATA%\\ir.ketabyar.library\\ketabyar.db" },
   ];
 
   const handleClearLoans = async () => {
@@ -946,9 +944,9 @@ function DatabaseTab() {
     if (!confirmed) return;
     setClearingLoans(true);
     try {
-      const { supabase } = await import("../data/supabaseClient");
-      const { error } = await supabase.from("loans").delete().not("id", "is", null);
-      if (error) throw error;
+      const { exec } = await import("../data/localDb");
+      await exec(`DELETE FROM loans`);
+      await exec(`UPDATE copies SET status = 'available', updated_at = datetime('now') WHERE status = 'on-loan'`);
       alert(t("settings.database.clearLoansSuccess"));
     } catch (err) {
       console.error("Clear loans failed", err);

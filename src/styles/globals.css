@@ -26,7 +26,8 @@
 
 html { font-family: "Manrope", sans-serif; background: #F9F8F4; font-size: var(--font-size-base); }
 html.dark { background: #111d1a; }
-html[dir="rtl"] { font-family: "IBM Plex Sans Arabic", "Manrope", sans-serif; }
+html[dir="rtl"] { font-family: "Vazirmatn", "IBM Plex Sans Arabic", "Manrope", sans-serif; }
+html[dir="rtl"] .font-display { font-family: "Vazirmatn", "IBM Plex Sans Arabic", "Manrope", ui-sans-serif, sans-serif; }
 body { margin: 0; min-width: 900px; color: #122222; font-size: var(--font-size-base); }
 button, input, select, textarea { font: inherit; }
 button { cursor: pointer; }

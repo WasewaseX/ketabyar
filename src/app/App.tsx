@@ -35,10 +35,10 @@ function Failure({ error }: { error: unknown }) {
     setTimeout(() => setCopied(false), 2000);
   };
   return (
-    <main className="grid min-h-screen place-items-center bg-[#111d1a] p-6 text-[#f9f8f4]">
+    <main className="grid min-h-screen place-items-center bg-[#111d1a] p-6 text-[#f9f8f4]" dir="rtl">
       <div className="max-w-lg rounded-2xl bg-[#f9f8f4] p-6 text-[#122222]">
-        <h1 className="font-display text-2xl font-bold">Warraq could not start</h1>
-        <p className="mt-3 text-sm">Warraq could not reach its Supabase database. Check your internet connection, confirm the VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY settings, and try again.</p>
+        <h1 className="font-display text-2xl font-bold">کتابیار راه‌اندازی نشد</h1>
+        <p className="mt-3 text-sm">پایگاه‌دادهٔ محلی باز نشد. دسترسی دیسک را بررسی کنید و دوباره تلاش کنید.</p>
         <pre className="mt-4 overflow-auto rounded-lg bg-black/5 p-3 text-xs font-mono">{String(error)}</pre>
         <div className="flex items-center gap-3 mt-5">
           <button
@@ -68,10 +68,10 @@ function TrayListener() {
     let unlistenSearch: (() => void) | undefined;
 
     const setupListeners = async () => {
-      unlistenNavigate = await listen<string>("warraq://navigate", (event) => {
+      unlistenNavigate = await listen<string>("ketabyar://navigate", (event) => {
         navigate(event.payload);
       });
-      unlistenSearch = await listen("warraq://quick-search", () => {
+      unlistenSearch = await listen("ketabyar://quick-search", () => {
         setPaletteOpen(true);
       });
     };
@@ -185,10 +185,10 @@ function Boot() {
 
           {/* App Name and Subtitle */}
           <h2 className="font-display text-[20px] font-bold text-white tracking-[.15em] leading-none uppercase">
-            Warraq
+            کتابیار
           </h2>
           <p className="text-[10px] text-[#b96f3e] tracking-[0.25em] font-bold uppercase mt-2">
-            Library Engine
+            مدیریت کتابخانه
           </p>
 
           {/* Progress Bar Container */}

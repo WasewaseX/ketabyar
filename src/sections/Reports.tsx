@@ -6,7 +6,7 @@ import {
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
 
 import { dashboard, loans } from "../data/repositories/library";
-import { supabase, unwrap } from "../data/supabaseClient";
+import { select } from "../data/localDb";
 import { daysLate } from "../utils/dates";
 import { useMemo, useRef, useState } from "react";
 import { captureChart, waitForChartsToSettle } from "../utils/chartCapture";
@@ -49,10 +49,14 @@ export function ReportsPage() {
   const categoriesQuery = useQuery({
     queryKey: ["report-categories"],
     queryFn: async () => {
-      const rows = unwrap<{ copies: { books: { categories: { name: string } | null } | null } | null }[]>(
-        await supabase.from("loans").select("copies(books(categories(name)))")
+      const rows = await select<{ name: string | null; n: number }>(
+        `SELECT cat.name AS name, COUNT(*) AS n FROM loans l
+         JOIN copies c ON c.id = l.copy_id
+         JOIN books b ON b.id = c.book_id
+         LEFT JOIN categories cat ON cat.id = b.category_id
+         GROUP BY cat.name ORDER BY n DESC`
       );
-      return countBy(rows.map((r) => r.copies?.books?.categories?.name), "General Collection")
+      return countBy(rows.map((r) => r.name), "General Collection")
         .slice(0, 6)
         .map((c) => ({ name: c.name, value: c.count }));
     }
@@ -61,15 +65,15 @@ export function ReportsPage() {
   const conditionQuery = useQuery({
     queryKey: ["report-conditions"],
     queryFn: async () => {
-      const rows = unwrap<{ condition: string }[]>(await supabase.from("copies").select("condition").neq("status", "archived"));
-      return countBy(rows.map((r) => r.condition), "good").map((c) => ({ condition: c.name, count: c.count }));
+      const rows = await select<{ condition: string; n: number }>(`SELECT condition, COUNT(*) AS n FROM copies WHERE status != 'archived' GROUP BY condition`);
+      return rows.map((r) => ({ condition: r.condition, count: r.n }));
     }
   });
 
   const memberRolesQuery = useQuery({
     queryKey: ["report-member-roles"],
     queryFn: async () => {
-      const rows = unwrap<{ role: string | null }[]>(await supabase.from("members").select("role").neq("status", "archived"));
+      const rows = await select<{ role: string | null; n: number }>(`SELECT role, COUNT(*) AS n FROM members WHERE archived_at IS NULL GROUP BY role`);
       return countBy(rows.map((r) => r.role), "Member").map((c) => ({ role: c.name, count: c.count }));
     }
   });
@@ -77,15 +81,15 @@ export function ReportsPage() {
   const copyStatusQuery = useQuery({
     queryKey: ["report-copy-status"],
     queryFn: async () => {
-      const rows = unwrap<{ status: string }[]>(await supabase.from("copies").select("status"));
-      return countBy(rows.map((r) => r.status), "available").map((c) => ({ status: c.name, count: c.count }));
+      const rows = await select<{ status: string; n: number }>(`SELECT status, COUNT(*) AS n FROM copies GROUP BY status`);
+      return rows.map((r) => ({ status: r.status, count: r.n }));
     }
   });
 
   const itemTypesQuery = useQuery({
     queryKey: ["report-item-types"],
     queryFn: async () => {
-      const rows = unwrap<{ item_type: string | null }[]>(await supabase.from("books").select("item_type").is("archived_at", null));
+      const rows = await select<{ item_type: string | null; n: number }>(`SELECT item_type, COUNT(*) AS n FROM books WHERE archived_at IS NULL GROUP BY item_type`);
       return countBy(rows.map((r) => r.item_type), "book").map((c) => ({ item_type: c.name, count: c.count }));
     }
   });
@@ -95,15 +99,14 @@ export function ReportsPage() {
   const inventoryCategoriesQuery = useQuery({
     queryKey: ["report-inventory-categories"],
     queryFn: async () => {
-      const rows = unwrap<any[]>(
-        await supabase.from("copies").select("books(categories(name))").neq("status", "archived")
+      const rows = await select<{ name: string | null; n: number }>(
+        `SELECT cat.name AS name, COUNT(*) AS n FROM copies c
+         JOIN books b ON b.id = c.book_id
+         LEFT JOIN categories cat ON cat.id = b.category_id
+         WHERE c.status != 'archived'
+         GROUP BY cat.name ORDER BY n DESC`
       );
-      const nameOf = (r: any): string | null => {
-        const book = Array.isArray(r?.books) ? r.books[0] : r?.books;
-        const cat = book && (Array.isArray(book.categories) ? book.categories[0] : book.categories);
-        return cat?.name ?? null;
-      };
-      return countBy(rows.map(nameOf), "General Collection")
+      return countBy(rows.map((r) => r.name), "General Collection")
         .slice(0, 6)
         .map((c) => ({ name: c.name, value: c.count }));
     }
@@ -113,7 +116,7 @@ export function ReportsPage() {
   const memberStatusQuery = useQuery({
     queryKey: ["report-member-status"],
     queryFn: async () => {
-      const rows = unwrap<{ status: string | null }[]>(await supabase.from("members").select("status").is("archived_at", null));
+      const rows = await select<{ status: string | null; n: number }>(`SELECT status, COUNT(*) AS n FROM members WHERE archived_at IS NULL GROUP BY status`);
       return countBy(rows.map((r) => r.status), "active").map((c) => ({ status: c.name, count: c.count }));
     }
   });
@@ -122,17 +125,10 @@ export function ReportsPage() {
   const memberJoinsQuery = useQuery({
     queryKey: ["report-member-joins"],
     queryFn: async () => {
-      const rows = unwrap<{ joined_at: string | null }[]>(await supabase.from("members").select("joined_at").is("archived_at", null));
-      const counts = new Map<string, number>();
-      for (const r of rows) {
-        if (!r.joined_at) continue;
-        const month = r.joined_at.slice(0, 7); // YYYY-MM
-        counts.set(month, (counts.get(month) ?? 0) + 1);
-      }
-      return [...counts.entries()]
-        .sort((a, b) => a[0].localeCompare(b[0]))
-        .slice(-12)
-        .map(([month, count]) => ({ month, count }));
+      const rows = await select<{ month: string; n: number }>(
+        `SELECT SUBSTR(joined_at, 1, 7) AS month, COUNT(*) AS n FROM members WHERE archived_at IS NULL GROUP BY month ORDER BY month`
+      );
+      return rows.slice(-12).map((r) => ({ month: r.month, count: r.n }));
     }
   });
 

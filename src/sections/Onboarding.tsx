@@ -11,8 +11,8 @@ export function OnboardingPage() {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
 
-  const [libName, setLibName] = useState("Mustapha Bacha Hospital Library");
-  const [locale, setLocale] = useState<"en" | "fr" | "ar">("en");
+  const [libName, setLibName] = useState("کتابخانه مرکزی دانشگاه");
+  const [locale, setLocale] = useState<"en" | "fr" | "ar" | "fa">("fa");
   const [theme, setTheme] = useState<"light" | "dark" | "system">("light");
 
   const handleComplete = async () => {
@@ -21,7 +21,7 @@ export function OnboardingPage() {
 
     // Set system language and directionality
     document.documentElement.lang = locale;
-    document.documentElement.dir = locale === "ar" ? "rtl" : "ltr";
+    document.documentElement.dir = (locale === "ar" || locale === "fa") ? "rtl" : "ltr";
 
     navigate("/dashboard");
   };
@@ -69,14 +69,15 @@ export function OnboardingPage() {
               <select 
                 value={locale}
                 onChange={(e) => {
-                  const val = e.target.value as "en" | "fr" | "ar";
+                  const val = e.target.value as "en" | "fr" | "ar" | "fa";
                   setLocale(val);
                   i18n.changeLanguage(val);
                   document.documentElement.lang = val;
-                  document.documentElement.dir = val === "ar" ? "rtl" : "ltr";
+                  document.documentElement.dir = (val === "ar" || val === "fa") ? "rtl" : "ltr";
                 }}
                 className="field-select text-[13px] py-3 px-4 mt-1.5 font-semibold"
               >
+                <option value="fa">فارسی (FA)</option>
                 <option value="en">English (EN)</option>
                 <option value="fr">Français (FR)</option>
                 <option value="ar">العربية (AR)</option>

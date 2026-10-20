@@ -1,11 +1,11 @@
 <!doctype html>
-<html lang="en">
+<html lang="fa" dir="rtl">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/brand/warraq-symbol.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="light dark" />
-    <title>Warraq — Library Management System</title>
+    <title>کتابیار — مدیریت کتابخانه</title>
     <script>
       // Applies theme/accent/font-size/direction from saved preferences before
       // the first paint, so the app never flashes the light theme (or LTR
@@ -34,9 +34,9 @@
           var fontSize = prefs.fontSize === "small" ? "13px" : prefs.fontSize === "large" ? "17px" : "15px";
           document.documentElement.style.setProperty("--font-size-base", fontSize);
 
-          var locale = prefs.locale || "en";
+          var locale = prefs.locale || "fa";
           document.documentElement.lang = locale;
-          document.documentElement.dir = locale === "ar" ? "rtl" : "ltr";
+          document.documentElement.dir = (locale === "ar" || locale === "fa") ? "rtl" : "ltr";
         } catch (e) {}
       })();
     </script>

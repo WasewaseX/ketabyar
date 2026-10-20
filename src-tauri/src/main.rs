@@ -2,5 +2,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    warraq_lib::run()
+    ketabyar_lib::run()
 }

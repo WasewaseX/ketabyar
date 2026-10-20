@@ -21,11 +21,9 @@ src-tauri/target/
 
 # Lock files
 pnpm-lock.yaml
-package-lock.json
 yarn.lock
 bun.lockb
-Cargo.lock
-**/Cargo.lock
+# NOTE: package-lock.json and Cargo.lock ARE committed (reproducible CI builds)
 
 # Environment variables & secrets
 .env

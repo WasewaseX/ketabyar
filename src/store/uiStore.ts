@@ -3,7 +3,7 @@ import type { Preferences } from "../types";
 
 const defaults: Preferences = {
   onboardingComplete: false,
-  locale: "en",
+  locale: "fa",
   theme: "light",
   accentColor: "#1a4d40",
   fontSize: "medium",

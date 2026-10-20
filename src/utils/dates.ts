@@ -34,6 +34,19 @@ export const formatDisplayDate = (dateInput: string | Date | null | undefined): 
   } catch {}
 
   try {
+    // Persian locale renders the Solar Hijri (Jalali) calendar with Persian digits natively.
+    if (locale === "fa") {
+      const faFormat = new Intl.DateTimeFormat("fa-IR", {
+        timeZone: tz,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      });
+      return faFormat.format(date);
+    }
     const formatter = new Intl.DateTimeFormat(locale === "ar" ? "ar-DZ" : locale === "fr" ? "fr-FR" : "en-US", {
       timeZone: tz,
       year: "numeric",

@@ -1,22 +1,16 @@
-import { supabase } from "./supabaseClient";
+import { ensureSchema } from "./schema";
+import { seedIfEmpty } from "./seed";
 import { sweepReservations } from "./repositories/library";
 
 /**
- * Verifies the Supabase connection is reachable, expires ready holds whose pickup window has
- * passed, and promotes any reservation queue that became stale outside of a return (e.g. a
- * fresh copy added directly onto the shelf).
- * Throws if the project is unreachable, which the Boot screen in App.tsx surfaces as a
- * blocking "no connection" state — this app is online-only, there is no local fallback.
+ * Boot sequence for the fully-offline local database:
+ *   1. open SQLite + apply the idempotent schema (tables, indexes, views, settings row)
+ *   2. seed Persian university demo data the first time the library is empty
+ *   3. sweep expired holds / promote the reservation queue
+ * Throws only if the local database itself cannot be opened (e.g. disk error).
  */
 export async function initializeDatabase(): Promise<void> {
-  // books is publicly readable (see migration 0004_rls.sql), so this succeeds whether or
-  // not the user is signed in yet — it only proves the project is reachable.
-  const { error } = await supabase.from("books").select("id").limit(1);
-  if (error) {
-    throw new Error(`Could not reach the Warraq database. Check your internet connection and try again. (${error.message})`);
-  }
-  const { data: session } = await supabase.auth.getSession();
-  if (session.session) {
-    await sweepReservations();
-  }
+  await ensureSchema();
+  await seedIfEmpty();
+  await sweepReservations();
 }
