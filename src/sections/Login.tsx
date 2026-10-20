@@ -6,7 +6,7 @@ import { useAuthStore } from "../store/authStore";
 
 /**
  * KetabYar sign-in — a simple shared-PIN gate (easy for any librarian).
- * The default first-run PIN is ۱۲۳۴; change it later in Settings → حساب شما.
+ * The default first-run PIN is ۶۷۶۷; change it later in Settings → حساب شما.
  */
 
 function Shell({ children }: { children: React.ReactNode }) {
@@ -126,7 +126,7 @@ export function LoginPage() {
 
         <div className="mt-6 flex items-center gap-2 text-[11px] text-[#122222]/45 dark:text-white/45">
           <ShieldCheck size={13} />
-          <span>پین پیش‌فرض: ۱۲۳۴ — بعداً از تنظیمات عوضش کنید</span>
+          <span>پین پیش‌فرض: ۶۷۶۷ — بعداً از تنظیمات عوضش کنید</span>
         </div>
       </div>
     </Shell>

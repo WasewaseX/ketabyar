@@ -44,7 +44,7 @@ jobs:
         with:
           tagName: v__VERSION__
           releaseName: 'KetabYar v__VERSION__'
-          releaseBody: 'کتابیار — مدیریت کتابخانه دانشگاه (آفلاین). نصب‌کنندهٔ ویندوز را از بخش Assets دانلود کنید. | Download the Windows installer from Assets. Default PIN: 1234'
+          releaseBody: 'کتابیار — مدیریت کتابخانه دانشگاه (آفلاین). نصب‌کنندهٔ ویندوز را از بخش Assets دانلود کنید. | Download the Windows installer from Assets. Default PIN: 6767'
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.settings.args }}

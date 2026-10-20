@@ -38,8 +38,8 @@ export function OnboardingPage() {
             <img src="/brand/warraq-symbol-cream.png" className="h-8 w-8 object-contain" alt="" />
           </div>
           <div>
-            <strong className="block text-[18px] font-bold text-[#122222] dark:text-white tracking-widest uppercase font-display">WARRAQ</strong>
-            <span className="text-[11px] text-[#122222]/50 dark:text-white/50 tracking-wider uppercase font-semibold">Library Management System</span>
+            <strong className="block text-[18px] font-bold text-[#122222] dark:text-white tracking-widest uppercase font-display">KETABYAR</strong>
+            <span className="text-[11px] text-[#122222]/50 dark:text-white/50 tracking-wider uppercase font-semibold">University Library Management</span>
           </div>
         </div>
         

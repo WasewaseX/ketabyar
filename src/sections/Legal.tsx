@@ -20,47 +20,47 @@ interface LegalDoc {
   sections: LegalSection[];
 }
 
-const OWNER = "MANAA Mohaned";
-const INSTITUTION = "Mustapha Pacha University Hospital Center (CHU Mustapha Pacha), Algiers";
 const YEAR = "2026";
+const UPSTREAM = "Warraq";
+const UPSTREAM_URL = "https://github.com/mohaneddz/Warraq";
 
 function buildDocs(): Record<string, LegalDoc> {
   const terms: LegalDoc = {
     key: "terms",
     title: "Terms of Service",
-    subtitle: "The conditions governing your use of Warraq.",
+    subtitle: "The conditions governing your use of KetabYar.",
     icon: FileText,
     sections: [
       {
         heading: "1. Grant of use",
         body: [
-          `Warraq is proprietary software owned by ${OWNER}. It is provided free of charge for the exclusive use of the ${INSTITUTION} and its authorized library staff.`,
-          "No fee is charged to the hospital for operating the software within its own library.",
+          `KetabYar is offline library-management software. Subject to the license accompanying your copy, you may install and use it on your own computers to operate your library.`,
+          "Each copy is licensed for use by the institution that obtained it and its authorized library staff.",
         ],
       },
       {
         heading: "2. Restrictions",
         body: [
-          "You may NOT copy, redistribute, sublicense, sell, rent, publish, or otherwise make the software available to any other institution, organization, or individual outside the hospital named above without the prior, explicit, written permission of the owner.",
+          "You may NOT copy, redistribute, sublicense, sell, rent, publish, or otherwise make the software available to third parties except as permitted by the license accompanying your copy and applicable law.",  
           "You may not remove or alter any copyright, branding, or authorship notices.",
         ],
       },
       {
         heading: "3. Legal consequences",
         body: [
-          "Any distribution, reproduction, or commercial exploitation of Warraq without the owner's written permission constitutes a breach of these terms and an infringement of intellectual-property rights, and will result in legal consequences.",
+          "Any distribution, reproduction, or commercial exploitation of KetabYar beyond the granted license constitutes a breach of these terms and an infringement of intellectual-property rights, and may result in legal consequences.",
         ],
       },
       {
         heading: "4. Data responsibility",
         body: [
-          "The hospital is responsible for the library data it enters and for maintaining its own backups. The software is provided \"as is\", without warranty of any kind, to the extent permitted by applicable law.",
+          "Your institution is responsible for the library data it enters and for maintaining its own backups. The software is provided \"as is\", without warranty of any kind, to the extent permitted by applicable law.",
         ],
       },
       {
         heading: "5. Contact",
         body: [
-          "For permissions, licensing beyond the hospital, or any question about these terms, contact the owner at https://mohaned.space/.",
+          "For permissions, licensing, or any question about these terms, contact your KetabYar distributor or the upstream project at " + UPSTREAM_URL + "/.",
         ],
       },
     ],
@@ -69,31 +69,31 @@ function buildDocs(): Record<string, LegalDoc> {
   const privacy: LegalDoc = {
     key: "privacy",
     title: "Privacy Policy",
-    subtitle: "How Warraq handles the data you store in it.",
+    subtitle: "How KetabYar handles the data you store in it.",
     icon: ShieldCheck,
     sections: [
       {
         heading: "1. What data is stored",
         body: [
-          "Warraq stores the library records you enter: catalogue items, members, loans, reservations, shelves, and audit logs. This data is held in the hospital's own Supabase database.",
+          "KetabYar stores the library records you enter: catalogue items, members, loans, reservations, shelves, and audit logs. All of this data is kept in a local SQLite database on this computer.",
         ],
       },
       {
         heading: "2. Where it lives",
         body: [
-          "Your library data stays within the database configured for this installation. The desktop application reads and writes to that database only; it does not send your library data to the software owner.",
+          "Your library data never leaves this machine. KetabYar is fully offline: it reads and writes only to the local database on this computer and does not send your library data to any server or to the software publisher.",
         ],
       },
       {
         heading: "3. Third-party lookups",
         body: [
-          "When you enrich a catalogue record, the title or ISBN you look up is sent to the external metadata providers you enable (Google Books, Open Library, and Groq). Only the search query is shared, never your members' personal data.",
+          "When you enrich a catalogue record, the title or ISBN you look up is sent to the external metadata providers you enable (Google Books, Open Library, Library of Congress, and Crossref). Only the search query is shared, never your members' personal data.",
         ],
       },
       {
         heading: "4. Personal data of members",
         body: [
-          "Member names, contact details, and borrowing history are used solely to operate the library. They are never sold or shared with third parties. Handle this data in accordance with the hospital's own data-protection obligations.",
+          "Member names, contact details, and borrowing history are used solely to operate the library. They are never sold or shared with third parties. Handle this data in accordance with your institution's own data-protection obligations.",
         ],
       },
       {
@@ -108,19 +108,19 @@ function buildDocs(): Record<string, LegalDoc> {
   const licenses: LegalDoc = {
     key: "licenses",
     title: "Open Source Licenses",
-    subtitle: "The software Warraq is built with.",
+    subtitle: "The software KetabYar is built with.",
     icon: Scale,
     sections: [
       {
-        heading: "Warraq license",
+        heading: "KetabYar license",
         body: [
-          `Warraq itself is proprietary software © ${YEAR} ${OWNER}. All rights reserved. It is licensed free of charge to the ${INSTITUTION} only (see Terms of Service).`,
+          `KetabYar is built on the open-source ${UPSTREAM} project (© Warraq Contributors, PolyForm Noncommercial License 1.0.0) with substantial additional modifications. See the LICENSE file that ships with the application for details.`,
         ],
       },
       {
         heading: "Bundled open-source components",
         body: [
-          "Warraq gratefully builds on open-source projects, each under its own license:",
+          "KetabYar gratefully builds on open-source projects, each under its own license:",
           "• React: MIT License",
           "• Tauri: MIT / Apache-2.0",
           "• Vite: MIT License",
@@ -128,7 +128,8 @@ function buildDocs(): Record<string, LegalDoc> {
           "• TanStack Query: MIT License",
           "• Recharts: MIT License",
           "• lucide-react (icons): ISC License",
-          "• Supabase JS: MIT License",
+          "• @tauri-apps/plugin-sql (local SQLite): MIT License",
+          "• Vazirmatn font: SIL Open Font License 1.1",
           "• i18next / react-i18next: MIT License",
           "• Zustand: MIT License",
           "• PapaParse: MIT License",
@@ -207,7 +208,7 @@ export function LegalPage() {
           </section>
         ))}
         <p className="text-[11px] text-[#122222]/40 dark:text-white/40 pt-4 border-t border-black/5 dark:border-white/5">
-          © {YEAR} Warraq, {OWNER}. Licensed free of charge to the {INSTITUTION} only.
+          © {YEAR} KetabYar — built on open-source software. All rights reserved by their respective owners.
         </p>
       </div>
     </div>

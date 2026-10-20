@@ -34,10 +34,10 @@ export async function getLoginAccounts(): Promise<LoginAccount[]> {
   return [{ username: LOCAL_ACTOR.username, full_name: LOCAL_ACTOR.full_name, role: "admin", avatar_path: null }];
 }
 
-/** Creates the default PIN (1234) on first boot if none has been set yet. */
+/** Creates the default PIN (6767) on first boot if none has been set yet. */
 export async function bootstrapAdminIfNeeded(): Promise<boolean> {
   if (await hasPin()) return false;
-  await setPin("1234");
+  await setPin("6767");
   return true;
 }
 

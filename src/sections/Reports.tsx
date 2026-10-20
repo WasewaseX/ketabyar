@@ -212,7 +212,7 @@ export function ReportsPage() {
         label: t("reports.copySummary", "Copy Stat Summary"),
         icon: Copy,
         onClick: () => {
-          const summaryText = `Warraq Library Reports Summary:\nTitles: ${stats.totalTitles}\nCopies: ${stats.totalCopies}\nTotal Loans: ${stats.totalLoans}\nActive Members: ${stats.activeMembers}\nOverdue Rate: ${stats.overdueRate}`;
+          const summaryText = `KetabYar Library Reports Summary:\nTitles: ${stats.totalTitles}\nCopies: ${stats.totalCopies}\nTotal Loans: ${stats.totalLoans}\nActive Members: ${stats.activeMembers}\nOverdue Rate: ${stats.overdueRate}`;
           navigator.clipboard.writeText(summaryText);
           toast.success(t("reports.copiedSummary", "Stat summary copied to clipboard"));
         },
