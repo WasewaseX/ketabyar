@@ -1,0 +1,215 @@
+@import "tailwindcss";
+
+@variant dark (&:where(.dark, .dark *));
+
+/*
+ * KetabYar design system.
+ * Tokens first: the accent pair is user-selectable (AppShell writes the CSS
+ * variables), everything else derives from the ivory / ink / copper trio.
+ */
+@theme {
+  --color-ivory: #faf8f3;
+  --color-ink: #17211f;
+  --color-copper: #c06b3e;
+  /* Runtime-overridable: AppShell + index.html write --color-accent(-dark)
+     from the operator's accent preference; utilities reference the vars. */
+  --color-accent: #1a4d40;
+  --color-accent-dark: #1b9277;
+  --font-display: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --radius-card: 14px;
+  --radius-control: 10px;
+  --shadow-card: 0 1px 2px rgba(23, 33, 31, 0.06), 0 8px 24px rgba(23, 33, 31, 0.06);
+}
+
+:root {
+  --font-size-base: 15px;
+}
+
+* { box-sizing: border-box; }
+
+html {
+  font-family: "Manrope", sans-serif;
+  background: #faf8f3;
+  font-size: var(--font-size-base);
+}
+html.dark { background: #101a17; }
+html[dir="rtl"] {
+  font-family: "Vazirmatn", "IBM Plex Sans Arabic", "Manrope", sans-serif;
+}
+html[dir="rtl"] .font-display {
+  font-family: "Vazirmatn", "IBM Plex Sans Arabic", "Manrope", ui-sans-serif, sans-serif;
+}
+
+body {
+  margin: 0;
+  min-width: 900px;
+  color: #17211f;
+  font-size: var(--font-size-base);
+}
+
+button, input, select, textarea { font: inherit; }
+button { cursor: pointer; }
+
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, [tabindex]:focus-visible {
+  outline: 2px solid var(--color-copper);
+  outline-offset: 2px;
+}
+
+label {
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+/* ── Form field primitives ─────────────────────────────────────────── */
+.field-input, .field-select {
+  width: 100%;
+  border: 1px solid rgba(23, 33, 31, 0.15);
+  border-radius: var(--radius-control);
+  background: #ffffff;
+  padding: 0.5rem 0.75rem;
+  color: #17211f;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.field-input:focus, .field-select:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(26, 77, 64, 0.12);
+}
+.dark .field-input, .dark .field-select {
+  background: #1b2723;
+  border-color: rgba(250, 248, 243, 0.18);
+  color: #faf8f3;
+}
+.dark .field-input:focus, .dark .field-select:focus {
+  border-color: var(--color-accent-dark);
+  box-shadow: 0 0 0 3px rgba(27, 146, 119, 0.16);
+}
+
+/* ── Custom checkbox / radio ───────────────────────────────────────── */
+input[type="checkbox"], input[type="radio"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background-color: #ffffff;
+  margin: 0;
+  font: inherit;
+  color: var(--color-accent);
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 1.5px solid rgba(23, 33, 31, 0.3);
+  border-radius: 6px;
+  display: inline-grid;
+  place-content: center;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  vertical-align: middle;
+}
+.dark input[type="checkbox"], .dark input[type="radio"] {
+  background-color: #1b2723;
+  border-color: rgba(250, 248, 243, 0.3);
+  color: var(--color-accent-dark);
+}
+input[type="radio"] { border-radius: 50%; }
+
+input[type="checkbox"]::before {
+  content: "";
+  width: 0.65rem;
+  height: 0.65rem;
+  clip-path: polygon(14% 44%, 0 58%, 33% 90%, 100% 16%, 86% 2%, 33% 62%);
+  transform: scale(0);
+  transition: transform 0.12s ease-in-out;
+  background-color: #ffffff;
+}
+input[type="radio"]::before {
+  content: "";
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  transform: scale(0);
+  transition: transform 0.12s ease-in-out;
+  background-color: #ffffff;
+}
+input[type="checkbox"]:checked, input[type="radio"]:checked {
+  background-color: var(--color-accent);
+  border-color: var(--color-accent);
+}
+.dark input[type="checkbox"]:checked, .dark input[type="radio"]:checked {
+  background-color: var(--color-accent-dark);
+  border-color: var(--color-accent-dark);
+}
+input[type="checkbox"]:checked::before, input[type="radio"]:checked::before { transform: scale(1); }
+input[type="checkbox"]:hover, input[type="radio"]:hover {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(26, 77, 64, 0.12);
+}
+
+/* ── Selection, scrollbars, autofill ───────────────────────────────── */
+::selection { background-color: rgba(192, 107, 62, 0.22); color: #17211f; }
+.dark ::selection { background-color: rgba(192, 107, 62, 0.35); color: #faf8f3; }
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(26, 77, 64, 0.22);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-copper);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+.dark ::-webkit-scrollbar-thumb { background: rgba(27, 146, 119, 0.28); }
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(26, 77, 64, 0.22) transparent;
+}
+.dark * { scrollbar-color: rgba(27, 146, 119, 0.28) transparent; }
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+input:-webkit-autofill, input:-webkit-autofill:hover, input:-webkit-autofill:focus, input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px #ffffff inset !important;
+  -webkit-text-fill-color: #17211f !important;
+}
+.dark input:-webkit-autofill, .dark input:-webkit-autofill:hover, .dark input:-webkit-autofill:focus, .dark input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px #1b2723 inset !important;
+  -webkit-text-fill-color: #faf8f3 !important;
+}
+
+.shadow-card { box-shadow: var(--shadow-card); }
+
+/* ── Theme transition + motion safety ──────────────────────────────── */
+html, body, main, .app-workspace, aside, header, input, select, textarea, button {
+  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease;
+}
+aside {
+  transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Subtle paper grain, applied behind main content. */
+.app-texture {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  user-select: none;
+  z-index: 0;
+  opacity: 0.03;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grain)'/%3E%3C/svg%3E");
+}
+.dark .app-texture { opacity: 0.014; mix-blend-mode: overlay; }

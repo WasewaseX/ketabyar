@@ -1,0 +1,55 @@
+# Logs
+logs
+*.log
+.playwright-cli/
+*.tmp
+*.temp
+*.bak
+screenshots/members.png
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Build outputs & dependencies
+node_modules
+dist
+release/
+dist-ssr
+target/
+src-tauri/target/
+
+# Lock files
+pnpm-lock.yaml
+yarn.lock
+bun.lockb
+# NOTE: package-lock.json and Cargo.lock ARE committed (reproducible CI builds)
+
+# Environment variables & secrets
+.env
+.env.*
+*.env
+*.local
+!.env.example
+
+# Editor & IDE directories
+.vscode
+.vscode/
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.fleet
+.zed
+
+# Testing & Playwright
+playwright-report/
+test-results/
+.playwright/
+coverage/
+
+
+documents/

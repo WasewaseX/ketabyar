@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/brand/ketabyar-symbol.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <title>کتابیار — مدیریت کتابخانه</title>
+    <script>
+      // Applies theme / accent / font size / direction from saved preferences
+      // before first paint, so the app never flashes the wrong theme or LTR
+      // layout while React mounts.
+      (function () {
+        try {
+          var raw = localStorage.getItem("ketabyar-preferences");
+          var prefs = raw ? JSON.parse(raw) : {};
+
+          var theme = prefs.theme || "light";
+          var isDark = theme === "dark" || (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+          document.documentElement.classList.toggle("dark", isDark);
+
+          var accent = prefs.accentColor || "#1a4d40";
+          var darkAccents = {
+            "#1a4d40": "#1b9277",
+            "#c06b3e": "#d98d5f",
+            "#2f5d8a": "#4d7fb3",
+            "#6d3fa8": "#9058f3",
+            "#b23244": "#e35353",
+            "#0f6e9c": "#38a4db"
+          };
+          document.documentElement.style.setProperty("--color-accent", accent);
+          document.documentElement.style.setProperty("--color-accent-dark", darkAccents[accent] || accent);
+
+          var fontSize = prefs.fontSize === "small" ? "13px" : prefs.fontSize === "large" ? "17px" : "15px";
+          document.documentElement.style.setProperty("--font-size-base", fontSize);
+
+          document.documentElement.lang = "fa";
+          document.documentElement.dir = "rtl";
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

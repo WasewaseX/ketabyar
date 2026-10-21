@@ -1,0 +1,50 @@
+name: Release KetabYar (Windows .exe)
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  publish:
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        settings:
+          - platform: windows-latest
+            args: ''
+    runs-on: ${{ matrix.settings.platform }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build and release
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: v__VERSION__
+          releaseName: 'KetabYar v__VERSION__'
+          releaseBody: 'کتابیار v1.0.3 — بازنویسی کامل و اصیل تحت مجوز MIT (آفلاین، فارسی، راست‌به‌چپ). نصب‌کنندهٔ ویندوز را از بخش Assets دانلود کنید. | KetabYar v1.0.3 — fully rewritten, MIT-licensed (offline, Persian, RTL). Download the Windows installer from Assets. Default PIN: 6767'
+          releaseDraft: false
+          prerelease: false
+          args: ${{ matrix.settings.args }}
