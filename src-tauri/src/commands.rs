@@ -334,3 +334,82 @@ pub fn settings_get(state: State<'_, DbState>) -> Cmd<LibrarySettings> {
 pub fn settings_save(state: State<'_, DbState>, values: Json, actor: Option<String>) -> Cmd<()> {
     with_db(&state, |conn| ketabyar_core::repo::save_library_settings(conn, &resolve_actor(actor), &values))
 }
+
+// ─────────────────────────────── Reports & maintenance ───────────────────────────────
+
+/// Aggregate GROUP BY breakdowns for the Reports page — one command replaces
+/// the nine ad-hoc SQL round-trips. Label is '' where the source column is
+/// NULL, mirroring the TS edition's COALESCE behaviour.
+#[tauri::command]
+pub fn report_breakdowns(state: State<'_, DbState>) -> Cmd<Json> {
+    with_db(&state, |conn| {
+        let loan_categories = ketabyar_core::select(
+            conn,
+            "SELECT COALESCE(cat.name, '') AS label, COUNT(*) AS n \
+             FROM loans l JOIN copies c ON c.id = l.copy_id JOIN books b ON b.id = c.book_id \
+             LEFT JOIN categories cat ON cat.id = b.category_id GROUP BY cat.name",
+            &[],
+        )?;
+        let copy_conditions = ketabyar_core::select(
+            conn,
+            "SELECT condition AS label, COUNT(*) AS n FROM copies WHERE status != 'archived' GROUP BY condition",
+            &[],
+        )?;
+        let member_roles = ketabyar_core::select(
+            conn,
+            "SELECT COALESCE(role, '') AS label, COUNT(*) AS n FROM members WHERE archived_at IS NULL GROUP BY role",
+            &[],
+        )?;
+        let copy_statuses = ketabyar_core::select(
+            conn,
+            "SELECT status AS label, COUNT(*) AS n FROM copies GROUP BY status",
+            &[],
+        )?;
+        let item_types = ketabyar_core::select(
+            conn,
+            "SELECT COALESCE(item_type, '') AS label, COUNT(*) AS n FROM books WHERE archived_at IS NULL GROUP BY item_type",
+            &[],
+        )?;
+        let inventory_categories = ketabyar_core::select(
+            conn,
+            "SELECT COALESCE(cat.name, '') AS label, COUNT(*) AS n \
+             FROM copies c JOIN books b ON b.id = c.book_id LEFT JOIN categories cat ON cat.id = b.category_id \
+             WHERE c.status != 'archived' GROUP BY cat.name",
+            &[],
+        )?;
+        let member_statuses = ketabyar_core::select(
+            conn,
+            "SELECT COALESCE(status, '') AS label, COUNT(*) AS n FROM members GROUP BY status",
+            &[],
+        )?;
+        let member_joins = ketabyar_core::select(
+            conn,
+            "SELECT SUBSTR(joined_at, 1, 7) AS label, COUNT(*) AS n FROM members \
+             GROUP BY SUBSTR(joined_at, 1, 7) ORDER BY SUBSTR(joined_at, 1, 7) ASC",
+            &[],
+        )?;
+        Ok(serde_json::json!({
+            "loanCategories": loan_categories,
+            "copyConditions": copy_conditions,
+            "memberRoles": member_roles,
+            "copyStatuses": copy_statuses,
+            "itemTypes": item_types,
+            "inventoryCategories": inventory_categories,
+            "memberStatuses": member_statuses,
+            "memberJoins": member_joins,
+        }))
+    })
+}
+
+/// Settings → Database "clear loans": frees every on-loan copy, then deletes
+/// all fines and loans. Catalog and membership data are untouched.
+#[tauri::command]
+pub fn clear_circulation(state: State<'_, DbState>, actor: Option<String>) -> Cmd<()> {
+    with_db(&state, |conn| {
+        let _ = resolve_actor(actor);
+        ketabyar_core::exec(conn, "UPDATE copies SET status = 'available' WHERE status = 'on-loan'", &[])?;
+        ketabyar_core::exec(conn, "DELETE FROM fines", &[])?;
+        ketabyar_core::exec(conn, "DELETE FROM loans", &[])?;
+        Ok(())
+    })
+}

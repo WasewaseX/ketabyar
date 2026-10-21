@@ -10,8 +10,7 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { listUsers, resetPassword } from "../data/auth";
 import { changeOwnPassword } from "../data/auth";
-import { deleteAllLibraryData, exportLibraryBackup, importLibraryBackup } from "../data/repositories/library";
-import { exec } from "../data/localDb";
+import { deleteAllLibraryData, exportLibraryBackup, importLibraryBackup, activeBackend, clearCirculation } from "../data/repositories/library";
 import { books as fetchBooks } from "../data/repositories/library";
 import { useAuthStore } from "../store/authStore";
 import { useLibrarySettingsStore } from "../store/librarySettingsStore";
@@ -605,9 +604,7 @@ function DatabaseTab() {
   const clearLoans = async () => {
     if (!window.confirm(t("settings.database.clearLoansConfirm", "Delete ALL loans (open and returned)? Copies return to the shelves."))) return;
     try {
-      await exec(`UPDATE copies SET status = 'available' WHERE status = 'on-loan'`);
-      await exec(`DELETE FROM fines`);
-      await exec(`DELETE FROM loans`);
+      await clearCirculation();
       window.alert(t("settings.database.clearLoansSuccess", "Loan history cleared."));
     } catch (error) {
       window.alert(t("settings.database.clearLoansFailed", "Could not clear loans: {{message}}", { message: String(error) }));
@@ -905,6 +902,9 @@ function DesktopTab() {
 function AboutTab({ onNavigateLegal }: { onNavigateLegal: (doc: string) => void }) {
   const { t } = useTranslation();
   const [version, setVersion] = useState("1.0.3");
+  const edition = activeBackend === "rust"
+    ? t("settings.about.editionRust", "Rust (موتور بومی ketabyar-core)")
+    : t("settings.about.editionTs", "TypeScript (tauri-plugin-sql در webview)");
 
   useEffect(() => {
     (async () => {
@@ -927,6 +927,7 @@ function AboutTab({ onNavigateLegal }: { onNavigateLegal: (doc: string) => void 
         </div>
         <dl className="mt-4 space-y-2 text-[13px]">
           <div className="flex justify-between"><dt className="text-ink/50 dark:text-ivory/50">{t("settings.about.version", "Version")}</dt><dd className="font-bold">v{version}</dd></div>
+          <div className="flex justify-between"><dt className="text-ink/50 dark:text-ivory/50">{t("settings.about.edition", "Data engine")}</dt><dd className="font-bold">{edition}</dd></div>
           <div className="flex justify-between"><dt className="text-ink/50 dark:text-ivory/50">{t("settings.about.database", "Database")}</dt><dd>SQLite 3</dd></div>
           <div className="flex justify-between"><dt className="text-ink/50 dark:text-ivory/50">{t("settings.about.platform", "Platform")}</dt><dd>Windows · Tauri 2</dd></div>
         </dl>

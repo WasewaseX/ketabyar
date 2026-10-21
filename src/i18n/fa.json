@@ -1601,7 +1601,10 @@
       "engineering": "طراحی و مهندسی",
       "fonts": "قلم‌ها",
       "icons": "آیکن‌ها",
-      "tagline": "مدیریت کتابخانهٔ دانشگاه — آفلاین، فارسی، راست‌به‌چپ"
+      "tagline": "مدیریت کتابخانهٔ دانشگاه — آفلاین، فارسی، راست‌به‌چپ",
+      "edition": "موتور داده",
+      "editionRust": "Rust (موتور بومی ketabyar-core)",
+      "editionTs": "TypeScript (tauri-plugin-sql در webview)"
     },
     "help": {
       "tipsTitle": "نکته‌های سودمند",

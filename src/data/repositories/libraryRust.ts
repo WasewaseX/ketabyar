@@ -265,3 +265,29 @@ export async function getLibrarySettings(): Promise<LibrarySettings> {
 export async function saveLibrarySettings(values: Partial<LibrarySettings>): Promise<void> {
   await invoke("settings_save", { values, ...withActor() });
 }
+
+// ─────────────────────────────── Reports & maintenance ───────────────────────────────
+
+export interface BreakdownRow {
+  label: string;
+  n: number;
+}
+
+export interface ReportBreakdowns {
+  loanCategories: BreakdownRow[];
+  copyConditions: BreakdownRow[];
+  memberRoles: BreakdownRow[];
+  copyStatuses: BreakdownRow[];
+  itemTypes: BreakdownRow[];
+  inventoryCategories: BreakdownRow[];
+  memberStatuses: BreakdownRow[];
+  memberJoins: BreakdownRow[];
+}
+
+export async function reportBreakdowns(): Promise<ReportBreakdowns> {
+  return invoke<ReportBreakdowns>("report_breakdowns");
+}
+
+export async function clearCirculation(): Promise<void> {
+  await invoke("clear_circulation", { ...withActor() });
+}

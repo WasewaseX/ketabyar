@@ -9,6 +9,39 @@ to [Semantic Versioning](https://semver.org/).
 > KetabYar is a clean-room rewrite licensed under **MIT**. See
 > [NOTICE.md](NOTICE.md) for the full history.
 
+## [1.1.2] — 2026-10-21
+
+### Fixed
+- **The Rust edition now actually runs the Rust engine.** A packaging bug in
+  `build:rust` (`cross-env VITE_KETABYAR_BACKEND=rust tsc && vite build`)
+  passed the backend flag to the TypeScript compiler only — the Vite build
+  ran without it, so every "KetabYarRust" installer published in **1.0.3 and
+  1.1.1 silently contained the TypeScript engine** with a different product
+  name (the two installers differed by ~300 bytes). The flag now propagates
+  to the frontend build; the shipped Rust bundle contains the native
+  `ketabyar-core` commands and tree-shakes the webview SQL engine. Verified
+  by marker inspection of both production bundles.
+- **Login could appear dead on physical keyboards.** The PIN field is
+  visually hidden and was never auto-focused, so typing ۶۷۶۷ before clicking
+  the page did nothing. The login screen now focuses the field on mount and
+  handles digits/Backspace/Enter at window level, with Persian (۶) and
+  Arabic-Indic (٦) digit layouts normalised to ASCII. On-screen keypad
+  behaviour is unchanged.
+
+### Changed
+- Reports aggregates (9 GROUP BY queries) and the "clear loans" action moved
+  from ad-hoc SQL into the repository layer (`reportBreakdowns`,
+  `clearCirculation`) so both editions execute them through their own engine;
+  two new `ketabyar-core` commands back the Rust edition. Sections no longer
+  import the SQL layer directly.
+- Settings → About now shows the active **data engine** (TypeScript webview
+  SQL vs native ketabyar-core), so the edition is verifiable in-app.
+
+> ⚠️ Correction to earlier entries: the "Rust Edition" installers attached to
+> 1.0.3 and 1.1.1 ran the TypeScript engine due to the packaging bug above.
+> Their *binaries* registered the native commands, but the bundled frontend
+> never called them. From 1.1.2 the Rust edition is genuinely native.
+
 ## [1.1.1] — 2026-10-21
 
 ### Changed

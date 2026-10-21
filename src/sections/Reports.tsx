@@ -9,8 +9,7 @@ import {
 } from "recharts";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { dashboard, loans } from "../data/repositories/library";
-import { select } from "../data/localDb";
+import { dashboard, loans, reportBreakdowns } from "../data/repositories/library";
 import { useLibrarySettingsStore } from "../store/librarySettingsStore";
 import { useUiStore } from "../store/uiStore";
 import { useContextMenu } from "../components/ui/ContextMenu";
@@ -54,55 +53,27 @@ export function ReportsPage() {
   const dashQuery = useQuery({ queryKey: ["dashboard-reports"], queryFn: dashboard });
   const loansQuery = useQuery({ queryKey: ["loans-reports"], queryFn: () => loans(false) });
 
-  const categoriesQuery = useQuery({
-    queryKey: ["report-categories"],
-    queryFn: () =>
-      select<{ category: string | null; n: number }>(
-        `SELECT cat.name AS category, COUNT(*) AS n FROM loans l JOIN copies c ON c.id = l.copy_id JOIN books b ON b.id = c.book_id LEFT JOIN categories cat ON cat.id = b.category_id GROUP BY cat.name`,
-      ).then((rows) => countBy(rows.map((row) => row.category), t("catalog.uncategorized", "Uncategorized")).slice(0, 6)),
-  });
-  const conditionsQuery = useQuery({
-    queryKey: ["report-conditions"],
-    queryFn: () => select<{ condition: string; n: number }>(`SELECT condition, COUNT(*) AS n FROM copies WHERE status != 'archived' GROUP BY condition`),
-  });
-  const rolesQuery = useQuery({
-    queryKey: ["report-member-roles"],
-    queryFn: () =>
-      select<{ role: string | null; n: number }>(`SELECT role, COUNT(*) AS n FROM members WHERE archived_at IS NULL GROUP BY role`)
-        .then((rows) => countBy(rows.map((row) => row.role), t("members.roles.other", "Member"))),
-  });
-  const copyStatusQuery = useQuery({
-    queryKey: ["report-copy-status"],
-    queryFn: () => select<{ status: string; n: number }>(`SELECT status, COUNT(*) AS n FROM copies GROUP BY status`),
-  });
-  const itemTypesQuery = useQuery({
-    queryKey: ["report-item-types"],
-    queryFn: () =>
-      select<{ item_type: string | null; n: number }>(`SELECT item_type, COUNT(*) AS n FROM books WHERE archived_at IS NULL GROUP BY item_type`)
-        .then((rows) => countBy(rows.map((row) => row.item_type), "book")),
-  });
-  const inventoryCategoriesQuery = useQuery({
-    queryKey: ["report-inventory-categories"],
-    queryFn: () =>
-      select<{ category: string | null; n: number }>(
-        `SELECT cat.name AS category, COUNT(*) AS n FROM copies c JOIN books b ON b.id = c.book_id LEFT JOIN categories cat ON cat.id = b.category_id WHERE c.status != 'archived' GROUP BY cat.name`,
-      ).then((rows) => countBy(rows.map((row) => row.category), t("catalog.uncategorized", "Uncategorized")).slice(0, 6)),
-  });
-  const memberStatusQuery = useQuery({
-    queryKey: ["report-member-status"],
-    queryFn: () =>
-      select<{ status: string | null; n: number }>(`SELECT status, COUNT(*) AS n FROM members GROUP BY status`)
-        .then((rows) => countBy(rows.map((row) => row.status), "active")),
-  });
-  const memberJoinsQuery = useQuery({
-    queryKey: ["report-member-joins"],
-    queryFn: async () => {
-      const rows = await select<{ month: string; n: number }>(
-        `SELECT SUBSTR(joined_at, 1, 7) AS month, COUNT(*) AS n FROM members GROUP BY month ORDER BY month ASC`,
-      );
-      return rows.slice(-12).map((row) => ({ name: row.month, joins: row.n }));
-    },
-  });
+  // All GROUP BY aggregates arrive in one repository round-trip.
+  const breakdownsQuery = useQuery({ queryKey: ["report-breakdowns"], queryFn: reportBreakdowns });
+  const bd = breakdownsQuery.data;
+
+  const categoriesData = useMemo(
+    () => countBy((bd?.loanCategories ?? []).map((row) => row.label), t("catalog.uncategorized", "Uncategorized")).slice(0, 6),
+    [bd, t],
+  );
+  const conditionsData = bd?.copyConditions ?? [];
+  const rolesData = useMemo(
+    () => countBy((bd?.memberRoles ?? []).map((row) => row.label), t("members.roles.other", "Member")),
+    [bd, t],
+  );
+  const copyStatusData = bd?.copyStatuses ?? [];
+  const itemTypesData = useMemo(() => countBy((bd?.itemTypes ?? []).map((row) => row.label), "book"), [bd]);
+  const inventoryCategoriesData = useMemo(
+    () => countBy((bd?.inventoryCategories ?? []).map((row) => row.label), t("catalog.uncategorized", "Uncategorized")).slice(0, 6),
+    [bd, t],
+  );
+  const memberStatusData = useMemo(() => countBy((bd?.memberStatuses ?? []).map((row) => row.label), "active"), [bd]);
+  const memberJoinsData = (bd?.memberJoins ?? []).slice(-12).map((row) => ({ name: row.label, joins: row.n }));
 
   const [activeTab, setActiveTab] = useState<TabId>("overview");
   const [range, setRange] = useState<"7d" | "30d" | "1y" | "all">("30d");
@@ -167,13 +138,13 @@ export function ReportsPage() {
       [
         { name: "summary.csv", columns: ["Metric", "Value"], rows: kpis.map((kpi) => [kpi.label, kpi.value]) },
         { name: "circulation-trend.csv", columns: [t("reports.columns.day", "Day"), t("reports.columns.circulation", "Circulation")], rows: trendData.map((point) => [point.name, point.circulation]) },
-        { name: "top-categories.csv", columns: [t("reports.columns.category", "Category"), t("reports.columns.loans", "Loans")], rows: (categoriesQuery.data ?? []).map((row) => [row.name, row.value]) },
-        { name: "copy-status.csv", columns: [t("reports.columns.status", "Status"), t("reports.columns.count", "Count")], rows: (copyStatusQuery.data ?? []).map((row) => [statusLabel(row.status), row.n]) },
-        { name: "condition-health.csv", columns: [t("reports.columns.condition", "Condition"), t("reports.columns.copies", "Copies")], rows: (conditionsQuery.data ?? []).map((row) => [conditionLabel(row.condition), row.n]) },
-        { name: "media-types.csv", columns: [t("reports.columns.type", "Type"), t("reports.columns.count", "Count")], rows: (itemTypesQuery.data ?? []).map((row) => [row.name, row.value]) },
-        { name: "members-by-role.csv", columns: [t("reports.columns.role", "Role"), t("reports.columns.count", "Count")], rows: (rolesQuery.data ?? []).map((row) => [roleLabel(row.name), row.value]) },
-        { name: "member-status.csv", columns: [t("reports.columns.status", "Status"), t("reports.columns.count", "Count")], rows: (memberStatusQuery.data ?? []).map((row) => [memberStatusLabel(row.name), row.value]) },
-        { name: "new-members-over-time.csv", columns: [t("reports.columns.month", "Month"), t("reports.columns.count", "Count")], rows: (memberJoinsQuery.data ?? []).map((row) => [row.name, row.joins]) },
+        { name: "top-categories.csv", columns: [t("reports.columns.category", "Category"), t("reports.columns.loans", "Loans")], rows: categoriesData.map((row) => [row.name, row.value]) },
+        { name: "copy-status.csv", columns: [t("reports.columns.status", "Status"), t("reports.columns.count", "Count")], rows: copyStatusData.map((row) => [statusLabel(row.label), row.n]) },
+        { name: "condition-health.csv", columns: [t("reports.columns.condition", "Condition"), t("reports.columns.copies", "Copies")], rows: conditionsData.map((row) => [conditionLabel(row.label), row.n]) },
+        { name: "media-types.csv", columns: [t("reports.columns.type", "Type"), t("reports.columns.count", "Count")], rows: itemTypesData.map((row) => [row.name, row.value]) },
+        { name: "members-by-role.csv", columns: [t("reports.columns.role", "Role"), t("reports.columns.count", "Count")], rows: rolesData.map((row) => [roleLabel(row.name), row.value]) },
+        { name: "member-status.csv", columns: [t("reports.columns.status", "Status"), t("reports.columns.count", "Count")], rows: memberStatusData.map((row) => [memberStatusLabel(row.name), row.value]) },
+        { name: "new-members-over-time.csv", columns: [t("reports.columns.month", "Month"), t("reports.columns.count", "Count")], rows: memberJoinsData.map((row) => [row.name, row.joins]) },
         { name: "peak-circulation-hours.csv", columns: [t("reports.columns.time", "Time"), t("reports.columns.checkouts", "Checkouts"), t("reports.columns.returns", "Returns")], rows: rhythm.map((slot) => [slot.time, slot.checkouts, slot.returns]) },
       ],
       t("reports.csvExportedNamed", "Report exported: {{filename}}", { filename: `ketabyar-library-report-${stamp}.zip` }),
@@ -232,7 +203,7 @@ export function ReportsPage() {
     <div
       onContextMenu={(event) =>
         showContextMenu(event, [
-          { id: "refresh", label: t("reports.refreshReports", "Refresh reports"), icon: RefreshCw, onClick: () => { void dashQuery.refetch(); void loansQuery.refetch(); void categoriesQuery.refetch(); void conditionsQuery.refetch(); void rolesQuery.refetch(); void copyStatusQuery.refetch(); void itemTypesQuery.refetch(); void inventoryCategoriesQuery.refetch(); void memberStatusQuery.refetch(); void memberJoinsQuery.refetch(); toast.success(t("reports.refreshed", "Reports refreshed")); } },
+          { id: "refresh", label: t("reports.refreshReports", "Refresh reports"), icon: RefreshCw, onClick: () => { void dashQuery.refetch(); void loansQuery.refetch(); void breakdownsQuery.refetch(); toast.success(t("reports.refreshed", "Reports refreshed")); } },
           { id: "pdf", label: t("reports.printReport", "Export PDF report"), icon: Printer, onClick: () => void exportPdf() },
           { id: "summary", label: t("reports.copySummary", "Copy stat summary"), icon: Copy, onClick: () => { void navigator.clipboard.writeText(`KetabYar Library Reports Summary:\nTitles: ${dashQuery.data?.titles ?? 0}\nCopies: ${dashQuery.data?.copies ?? 0}\nTotal Loans: ${allLoans.length}\nActive Members: ${dashQuery.data?.members ?? 0}\nOverdue Rate: ${overdueRate}`); toast.success(t("reports.copiedSummary", "Summary copied to clipboard")); } },
         ], { title: t("reports.title", "Reports") })
@@ -326,7 +297,7 @@ export function ReportsPage() {
 
                 <ChartWidget refKey="topCategories" title={t("reports.charts.topCategories", "Most-borrowed categories")} refs={chartRefs}>
                   <ResponsiveContainer width="100%" height={220}>
-                    <BarChart data={categoriesQuery.data ?? []} layout="vertical">
+                    <BarChart data={categoriesData} layout="vertical">
                       <XAxis type="number" hide />
                       <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 11, fill: "currentColor", opacity: 0.7 }} axisLine={false} tickLine={false} />
                       <Tooltip contentStyle={tooltipStyle} />
@@ -383,7 +354,7 @@ export function ReportsPage() {
 
                 <ChartWidget refKey="mediaTypeDist" title={t("reports.charts.mediaTypeDist", "Loans by media type")} refs={chartRefs}>
                   <ResponsiveContainer width="100%" height={220}>
-                    <BarChart data={itemTypesQuery.data ?? []}>
+                    <BarChart data={itemTypesData}>
                       <XAxis dataKey="name" tick={{ fontSize: 11, fill: "currentColor", opacity: 0.6 }} axisLine={false} tickLine={false} />
                       <Tooltip contentStyle={tooltipStyle} />
                       <Bar dataKey="value" fill="#c06b3e" radius={[6, 6, 0, 0]} barSize={28} />
@@ -429,7 +400,7 @@ export function ReportsPage() {
               <>
                 <ChartWidget refKey="copyStatusDist" title={t("reports.charts.copyStatusDist", "Copy status distribution")} refs={chartRefs}>
                   <ResponsiveContainer width="100%" height={220}>
-                    <BarChart data={(copyStatusQuery.data ?? []).map((row) => ({ name: statusLabel(row.status), value: row.n }))}>
+                    <BarChart data={copyStatusData.map((row) => ({ name: statusLabel(row.label), value: row.n }))}>
                       <XAxis dataKey="name" tick={{ fontSize: 11, fill: "currentColor", opacity: 0.6 }} axisLine={false} tickLine={false} />
                       <Tooltip contentStyle={tooltipStyle} />
                       <Bar dataKey="value" fill="var(--color-accent)" radius={[6, 6, 0, 0]} barSize={26} />
@@ -439,7 +410,7 @@ export function ReportsPage() {
 
                 <ChartWidget refKey="conditionHealth" title={t("reports.charts.conditionHealth", "Condition health")} refs={chartRefs}>
                   <ResponsiveContainer width="100%" height={220}>
-                    <BarChart data={(conditionsQuery.data ?? []).map((row) => ({ name: conditionLabel(row.condition), value: row.n }))}>
+                    <BarChart data={conditionsData.map((row) => ({ name: conditionLabel(row.label), value: row.n }))}>
                       <XAxis dataKey="name" tick={{ fontSize: 11, fill: "currentColor", opacity: 0.6 }} axisLine={false} tickLine={false} />
                       <Tooltip contentStyle={tooltipStyle} />
                       <Bar dataKey="value" fill="#c06b3e" radius={[6, 6, 0, 0]} barSize={26} />
@@ -449,7 +420,7 @@ export function ReportsPage() {
 
                 <ChartWidget refKey="categoryShare" title={t("reports.charts.categoryShare", "Inventory by category")} refs={chartRefs}>
                   <ResponsiveContainer width="100%" height={220}>
-                    <BarChart data={inventoryCategoriesQuery.data ?? []} layout="vertical">
+                    <BarChart data={inventoryCategoriesData} layout="vertical">
                       <XAxis type="number" hide />
                       <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 11, fill: "currentColor", opacity: 0.7 }} axisLine={false} tickLine={false} />
                       <Tooltip contentStyle={tooltipStyle} />
@@ -460,7 +431,7 @@ export function ReportsPage() {
 
                 <ChartWidget refKey="formatHoldingsCount" title={t("reports.charts.formatHoldingsCount", "Holdings by format")} refs={chartRefs}>
                   <ResponsiveContainer width="100%" height={220}>
-                    <BarChart data={itemTypesQuery.data ?? []}>
+                    <BarChart data={itemTypesData}>
                       <XAxis dataKey="name" tick={{ fontSize: 11, fill: "currentColor", opacity: 0.6 }} axisLine={false} tickLine={false} />
                       <Tooltip contentStyle={tooltipStyle} />
                       <Bar dataKey="value" fill="#6d3fa8" radius={[6, 6, 0, 0]} barSize={28} />
@@ -474,7 +445,7 @@ export function ReportsPage() {
               <>
                 <ChartWidget refKey="membersByRole" title={t("reports.charts.membersByRole", "Members by role")} refs={chartRefs}>
                   <ResponsiveContainer width="100%" height={220}>
-                    <BarChart data={(rolesQuery.data ?? []).map((row) => ({ name: roleLabel(row.name), value: row.value }))}>
+                    <BarChart data={(rolesData).map((row) => ({ name: roleLabel(row.name), value: row.value }))}>
                       <XAxis dataKey="name" tick={{ fontSize: 11, fill: "currentColor", opacity: 0.6 }} axisLine={false} tickLine={false} />
                       <Tooltip contentStyle={tooltipStyle} />
                       <Bar dataKey="value" fill="var(--color-accent)" radius={[6, 6, 0, 0]} barSize={26} />
@@ -496,8 +467,8 @@ export function ReportsPage() {
                 <ChartWidget refKey="memberStatus" title={t("reports.charts.memberStatus", "Member status")} refs={chartRefs}>
                   <ResponsiveContainer width="100%" height={220}>
                     <PieChart>
-                      <Pie data={(memberStatusQuery.data ?? []).map((row) => ({ name: memberStatusLabel(row.name), value: row.value }))} innerRadius={45} outerRadius={80} paddingAngle={2} dataKey="value" nameKey="name">
-                        {(memberStatusQuery.data ?? []).map((_entry, index) => <Cell key={index} fill={PIE_COLORS[index % PIE_COLORS.length]} stroke="none" />)}
+                      <Pie data={memberStatusData.map((row) => ({ name: memberStatusLabel(row.name), value: row.value }))} innerRadius={45} outerRadius={80} paddingAngle={2} dataKey="value" nameKey="name">
+                        {memberStatusData.map((_entry, index) => <Cell key={index} fill={PIE_COLORS[index % PIE_COLORS.length]} stroke="none" />)}
                       </Pie>
                       <Legend iconType="circle" wrapperStyle={{ fontSize: 11 }} />
                       <Tooltip contentStyle={tooltipStyle} />
@@ -507,7 +478,7 @@ export function ReportsPage() {
 
                 <ChartWidget refKey="memberJoins" title={t("reports.charts.memberJoins", "New members over time")} refs={chartRefs}>
                   <ResponsiveContainer width="100%" height={220}>
-                    <AreaChart data={memberJoinsQuery.data ?? []}>
+                    <AreaChart data={memberJoinsData}>
                       <defs>
                         <linearGradient id="gradJoins" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="0%" stopColor="#1b9277" stopOpacity={0.4} />

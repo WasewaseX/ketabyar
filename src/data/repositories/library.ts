@@ -98,5 +98,9 @@ export const deleteAllLibraryData = impl.deleteAllLibraryData;
 export const getLibrarySettings = impl.getLibrarySettings;
 export const saveLibrarySettings = impl.saveLibrarySettings;
 
+// ── Reports & maintenance ──
+export const reportBreakdowns = impl.reportBreakdowns;
+export const clearCirculation = impl.clearCirculation;
+
 // Shared shapes (single source of truth lives in the SQL module).
 export type { FineRow, LibraryBackup } from "./librarySql";

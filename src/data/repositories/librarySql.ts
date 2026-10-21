@@ -994,3 +994,62 @@ export async function saveLibrarySettings(values: Partial<LibrarySettings>): Pro
   await exec(`UPDATE library_settings SET ${columns}, updated_at = ? WHERE id = 1`, [...assignable.map(([, value]) => value), timestamp()]);
 }
 
+
+/* ═════════════════════════ Reports & maintenance ═══════════════════════ */
+
+/** One GROUP BY aggregate row (label is '' where the source column is NULL). */
+export interface BreakdownRow {
+  label: string;
+  n: number;
+}
+
+/** Every aggregate the Reports page charts, fetched in a single round-trip. */
+export interface ReportBreakdowns {
+  loanCategories: BreakdownRow[];
+  copyConditions: BreakdownRow[];
+  memberRoles: BreakdownRow[];
+  copyStatuses: BreakdownRow[];
+  itemTypes: BreakdownRow[];
+  inventoryCategories: BreakdownRow[];
+  memberStatuses: BreakdownRow[];
+  memberJoins: BreakdownRow[];
+}
+
+export async function reportBreakdowns(): Promise<ReportBreakdowns> {
+  const [loanCategories, copyConditions, memberRoles, copyStatuses, itemTypes, inventoryCategories, memberStatuses, memberJoins] =
+    await Promise.all([
+      select<BreakdownRow>(
+        `SELECT COALESCE(cat.name, '') AS label, COUNT(*) AS n
+         FROM loans l JOIN copies c ON c.id = l.copy_id JOIN books b ON b.id = c.book_id
+         LEFT JOIN categories cat ON cat.id = b.category_id GROUP BY cat.name`,
+      ),
+      select<BreakdownRow>(
+        `SELECT condition AS label, COUNT(*) AS n FROM copies WHERE status != 'archived' GROUP BY condition`,
+      ),
+      select<BreakdownRow>(
+        `SELECT COALESCE(role, '') AS label, COUNT(*) AS n FROM members WHERE archived_at IS NULL GROUP BY role`,
+      ),
+      select<BreakdownRow>(`SELECT status AS label, COUNT(*) AS n FROM copies GROUP BY status`),
+      select<BreakdownRow>(
+        `SELECT COALESCE(item_type, '') AS label, COUNT(*) AS n FROM books WHERE archived_at IS NULL GROUP BY item_type`,
+      ),
+      select<BreakdownRow>(
+        `SELECT COALESCE(cat.name, '') AS label, COUNT(*) AS n
+         FROM copies c JOIN books b ON b.id = c.book_id LEFT JOIN categories cat ON cat.id = b.category_id
+         WHERE c.status != 'archived' GROUP BY cat.name`,
+      ),
+      select<BreakdownRow>(`SELECT COALESCE(status, '') AS label, COUNT(*) AS n FROM members GROUP BY status`),
+      select<BreakdownRow>(
+        `SELECT SUBSTR(joined_at, 1, 7) AS label, COUNT(*) AS n FROM members
+         GROUP BY SUBSTR(joined_at, 1, 7) ORDER BY SUBSTR(joined_at, 1, 7) ASC`,
+      ),
+    ]);
+  return { loanCategories, copyConditions, memberRoles, copyStatuses, itemTypes, inventoryCategories, memberStatuses, memberJoins };
+}
+
+/** Deletes all circulation history (loans + fines); affected copies return to the shelves. */
+export async function clearCirculation(): Promise<void> {
+  await exec(`UPDATE copies SET status = 'available' WHERE status = 'on-loan'`);
+  await exec(`DELETE FROM fines`);
+  await exec(`DELETE FROM loans`);
+}

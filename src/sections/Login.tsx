@@ -1,5 +1,5 @@
 import { Delete, ShieldCheck } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { changeOwnPassword, login } from "../data/auth";
 import { useAuthStore } from "../store/authStore";
@@ -9,6 +9,8 @@ import type { PublicUser } from "../types";
 /**
  * The shared-PIN gate. A Persian keypad (۰–۹), auto-submit at 4+ digits,
  * and a stored session flag — deliberately simple for a single service desk.
+ * Physical keyboards work regardless of focus (window-level handler) and
+ * Persian/Arabic digit layouts (۶ or ٦) are normalised to ASCII.
  */
 
 function Shell({ children }: { children: React.ReactNode }) {
@@ -24,6 +26,14 @@ function Shell({ children }: { children: React.ReactNode }) {
 }
 
 const PERSIAN_DIGITS = ["۱", "۲", "۳", "۴", "۵", "۶", "۷", "۸", "۹", "۰"];
+
+/** Persian (۰-۹) and Arabic-Indic (٠-٩) digits → ASCII, so every layout works. */
+function toAsciiDigits(value: string): string {
+  return value.replace(/[\u06F0-\u06F9\u0660-\u0669]/g, (ch) => {
+    const code = ch.charCodeAt(0);
+    return String(code >= 0x06f0 ? code - 0x06f0 : code - 0x0660);
+  });
+}
 
 export function LoginPage() {
   const { t } = useTranslation();
@@ -57,6 +67,33 @@ export function LoginPage() {
     setError(null);
     if (next.length >= 4) void submit(next);
   };
+
+  // Focus the (visually hidden) input on mount so soft keyboards appear.
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  // Physical keyboard: handle digits, backspace and Enter even when the
+  // hidden input is not focused — the usual case on first launch.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.target === inputRef.current) return; // the input handles its own keys
+      if (busy || event.ctrlKey || event.metaKey || event.altKey) return;
+      const key = toAsciiDigits(event.key);
+      if (/^[0-9]$/.test(key)) {
+        pressDigit(key);
+        event.preventDefault();
+      } else if (event.key === "Backspace") {
+        setPin((current) => current.slice(0, -1));
+        event.preventDefault();
+      } else if (event.key === "Enter") {
+        void submit(pin);
+        event.preventDefault();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
 
   return (
     <Shell>
@@ -94,7 +131,7 @@ export function LoginPage() {
           inputMode="numeric"
           value={pin}
           onChange={(event) => {
-            const digits = event.target.value.replace(/\D/g, "").slice(0, 8);
+            const digits = toAsciiDigits(event.target.value).replace(/\D/g, "").slice(0, 8);
             setPin(digits);
             setError(null);
             if (digits.length >= 4) void submit(digits);
