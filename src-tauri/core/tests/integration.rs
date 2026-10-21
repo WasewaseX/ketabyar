@@ -720,8 +720,10 @@ fn isbn_and_phone_cleaning_match_ts() {
     assert_eq!(clean_accession(" acc-1 "), "ACC-1");
     assert_eq!(clean_phone("0912 345 6789"), "09123456789");
     assert_eq!(clean_phone("+98 912 345"), "+98912345");
-    assert_eq!(clean_member_number("MB-123"), "123");
+    assert_eq!(clean_member_number("۴۰۲۱۲۳۴۵"), "40212345");
+    assert_eq!(clean_member_number("MB-123"), "MB-123"); // codes stored as typed
     assert_eq!(clean_member_number("abc"), "abc");
+    assert_eq!(clean_member_number("402 123 45"), "40212345");
     assert_eq!(clean_text("  متن  "), "متن");
 }
 
