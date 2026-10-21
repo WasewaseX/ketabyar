@@ -22,10 +22,10 @@ License 1.0.0.
   history is the *product concept* (an offline, Persian, RTL library system),
   not the upstream expression.
 
-From version 1.0.3, commercial use, sale, and derivative work of **KetabYar**
-are permitted under the MIT License. This does not retroactively relicense the
-old Warraq-derived releases (≤ 1.0.2), which remain available only for
-noncommercial use.
+From version 1.0.3 (including 1.1.1 and every later release), commercial use,
+sale, and derivative work of **KetabYar** are permitted under the MIT License.
+This does not retroactively relicense the old Warraq-derived releases
+(≤ 1.0.2 and 1.1.0), which remain available only for noncommercial use.
 
 ## Fonts
 

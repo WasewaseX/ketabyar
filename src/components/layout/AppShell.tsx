@@ -8,8 +8,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { dashboard, notifications as fetchNotifications, reservations } from "../../data/repositories/library";
+import { dashboard, notifications as fetchNotifications, reservations, markNotificationRead } from "../../data/repositories/library";
 import { useAuthStore } from "../../store/authStore";
+import { logout } from "../../data/auth";
 import { useLibrarySettingsStore } from "../../store/librarySettingsStore";
 import { useNotificationsStore } from "../../store/notificationsStore";
 import { PREFERENCES_KEY, useUiStore } from "../../store/uiStore";
@@ -304,7 +305,6 @@ export function AppShell() {
   };
 
   const signOut = async () => {
-    const { logout } = await import("../../data/auth");
     await logout();
     setUser(null);
   };
@@ -488,9 +488,7 @@ export function AppShell() {
                               onClick={() => {
                                 setBellOpen(false);
                                 if (row.isDb) {
-                                  void import("../../data/repositories/library").then(({ markNotificationRead }) =>
-                                    markNotificationRead(row.id).catch(console.error),
-                                  );
+                                  markNotificationRead(row.id).catch(console.error);
                                   void queryClient.invalidateQueries({ queryKey: ["notifications"] });
                                 } else {
                                   markSeen([row.id]);

@@ -1,7 +1,7 @@
 {
   "name": "ketabyar",
   "private": true,
-  "version": "1.0.3",
+  "version": "1.1.1",
   "license": "MIT",
   "type": "module",
   "scripts": {
@@ -9,6 +9,7 @@
     "build": "tsc && vite build",
     "build:rust": "cross-env VITE_KETABYAR_BACKEND=rust tsc && vite build",
     "typecheck": "tsc --noEmit",
+    "check:i18n": "node scripts/check-i18n.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:core": "cargo test --manifest-path src-tauri/core/Cargo.toml",

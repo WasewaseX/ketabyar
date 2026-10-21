@@ -21,6 +21,7 @@ import { SettingsPage } from "../sections/Settings";
 import { LegalPage } from "../sections/Legal";
 import { initializeDatabase } from "../data/database";
 import { bootstrapAdminIfNeeded, currentSession } from "../data/auth";
+import { invoke } from "@tauri-apps/api/core";
 import { useAuthStore } from "../store/authStore";
 import { useLibrarySettingsStore } from "../store/librarySettingsStore";
 import { PREFERENCES_KEY, useUiStore } from "../store/uiStore";
@@ -157,7 +158,6 @@ function Boot() {
         try {
           const raw = localStorage.getItem(PREFERENCES_KEY);
           const prefs = raw ? (JSON.parse(raw) as { closeToTray?: boolean }) : {};
-          const { invoke } = await import("@tauri-apps/api/core");
           await invoke("set_close_to_tray", { enabled: prefs.closeToTray ?? true });
         } catch (warning) {
           console.warn("close-to-tray bootstrap skipped", warning);

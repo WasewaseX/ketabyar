@@ -1,5 +1,10 @@
 # کتابیار — KetabYar
 
+[![CI check (Windows + Linux)](https://github.com/WasewaseX/ketabyar/actions/workflows/ci.yml/badge.svg)](https://github.com/WasewaseX/ketabyar/actions/workflows/ci.yml)
+[![Release](https://github.com/WasewaseX/ketabyar/actions/workflows/release.yml/badge.svg)](https://github.com/WasewaseX/ketabyar/releases)
+[![GitHub release](https://img.shields.io/github/v/release/WasewaseX/ketabyar)](https://github.com/WasewaseX/ketabyar/releases)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
 **سامانهٔ مدیریت کتابخانهٔ دانشگاهی، کاملاً آفلاین، فارسی و راست‌به‌چپ (RTL)**
 
 کتابیار یک برنامهٔ دسکتاپ بومی ویندوز است که با **Tauri 2 + Rust + React + SQLite** ساخته شده و برای کار روزمره هیچ اتصال اینترنتی‌ای لازم ندارد. همهٔ داده‌ها در یک فایل SQLite روی همین رایانه ذخیره می‌شود و هیچ‌وقت از دستگاه خارج نمی‌شود.
@@ -9,7 +14,7 @@
 ## دانلود و نصب (ویندوز)
 
 1. به بخش [Releases](https://github.com/WasewaseX/ketabyar/releases) بروید.
-2. فایل `KetabYar_1.0.3_x64-setup.exe` را دانلود و اجرا کنید (نسخهٔ MSI هم موجود است).
+2. فایل `KetabYar_1.1.1_x64-setup.exe` را دانلود و اجرا کنید (نسخهٔ MSI هم موجود است).
 3. در صورت نیاز، WebView2 به‌طور خودکار نصب می‌شود.
 
 **پین پیش‌فرض ورود: `6767`** — بعد از اولین ورود از مسیر «تنظیمات ← عمومی ← حساب میز» آن را عوض کنید.
@@ -86,6 +91,7 @@ src-tauri/core/   موتور بومی ketabyar-core: models، repo/*، schema، 
 ## مجوز (License)
 
 MIT — متن کامل در [LICENSE](LICENSE). فهرست بسته‌های متن‌باز در
-[THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) و سابقهٔ شفاف پروژه در
-[NOTICE.md](NOTICE.md). قلم‌های Vazirmatn / IBM Plex Sans Arabic / Manrope تحت
-SIL OFL 1.1 همراه برنامه توزیع می‌شوند.
+[THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)، سابقهٔ شفاف پروژه در
+[NOTICE.md](NOTICE.md)، تاریخچهٔ نسخه‌ها در [CHANGELOG.md](CHANGELOG.md) و
+سیاست گزارش آسیب‌پذیری در [SECURITY.md](SECURITY.md). قلم‌های Vazirmatn /
+IBM Plex Sans Arabic / Manrope تحت SIL OFL 1.1 همراه برنامه توزیع می‌شوند.

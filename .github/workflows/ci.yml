@@ -34,6 +34,9 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
+      - name: i18n completeness (t() keys vs fa.json)
+        run: npm run check:i18n
+
       - name: Typecheck
         run: npm run typecheck
 

@@ -23,7 +23,8 @@ src-tauri/target/
 pnpm-lock.yaml
 yarn.lock
 bun.lockb
-# NOTE: package-lock.json and Cargo.lock ARE committed (reproducible CI builds)
+# package-lock.json IS committed (reproducible CI builds).
+# src-tauri/Cargo.lock is ignored (see src-tauri/.gitignore); CI resolves crates per build.
 
 # Environment variables & secrets
 .env

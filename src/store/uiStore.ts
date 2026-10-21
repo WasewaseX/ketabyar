@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { invoke } from "@tauri-apps/api/core";
 import type { Preferences } from "../types";
 
 /**
@@ -59,9 +60,7 @@ export const useUiStore = create<UiState>((set) => ({
         /* storage unavailable */
       }
       if (values.closeToTray !== undefined) {
-        import("@tauri-apps/api/core")
-          .then(({ invoke }) => invoke("set_close_to_tray", { enabled: values.closeToTray }).catch(console.error))
-          .catch(console.error);
+        invoke("set_close_to_tray", { enabled: values.closeToTray }).catch(console.error);
       }
       return { preferences };
     }),

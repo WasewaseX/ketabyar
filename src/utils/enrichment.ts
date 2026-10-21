@@ -1,5 +1,6 @@
 import type { Book } from "../types";
 import { fetchBookMetadata, enrichMetadataWithGroq, downloadCoverAsBase64 } from "./metadata";
+import { updateBook } from "../data/repositories/library";
 
 /**
  * Bulk cataloguing assistant: scans the collection for incomplete records
@@ -78,7 +79,6 @@ export async function enrichAllBooks(
     try {
       const { patch, notes } = await enrichBook(book, opts);
       if (Object.keys(patch).length > 0) {
-        const { updateBook } = await import("../data/repositories/library");
         await updateBook(book.id, patch as Partial<Book>);
         onProgress({ book, status: "success", message: notes.join("; ") || "Record updated" });
       } else {
