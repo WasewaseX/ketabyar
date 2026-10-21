@@ -15,14 +15,13 @@ license = "PolyForm-Noncommercial-1.0.0"
 name = "ketabyar_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
-ketabyar-core = { path = "core" }
-
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 dotenvy = "0.15"
 
 [dependencies]
 tauri = { version = "2", features = ["tray-icon"] }
+ketabyar-core = { path = "core" }
 tauri-plugin-opener = "2"
 tauri-plugin-store = "2"
 tauri-plugin-sql = { version = "2", features = ["sqlite"] }
