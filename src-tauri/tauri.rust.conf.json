@@ -1,0 +1,51 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "KetabYarRust",
+  "version": "1.0.3",
+  "identifier": "ir.ketabyar.library.rust",
+  "build": {
+    "beforeBuildCommand": "npm run build:rust"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "کتابیار Rust | مدیریت کتابخانه دانشگاه",
+        "width": 1280,
+        "height": 820,
+        "minWidth": 900,
+        "minHeight": 620,
+        "decorations": false
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; img-src 'self' asset: data: https:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; connect-src 'self' https://openlibrary.org https://covers.openlibrary.org https://www.googleapis.com https://api.groq.com"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "publisher": "KetabYar",
+    "copyright": "Copyright © 2026 KetabYar",
+    "shortDescription": "کتابیار Rust — مدیریت کتابخانه دانشگاه",
+    "longDescription": "KetabYar Rust Edition: the same offline, Persian RTL university library management app with the data engine running natively in Rust (ketabyar-core / rusqlite) behind Tauri commands, with ts-rs generated TypeScript bindings.",
+    "category": "Education",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.ico",
+      "icons/icon.png"
+    ],
+    "windows": {
+      "webviewInstallMode": {
+        "type": "downloadBootstrapper"
+      },
+      "nsis": {
+        "installMode": "both",
+        "languages": ["English", "Farsi"],
+        "displayLanguageSelector": false
+      }
+    }
+  }
+}

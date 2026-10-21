@@ -9,9 +9,9 @@ KetabYar began in 2025 as a fork of **Warraq** by MANAA Mohaned
 (https://github.com/mohaneddz/Warraq), licensed under the PolyForm Noncommercial
 License 1.0.0.
 
-- **Versions 1.0.0 – 1.0.2** contained code and assets derived from Warraq and
-  therefore remained under the PolyForm Noncommercial 1.0.0 license. Those
-  versions must not be used commercially.
+- **Versions 1.0.0 – 1.0.2 and 1.1.0** contained frontend code and assets
+  derived from Warraq and therefore remained under the PolyForm Noncommercial
+  1.0.0 license. Those versions must not be used commercially.
 - **Version 1.0.3** is a complete clean-room rewrite: the entire application
   layer (React UI, design system, i18n dictionary, data services, Tauri/Rust
   shell) was written from scratch against a functional specification. No code
@@ -41,3 +41,11 @@ redistribution and commercial use.
 
 All runtime and build dependencies are distributed under permissive licenses
 (MIT, Apache-2.0, ISC, BSD). See `THIRD-PARTY-NOTICES.md` for the inventory.
+
+## ketabyar-core (Rust edition engine)
+
+The `src-tauri/core` crate — the native Rust data engine used by the Rust
+edition — is original KetabYar code (MIT), written as a function-by-function
+port of this project's **own** TypeScript data services so both editions stay
+behaviourally identical. Its dependencies (rusqlite, serde, ts-rs, uuid,
+chrono, rand) are MIT / Apache-2.0.

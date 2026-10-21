@@ -7,10 +7,13 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "build:rust": "cross-env VITE_KETABYAR_BACKEND=rust tsc && vite build",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:core": "cargo test --manifest-path src-tauri/core/Cargo.toml",
     "rust:check": "cargo check --manifest-path src-tauri/Cargo.toml",
+    "gen:types": "node scripts/gen_schema_rs.cjs",
     "preview": "vite preview",
     "tauri": "tauri"
   },
@@ -69,6 +72,7 @@
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^6.0.2",
+    "cross-env": "^10.1.0",
     "jsdom": "^29.1.1",
     "tailwindcss": "^4.3.2",
     "typescript": "~6.0.3",

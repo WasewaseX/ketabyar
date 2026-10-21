@@ -53,3 +53,5 @@ coverage/
 
 
 documents/
+# Rust core standalone build artifacts
+src-tauri/core/target/

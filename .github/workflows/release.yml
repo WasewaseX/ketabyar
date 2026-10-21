@@ -1,4 +1,4 @@
-name: Release KetabYar (Windows .exe)
+name: Release KetabYar (both editions, Windows)
 
 on:
   push:
@@ -14,8 +14,12 @@ jobs:
       fail-fast: false
       matrix:
         settings:
+          # TypeScript edition — SQL runs in the webview via tauri-plugin-sql
           - platform: windows-latest
             args: ''
+          # Rust edition — SQL runs natively in ketabyar-core (rusqlite)
+          - platform: windows-latest
+            args: '--config src-tauri/tauri.rust.conf.json'
     runs-on: ${{ matrix.settings.platform }}
     steps:
       - uses: actions/checkout@v4
@@ -32,7 +36,9 @@ jobs:
       - name: Rust cache
         uses: swatinem/rust-cache@v2
         with:
-          workspaces: src-tauri
+          workspaces: |
+            src-tauri
+            src-tauri/core
 
       - name: Install frontend dependencies
         run: npm ci
@@ -44,7 +50,7 @@ jobs:
         with:
           tagName: v__VERSION__
           releaseName: 'KetabYar v__VERSION__'
-          releaseBody: 'کتابیار v1.0.3 — بازنویسی کامل و اصیل تحت مجوز MIT (آفلاین، فارسی، راست‌به‌چپ). نصب‌کنندهٔ ویندوز را از بخش Assets دانلود کنید. | KetabYar v1.0.3 — fully rewritten, MIT-licensed (offline, Persian, RTL). Download the Windows installer from Assets. Default PIN: 6767'
+          releaseBody: 'کتابیار — مدیریت کتابخانهٔ دانشگاه، آفلاین و تحت مجوز MIT. دو نسخه: TS Edition (فایل‌های KetabYar_*) و Rust Edition با موتور بومی ketabyar-core (فایل‌های KetabYarRust_*). | Two editions: TS (KetabYar_*) and Rust with the native ketabyar-core engine (KetabYarRust_*). MIT-licensed. Default PIN: 6767'
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.settings.args }}

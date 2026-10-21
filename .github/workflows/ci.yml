@@ -1,4 +1,4 @@
-name: CI check (Windows)
+name: CI check (Windows + Linux)
 
 on:
   push:
@@ -40,9 +40,34 @@ jobs:
       - name: Unit tests (vitest)
         run: npm test
 
-      - name: Build frontend (TypeScript + Vite)
+      - name: Build frontend — TS edition
         run: npm run build
 
-      - name: Cargo check (Rust)
+      - name: Build frontend — Rust edition
+        run: npm run build:rust
+
+      - name: Cargo check (app crate incl. ketabyar-core)
         run: cargo check
         working-directory: src-tauri
+
+  core-tests:
+    strategy:
+      fail-fast: false
+      matrix:
+        settings:
+          - platform: ubuntu-latest
+    runs-on: ${{ matrix.settings.platform }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri/core
+
+      - name: ketabyar-core integration tests
+        run: cargo test --release
+        working-directory: src-tauri/core

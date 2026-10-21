@@ -47,6 +47,25 @@ npm test               # آزمون‌های واحد (vitest)
 
 پیش‌نیازها: Node 20+، Rust (stable) و روی ویندوز، MSVC Build Tools.
 
+## دو ویرایش، یک برنامه (Two editions)
+
+کتابیار با **دو موتور دادهٔ جایگزین** عرضه می‌شود که API عمومی‌شان دقیقاً یکسان است و انتخاب موتور در زمان ساخت انجام می‌شود:
+
+| ویرایش | موتور | فایل نصب |
+| --- | --- | --- |
+| **TS Edition** | SQL در webview از طریق tauri-plugin-sql | `KetabYar_*-setup.exe` / `.msi` |
+| **Rust Edition** | موتور بومی `ketabyar-core` (rusqlite) پشت Tauri commands + اتصال‌های تولیدشده با ts-rs | `KetabYarRust_*-setup.exe` |
+
+ساخت:
+
+```bash
+npm run build          # ویرایش TS (پیش‌فرض)
+npm run build:rust     # ویرایش Rust
+cargo test --manifest-path src-tauri/core/Cargo.toml   # آزمون‌های یکپارچگی موتور Rust
+```
+
+در منبع، `src/data/repositories/library.ts` دیسپچر است: `librarySql.ts` (ویرایش TS) و `libraryRust.ts` (ویرایش Rust) باید از نظر ساختاری با هم یکسان بمانند — کامپایلر تایپ‌اسکریپت (`typeof SQL`) قرارداد سازگاری را اجرا می‌کند.
+
 ## ساختار پروژه
 
 ```
@@ -55,10 +74,13 @@ src/
   components/     پوستهٔ برنامه، پالت فرمان، اجزای UI و طرح‌های SVG اصلی
   sections/       ۱۳ صفحهٔ برنامه (داشبورد تا تنظیمات)
   data/           لایهٔ SQLite: schema، localDb، سرویس‌های دامنه (۵۲ عملیات)
+  data/repositories/  librarySql.ts + libraryRust.ts + دیسپچر library.ts
+  types/generated/    اتصال‌های تولیدشدهٔ ts-rs از ketabyar-core
   store/          وضعیت سراسری (Zustand)
   i18n/           واژه‌نامهٔ فارسی (تک‌منبع حقیقت رشته‌ها)
   utils/          شابک/بارکد، تاریخ جلالی، خروجی‌ها، PDF، فراداده
 src-tauri/        پوستهٔ Rust: SQLite، system tray، رویدادها، بسته‌بندی
+src-tauri/core/   موتور بومی ketabyar-core: models، repo/*، schema، آزمون‌های یکپارچگی
 ```
 
 ## مجوز (License)
