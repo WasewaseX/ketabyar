@@ -1,10 +1,12 @@
 mod admin;
+mod commands;
 
 use tauri::{Emitter, Manager, WindowEvent};
 use tauri::menu::{MenuBuilder, MenuItemBuilder};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use url::Url;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Mutex;
 use tauri::State;
 
 pub struct TrayConfig(pub AtomicBool);
@@ -100,6 +102,8 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             app.manage(TrayConfig(AtomicBool::new(true)));
+            // Rust edition engine: native SQLite connection shared by all core commands.
+            app.manage(commands::DbState(Mutex::new(commands::init_db(app.handle())?)));
             let salt = app.path().app_local_data_dir()?.join("stronghold.salt");
             app.handle().plugin(tauri_plugin_stronghold::Builder::with_argon2(&salt).build())?;
             install_tray(app)?;
@@ -124,6 +128,25 @@ pub fn run() {
             admin::admin_create_staff,
             admin::admin_reset_password,
             admin::admin_delete_staff,
+            // ketabyar-core engine (Rust edition backend)
+            commands::dashboard,
+            commands::books_list, commands::book_save, commands::book_update, commands::book_delete,
+            commands::copies_for_book, commands::copy_add, commands::copy_update, commands::copy_delete, commands::copies_list,
+            commands::members_list, commands::member_save, commands::member_update, commands::member_delete,
+            commands::member_hard_delete, commands::member_ban, commands::member_unban,
+            commands::loans_list, commands::loans_for_member, commands::reservations_for_member,
+            commands::checkout, commands::return_copies, commands::renew_loan, commands::loan_update_due,
+            commands::sweep_reservations, commands::reservations_list, commands::reservation_add,
+            commands::reservation_accept, commands::reservation_decline, commands::reservation_fulfil,
+            commands::reservation_extend, commands::reservation_update, commands::reservation_cancel, commands::reservation_delete,
+            commands::fines_list, commands::fine_pay, commands::fine_waive,
+            commands::rooms_list, commands::room_create, commands::room_rename, commands::room_delete,
+            commands::columns_list, commands::column_create, commands::column_delete,
+            commands::shelves_list, commands::shelf_create, commands::shelf_update,
+            commands::notifications_list, commands::notification_mark_read, commands::notifications_mark_all,
+            commands::audit_log,
+            commands::backup_export, commands::backup_import, commands::library_wipe,
+            commands::settings_get, commands::settings_save,
         ])
         .run(tauri::generate_context!())
         .expect("error while running KetabYar");

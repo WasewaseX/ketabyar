@@ -33,9 +33,34 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
-      - name: Build frontend (TypeScript + Vite)
+      - name: Build frontend (TypeScript edition)
         run: npm run build
+
+      - name: Build frontend (Rust edition)
+        run: npm run build:rust
 
       - name: Cargo check (Rust)
         run: cargo check
         working-directory: src-tauri
+
+  core:
+    strategy:
+      fail-fast: false
+      matrix:
+        settings:
+          - platform: ubuntu-latest
+    runs-on: ${{ matrix.settings.platform }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri/core
+
+      - name: Test ketabyar-core (SQLite integration suite)
+        run: cargo test
+        working-directory: src-tauri/core

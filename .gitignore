@@ -53,3 +53,6 @@ coverage/
 
 
 documents/
+# Rust core
+src-tauri/core/target/
+src-tauri/core/bindings/

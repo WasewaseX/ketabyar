@@ -9,10 +9,23 @@
 ## دانلود و نصب (ویندوز)
 
 1. به بخش [Releases](https://github.com/WasewaseX/ketabyar/releases) بروید.
-2. فایل `KetabYar_1.0.2_x64-setup.exe` را دانلود و اجرا کنید.
+2. فایل نصب را دانلود و اجرا کنید — `KetabYar_1.1.0_x64-setup.exe` (TS Edition) یا `KetabYarRust_1.1.0_x64-setup.exe` (Rust Edition).
 3. برنامه به‌صورت خودکار نصب می‌شود (در صورت نیاز، WebView2 هم خودکار نصب می‌شود).
 
 **پین پیش‌فرض ورود: `6767`** — بعد از اولین ورود از مسیر «تنظیمات ← عمومی ← حساب شما» آن را عوض کنید.
+
+## دو نسخه (Two Editions)
+
+از نسخهٔ 1.1.0، کتابیار با دو موتور داده منتشر می‌شود — رابط کاربری دقیقاً یکسان است:
+
+| | TS Edition | Rust Edition |
+|---|---|---|
+| نصب‌کننده | `KetabYar_*-setup.exe` + `.msi` | `KetabYarRust_*-setup.exe` |
+| موتور داده | SQL در وب‌ویو (tauri-plugin-sql) | SQL بومی در Rust (`ketabyar-core` / rusqlite) |
+| تایپ‌های مشترک | `src/types` | همان تایپ‌ها + bindings تولیدشده با [ts-rs](https://github.com/Aleph-Alpha/ts-rs) |
+| شناسهٔ برنامه | `ir.ketabyar.library` | `ir.ketabyar.library.rust` (نصب کنار هم ممکن است) |
+
+هر دو نسخه روی یک پایگاه‌دادهٔ SQLite مشترک کار می‌کنند و نسخه‌ها را می‌توان بدون از دست رفتن داده جابه‌جا کرد. موتور Rust با مجموعهٔ کامل تست‌های یکپارچگی SQLite پوشش داده شده (`cargo test` در `src-tauri/core`).
 
 ## امکانات
 

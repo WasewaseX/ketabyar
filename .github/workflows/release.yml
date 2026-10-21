@@ -14,8 +14,12 @@ jobs:
       fail-fast: false
       matrix:
         settings:
+          # TypeScript edition — SQL runs in the webview via tauri-plugin-sql
           - platform: windows-latest
             args: ''
+          # Rust edition — SQL runs natively in ketabyar-core (rusqlite)
+          - platform: windows-latest
+            args: '--config src-tauri/tauri.rust.conf.json'
     runs-on: ${{ matrix.settings.platform }}
     steps:
       - uses: actions/checkout@v4
@@ -44,7 +48,7 @@ jobs:
         with:
           tagName: v__VERSION__
           releaseName: 'KetabYar v__VERSION__'
-          releaseBody: 'کتابیار — مدیریت کتابخانه دانشگاه (آفلاین). نصب‌کنندهٔ ویندوز را از بخش Assets دانلود کنید. | Download the Windows installer from Assets. Default PIN: 6767'
+          releaseBody: 'کتابیار — مدیریت کتابخانه دانشگاه (آفلاین). دو نسخه: TS Edition (KetabYar_*) و Rust Edition (KetabYarRust_*). | Two editions: TS (KetabYar_*) and Rust (KetabYarRust_*). Default PIN: 6767'
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.settings.args }}
