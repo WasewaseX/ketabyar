@@ -10,6 +10,15 @@ const host = process.env.TAURI_DEV_HOST;
 // errors stay visible), and no file watching inside src-tauri.
 export default defineConfig(() => ({
   plugins: [react(), tailwindcss()],
+  // Edition switch, resolved at BUILD time and inlined as a literal so the
+  // bundler constant-folds the dispatcher and tree-shakes the other engine:
+  //   npm run build        → "ts"   (TypeScript engine, tauri-plugin-sql)
+  //   npm run build:rust   → "rust" (native ketabyar-core commands)
+  define: {
+    __KETABYAR_BACKEND__: JSON.stringify(
+      process.env.VITE_KETABYAR_BACKEND === "rust" ? "rust" : "ts",
+    ),
+  },
   clearScreen: false,
   server: {
     port: 1420,

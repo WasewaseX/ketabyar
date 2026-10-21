@@ -11,16 +11,21 @@
  *   npm run build        → TS edition  (VITE_KETABYAR_BACKEND=ts, default)
  *   npm run build:rust   → Rust edition (VITE_KETABYAR_BACKEND=rust)
  *
+ * `__KETABYAR_BACKEND__` is inlined by Vite's `define` as a string literal
+ * ("ts" | "rust"), so the bundler constant-folds the selection below and
+ * tree-shakes the engine that is not shipped — each installer carries only
+ * its own engine.
+ *
  * `impl` is typed as `typeof SQL` so the Rust module must stay structurally
  * identical to the SQL module — the compiler is the compatibility contract.
  */
 import * as SQL from "./librarySql";
 import * as RUST from "./libraryRust";
 
-const backend = (import.meta.env.VITE_KETABYAR_BACKEND as string | undefined) ?? "ts";
-export const activeBackend: "ts" | "rust" = backend === "rust" ? "rust" : "ts";
+declare const __KETABYAR_BACKEND__: "ts" | "rust";
+export const activeBackend: "ts" | "rust" = __KETABYAR_BACKEND__;
 
-const impl: typeof SQL = activeBackend === "rust" ? RUST : SQL;
+const impl: typeof SQL = __KETABYAR_BACKEND__ === "rust" ? RUST : SQL;
 
 // ── Dashboard ──
 export const dashboard = impl.dashboard;

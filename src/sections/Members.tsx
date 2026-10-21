@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  Archive, Clock, Pencil, Phone, Plus, RefreshCcw, UserCheck, UserX,
+  Archive, Clock, Pencil, Phone, Plus, UserCheck, UserX,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -20,7 +20,7 @@ import { EmptyState, Modal, PageLoader } from "../components/ui/primitives";
 import { PageTitle } from "../components/ui/shared";
 import { ImageUpload } from "../components/ui/ImageUpload";
 import { ArtReading } from "../components/ui/art";
-import { cleanLastName, cleanMemberNumber, cleanPhone, cleanText, formatMemberNumber, generateRandomMemberNumber } from "../utils/isbn";
+import { cleanLastName, cleanMemberNumber, cleanPhone, cleanText, formatMemberNumber, normalizeDigits } from "../utils/isbn";
 import { daysLate, dueDate, formatDisplayDate, today } from "../utils/dates";
 import { cn } from "../utils/cn";
 import type { Loan, Member, MemberStatus, Reservation } from "../types";
@@ -70,7 +70,8 @@ export function getMemberInitials(fullName: string): string {
 const memberSchema = z.object({
   first_name: z.string().min(1),
   last_name: z.string().min(1),
-  member_number: z.string().min(3),
+  // Student ID (کد دانشجویی) — the unique key every member is saved by.
+  member_number: z.string().regex(/^[0-9A-Za-z-]{3,24}$/),
   email: z.union([z.literal(""), z.string().email()]),
   phone: z.string().optional(),
   role: z.string(),
@@ -498,7 +499,9 @@ function MemberModal({ member, onClose, existingNumbers }: { member?: Member; on
           avatar_path: member.avatar_path ?? null,
         }
       : {
-          first_name: "", last_name: "", member_number: generateRandomMemberNumber(6),
+          // New members are registered by their real student ID — the
+          // librarian types it; nothing is auto-generated for students.
+          first_name: "", last_name: "", member_number: "",
           email: "", phone: "", role: "student", department: "", status: "active", avatar_path: null,
         },
   });
@@ -506,6 +509,9 @@ function MemberModal({ member, onClose, existingNumbers }: { member?: Member; on
   const mutation = useMutation({
     mutationFn: async (values: MemberForm) => {
       const number = cleanMemberNumber(values.member_number);
+      if (number.length < 3) {
+        throw new Error(t("members.alerts.badStudentId", "کد دانشجویی باید حداقل ۳ نویسه باشد."));
+      }
       if (existingNumbers.includes(number.toLowerCase())) {
         throw new Error(t("members.alerts.exists", "This member number is already taken."));
       }
@@ -553,17 +559,26 @@ function MemberModal({ member, onClose, existingNumbers }: { member?: Member; on
         </div>
 
         <label>
-          <span>{t("members.membershipNumber", "Membership number")}<span className="text-copper"> *</span></span>
-          <div className="flex gap-2">
-            <input className="field-input font-mono" required {...form.register("member_number")} />
-            <button
-              type="button"
-              onClick={() => form.setValue("member_number", generateRandomMemberNumber(6))}
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-[var(--radius-control)] bg-ink/5 px-3 text-xs font-bold hover:bg-ink/10 dark:bg-white/8 dark:hover:bg-white/15"
-            >
-              <RefreshCcw size={13} /> {t("members.regenerate", "New")}
-            </button>
-          </div>
+          <span>{t("members.membershipNumber", "Student ID")}<span className="text-copper"> *</span></span>
+          <input
+            className="field-input font-mono"
+            dir="ltr"
+            inputMode="numeric"
+            autoComplete="off"
+            placeholder={t("members.studentIdPlaceholder", "40212345")}
+            required
+            {...form.register("member_number", {
+              // Persian keyboard digits (۴۰۲…) are normalised to ASCII at the
+              // input, so the stored student ID always matches searches/scans.
+              setValueAs: (value: string) => normalizeDigits(value ?? "").replace(/[^0-9A-Za-z-]/g, ""),
+              onChange: (event: React.ChangeEvent<HTMLInputElement>) => {
+                event.target.value = normalizeDigits(event.target.value).replace(/[^0-9A-Za-z-]/g, "");
+              },
+            })}
+          />
+          {form.formState.errors.member_number ? (
+            <p className="mt-1 text-[11px] text-red-600">{t("members.alerts.badStudentId", "کد دانشجویی باید حداقل ۳ نویسه باشد.")}</p>
+          ) : null}
         </label>
 
         <div className="grid grid-cols-2 gap-3">

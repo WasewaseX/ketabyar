@@ -56,13 +56,31 @@ pub fn clean_phone(v: &str) -> String {
         digits
     }
 }
+/// Persian (۰-۹, U+06F0–U+06F9) and Arabic-Indic (٠-٩, U+0660–U+0669)
+/// digits → ASCII 0-9. Port of `normalizeDigits()` in `src/utils/isbn.ts`.
+pub fn normalize_digits(v: &str) -> String {
+    v.chars()
+        .map(|c| {
+            let code = c as u32;
+            if (0x06f0..=0x06f9).contains(&code) {
+                char::from_u32(code - 0x06f0 + b'0' as u32).unwrap_or(c)
+            } else if (0x0660..=0x0669).contains(&code) {
+                char::from_u32(code - 0x0660 + b'0' as u32).unwrap_or(c)
+            } else {
+                c
+            }
+        })
+        .collect()
+}
+/// Student IDs (کد دانشجویی) are stored as typed: digits normalised to ASCII,
+/// then only letters/digits/dashes survive (VIS- visitor codes round-trip).
 pub fn clean_member_number(v: &str) -> String {
-    let digits: String = v.chars().filter(|c| c.is_ascii_digit()).collect();
-    if digits.is_empty() {
-        v.trim().to_string()
-    } else {
-        digits
-    }
+    normalize_digits(v)
+        .chars()
+        .filter(|c| c.is_ascii_alphanumeric() || *c == '-')
+        .collect::<String>()
+        .trim()
+        .to_string()
 }
 pub fn generate_random_member_number(digits: usize) -> String {
     use rand::Rng;
@@ -661,4 +679,28 @@ pub fn charge_overdue_fine(
           json!(format!("تاخیر {} روزه در بازگشت", days_late)), json!("open"), json!(now_iso()), json!(now_iso())],
     )?;
     Ok(())
+}
+
+// ─────────────────────────── Tests ───────────────────────────
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn normalize_digits_converts_persian_and_arabic_indic() {
+        assert_eq!(normalize_digits("۴۰۲۱۲۳۴۵"), "40212345");
+        assert_eq!(normalize_digits("٤٠٢١٢٣٤٥"), "40212345");
+        assert_eq!(normalize_digits("402-123-45"), "402-123-45");
+        assert_eq!(normalize_digits("abc"), "abc");
+    }
+
+    #[test]
+    fn clean_member_number_keeps_student_ids_and_visitor_codes() {
+        assert_eq!(clean_member_number(" ۴۰۲۱۲۳۴۵ "), "40212345");
+        assert_eq!(clean_member_number("402 123 45"), "40212345");
+        assert_eq!(clean_member_number("VIS-123456"), "VIS-123456");
+        assert_eq!(clean_member_number("ST/۴۰۲#۱"), "ST4021");
+        assert_eq!(clean_member_number("++"), "");
+    }
 }

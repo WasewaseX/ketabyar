@@ -11,7 +11,8 @@ fn map_member(mut row: Json) -> Json {
 }
 
 pub fn members(conn: &Connection, query: &str) -> Result<Vec<Json>> {
-    let term = query.trim();
+    // Persian-keyboard digits in the search term must match stored ASCII IDs.
+    let term = normalize_digits(query.trim());
     let mut sql = "SELECT * FROM members WHERE archived_at IS NULL".to_string();
     let mut params: Vec<Json> = Vec::new();
     if !term.is_empty() {
@@ -54,7 +55,16 @@ pub fn save_member(conn: &Connection, actor: &str, input: &Json) -> Result<Json>
         .unwrap_or_else(|| "visitor".into());
     let id = uid();
 
-    // member_number is UNIQUE — retry a few times if the random generator collides.
+    // Was the student ID typed by the librarian? Then a UNIQUE clash is a real
+    // duplicate and must error out — random retry is only allowed when the
+    // caller left the field empty (visitor quick-add).
+    let provided = jstr(input, "member_number")
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+        .is_some();
+
+    // member_number is UNIQUE — retry with a random number only when the
+    // number was auto-generated (never for an explicit student ID).
     let mut attempt = 0u32;
     loop {
         let number = if attempt == 0 {
@@ -79,10 +89,10 @@ pub fn save_member(conn: &Connection, actor: &str, input: &Json) -> Result<Json>
         match result {
             Ok(_) => break,
             Err(e) => {
-                attempt += 1;
-                if attempt >= 5 || !e.message.contains("member_number") {
+                if provided || attempt >= 5 || !e.message.contains("member_number") {
                     return Err(e);
                 }
+                attempt += 1;
             }
         }
     }
@@ -156,6 +166,30 @@ pub fn update_member(
     if let Some(v) = updates.get("status") {
         if !v.is_null() {
             patch.push(("status".into(), v.clone()));
+        }
+    }
+    // Student ID (کد دانشجویی) edits — cleaned, uniqueness-checked (parity
+    // with updateMember() in the TS repository layer).
+    if let Some(v) = updates.get("member_number") {
+        if let Some(s) = v.as_str() {
+            let number = clean_member_number(s);
+            if number.is_empty() {
+                return Err(CommandError {
+                    message: "کد دانشجویی نمی‌تواند خالی باشد.".into(),
+                });
+            }
+            let clash = scalar_i64(
+                conn,
+                "SELECT COUNT(*) AS n FROM members WHERE member_number = ? AND id != ?",
+                &[json!(number), json!(member_id)],
+                "n",
+            )?;
+            if clash > 0 {
+                return Err(CommandError {
+                    message: "این کد دانشجویی قبلاً ثبت شده است.".into(),
+                });
+            }
+            patch.push(("member_number".into(), json!(number)));
         }
     }
     if let Some(v) = updates.get("expiry_date") {

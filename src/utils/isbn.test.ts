@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
+  cleanMemberNumber,
   cleanPhone,
   formatIsbn,
+  formatMemberNumber,
   generateRandomMemberNumber,
   isValidIsbn,
   isValidIsbn10,
   isValidIsbn13,
+  normalizeDigits,
   normalizeIsbn,
   toIsbn10,
   toIsbn13,
@@ -60,5 +63,27 @@ describe("ISBN helpers", () => {
       expect(value).toMatch(/^\d{6}$/);
       expect(value[0]).not.toBe("0");
     }
+  });
+
+  it("normalizes Persian and Arabic-Indic digits to ASCII", () => {
+    expect(normalizeDigits("۴۰۲۱۲۳۴۵")).toBe("40212345");
+    expect(normalizeDigits("٤٠٢١٢٣٤٥")).toBe("40212345");
+    expect(normalizeDigits("mixed ۴ and 4")).toBe("mixed 4 and 4");
+    expect(normalizeDigits("402")).toBe("402");
+  });
+
+  it("cleans student IDs: Persian digits normalized, junk dropped, VIS- kept", () => {
+    expect(cleanMemberNumber(" ۴۰۲۱۲۳۴۵ ")).toBe("40212345");
+    expect(cleanMemberNumber("402 123 45")).toBe("40212345");
+    expect(cleanMemberNumber("VIS-123456")).toBe("VIS-123456");
+    expect(cleanMemberNumber("کد/۴۰۲#۱")).toBe("4021");
+    expect(cleanMemberNumber("")).toBe("");
+  });
+
+  it("renders the student ID exactly as stored (no prefix)", () => {
+    expect(formatMemberNumber("40212345")).toBe("40212345");
+    expect(formatMemberNumber("VIS-123456")).toBe("VIS-123456");
+    expect(formatMemberNumber(null)).toBe("");
+    expect(formatMemberNumber("")).toBe("");
   });
 });

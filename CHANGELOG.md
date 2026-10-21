@@ -9,6 +9,54 @@ to [Semantic Versioning](https://semver.org/).
 > KetabYar is a clean-room rewrite licensed under **MIT**. See
 > [NOTICE.md](NOTICE.md) for the full history.
 
+## [1.2.0] — 2026-10-22
+
+### Added
+- **Members are now registered by their student ID (کد دانشجویی).** The
+  registration form no longer pre-fills a random membership number — the
+  librarian types the university-issued code, which becomes the member's
+  unique identifier across search, loans, holds, ID cards and reports.
+  Codes are validated (3–24 characters) and shown exactly as stored.
+
+### Fixed
+- **Each installer now ships exactly one data engine.** The repository
+  dispatcher selected its engine through a runtime ternary over
+  `import.meta.env.VITE_KETABYAR_BACKEND`, which bundlers cannot
+  constant-fold — so **every installer of every previous version carried
+  BOTH engines** (the TypeScript SQL layer and the Rust command adapter),
+  and the two editions were nearly the same size. The switch is now a
+  build-time `define` literal (`__KETABYAR_BACKEND__`) that the bundler
+  folds: the TypeScript bundle contains zero `ketabyar-core` command calls,
+  the Rust bundle contains zero repository SQL, and the active engine is
+  still displayed in Settings → About. (This also settles the "why is the
+  Rust edition the same size?" question: the shared shell — Tauri runtime,
+  WebView2 loader, UI assets, icons — dominates the installer size; the
+  engines themselves differ by only ~26 KB of JavaScript.)
+- **Persian-keyboard digits are now first-class in student IDs and member
+  search.** Typing ۴۰۲۱۲۳۴۵ previously stored locale-specific digits that
+  never matched a later ASCII search (or vice versa). Both engines now
+  normalise Persian (۰-۹) and Arabic-Indic (٠-٩) digits to ASCII at input,
+  at save time, and inside member search — in the TypeScript repository and
+  in `ketabyar-core` alike, with unit and integration tests on each side.
+- **The Rust edition no longer silently renumbers duplicate student IDs.**
+  `save_member` retried any `member_number` UNIQUE violation with a random
+  number, so registering an already-taken student ID could quietly save the
+  member under a wrong code. An explicit duplicate now fails with a clear
+  error (random retry remains only for auto-generated visitor codes).
+- **Editing a member's student ID works in the Rust edition.** The native
+  `update_member` silently ignored `member_number` changes (the TypeScript
+  edition applied them); the patch now includes the cleaned, uniqueness-
+  checked code, so both editions behave identically.
+- Member ID cards, lists and loan details display the raw stored code —
+  the cosmetic «MB-» prefix is gone since codes are now meaningful IDs.
+
+### Changed
+- Visitor quick-registration from the Reservations wizard keeps its
+  operator-free «VIS-» auto code; students and staff are registered by
+  their typed ID. Persian i18n strings (form label, search placeholder,
+  copy toasts, duplicate alerts) updated from «شمارهٔ عضویت» to
+  «کد دانشجویی».
+
 ## [1.1.2] — 2026-10-21
 
 ### Fixed

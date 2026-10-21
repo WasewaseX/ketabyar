@@ -172,6 +172,34 @@ fn member_lifecycle_ban_and_hard_delete_rules() {
 }
 
 #[test]
+fn member_saved_by_persian_digit_student_id_is_normalised_and_searchable() {
+    let conn = db();
+    // The librarian types the student ID on a Persian keyboard (۴۰۲۱۲۳۴۵).
+    let member = m::save_member(&conn, DEFAULT_ACTOR, &member_json("۴۰۲۱۲۳۴۵", "student")).unwrap();
+    // Stored ID must be ASCII so scans/searches/reports always match.
+    assert_eq!(member["member_number"], json!("40212345"));
+
+    // Persian-digit search terms find the ASCII-stored student.
+    assert_eq!(m::members(&conn, "۴۰۲۱۲۳۴۵").unwrap().len(), 1);
+    assert_eq!(m::members(&conn, "40212345").unwrap().len(), 1);
+
+    // A duplicate Persian-digit entry collides with the ASCII original.
+    let clash = m::save_member(&conn, DEFAULT_ACTOR, &member_json("40212345", "student"));
+    assert!(clash.is_err(), "duplicate student ID must be rejected");
+
+    // Editing the student ID works and normalises Persian digits too.
+    let id = member["id"].as_str().unwrap().to_string();
+    m::update_member(&conn, DEFAULT_ACTOR, &id, &json!({ "member_number": "۴۰۳۹۹۸۸۷" })).unwrap();
+    let updated = &m::members(&conn, "").unwrap()[0];
+    assert_eq!(updated["member_number"], json!("40399887"));
+
+    // Editing onto another member's ID is rejected, not silently retried.
+    m::save_member(&conn, DEFAULT_ACTOR, &member_json("111222333", "staff")).unwrap();
+    let edit_clash = m::update_member(&conn, DEFAULT_ACTOR, &id, &json!({ "member_number": "111222333" }));
+    assert!(edit_clash.is_err(), "duplicate student ID edit must be rejected");
+}
+
+#[test]
 fn checkout_return_creates_overdue_fine_with_cap() {
     let conn = db();
     let mut input = book_json("کتاب جریمه");

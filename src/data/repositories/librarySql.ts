@@ -5,7 +5,7 @@ import type {
   ReservationScope, AppNotification, LibrarySettings,
 } from "../../types";
 import {
-  cleanBarcode, cleanAccession, cleanPhone, cleanText, cleanMemberNumber, generateRandomMemberNumber,
+  cleanBarcode, cleanAccession, cleanPhone, cleanText, cleanMemberNumber, generateRandomMemberNumber, normalizeDigits,
 } from "../../utils/isbn";
 
 /**
@@ -384,8 +384,11 @@ export async function deleteCopy(copyId: string): Promise<void> {
 /* ═════════════════════════════ Members ═══════════════════════════════ */
 
 export async function members(query = ""): Promise<Member[]> {
-  const needle = `%${query.trim()}%`;
-  if (query.trim()) {
+  // Search terms typed on a Persian keyboard (۴۰۲…) must match the ASCII
+  // student IDs stored in the database.
+  const term = normalizeDigits(query.trim());
+  if (term) {
+    const needle = `%${term}%`;
     return select<Member>(
       `SELECT * FROM members WHERE archived_at IS NULL AND (full_name LIKE ? OR member_number LIKE ? OR email LIKE ? OR phone LIKE ?)
        ORDER BY full_name COLLATE NOCASE`,
@@ -399,7 +402,7 @@ export async function saveMember(input: Omit<Member, "id" | "member_number" | "j
   const id = uid();
   const number = cleanMemberNumber(input.member_number ?? String(generateRandomMemberNumber(6)));
   const clash = await maybeOne(`SELECT id FROM members WHERE member_number = ?`, [number]);
-  if (clash) throw new Error("این شمارهٔ عضویت قبلاً ثبت شده است.");
+  if (clash) throw new Error("این کد دانشجویی قبلاً ثبت شده است.");
   await exec(
     `INSERT INTO members (id, member_number, full_name, email, phone, department, role, status, avatar_path, joined_at, created_at, updated_at)
      VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
@@ -425,7 +428,7 @@ export async function updateMember(memberId: string, updates: Partial<Member>): 
   if (updates.member_number !== undefined) {
     const number = cleanMemberNumber(updates.member_number);
     const clash = await maybeOne(`SELECT id FROM members WHERE member_number = ? AND id != ?`, [number, memberId]);
-    if (clash) throw new Error("این شمارهٔ عضویت قبلاً ثبت شده است.");
+    if (clash) throw new Error("این کد دانشجویی قبلاً ثبت شده است.");
     assign("member_number", number);
   }
   if (columns.length > 0) {

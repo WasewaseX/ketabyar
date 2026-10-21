@@ -110,17 +110,31 @@ export function cleanPhone(value: string): string {
   return plus + trimmed.slice(plus.length).replace(/\D/g, "");
 }
 
-/** Member numbers keep digits only; falls back to the trimmed input. */
-export function cleanMemberNumber(value: string): string {
-  const digits = (value ?? "").replace(/\D/g, "");
-  return digits || (value ?? "").trim();
+/**
+ * Persian (۰-۹, U+06F0–U+06F9) and Arabic-Indic (٠-٩, U+0660–U+0669)
+ * digits → ASCII 0-9, so codes typed on a Persian keyboard match what a
+ * scanner or search box produces.
+ */
+export function normalizeDigits(value: string): string {
+  return (value ?? "").replace(/[\u06F0-\u06F9\u0660-\u0669]/g, (ch) => {
+    const code = ch.charCodeAt(0);
+    return String(code >= 0x06f0 ? code - 0x06f0 : code - 0x0660);
+  });
 }
 
-/** Renders "MB-123456" for cards and badges. */
+/**
+ * Student IDs (کد دانشجویی) are stored as typed: digits are normalised to
+ * ASCII, then only letters/digits/dashes survive (so operator-assigned
+ * visitor codes like "VIS-123456" also round-trip).
+ */
+export function cleanMemberNumber(value: string): string {
+  return normalizeDigits(value ?? "").replace(/[^0-9A-Za-z-]/g, "").trim();
+}
+
+/** Renders the member's ID code for cards and badges, exactly as stored. */
 export function formatMemberNumber(value: string | number | null | undefined): string {
   if (value === null || value === undefined || value === "") return "";
-  const digits = String(value).replace(/\D/g, "");
-  return digits ? `MB-${digits}` : String(value);
+  return String(value);
 }
 
 /** Random n-digit member number (no leading zeros). */
