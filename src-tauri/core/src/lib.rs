@@ -10,6 +10,7 @@ pub mod models;
 pub mod repo;
 pub mod schema;
 
+pub use rusqlite;
 use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;

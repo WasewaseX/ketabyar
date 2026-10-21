@@ -5,7 +5,7 @@
 use ketabyar_core::models::{DashboardMetrics, LibrarySettings};
 use ketabyar_core::repo::{books as b, circulation as c, members as m, support as s, DEFAULT_ACTOR};
 use ketabyar_core::{open, schema, CommandError, Result};
-use rusqlite::Connection;
+use ketabyar_core::rusqlite::Connection;
 use serde_json::Value as Json;
 use std::sync::Mutex;
 use tauri::{Manager, State};
