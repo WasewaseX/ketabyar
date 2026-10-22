@@ -348,4 +348,25 @@ describe("librarySql repository (TS engine, real SQLite)", () => {
     expect(LIB.dashboard).toBe(SQL.dashboard);
     expect(LIB.checkout).toBe(SQL.checkout);
   });
+
+  it("engine contract: the Rust auth adapter exposes the exact same API surface as the SQL auth module", async () => {
+    const [AUTH_SQL, AUTH_RUST, AUTH] = await Promise.all([
+      import("../authSql"),
+      import("../authRust"),
+      import("../auth"),
+    ]);
+    const sqlKeys = Object.keys(AUTH_SQL)
+      .filter((k) => typeof (AUTH_SQL as unknown as Record<string, unknown>)[k] === "function")
+      .sort();
+    const rustKeys = Object.keys(AUTH_RUST)
+      .filter((k) => typeof (AUTH_RUST as unknown as Record<string, unknown>)[k] === "function")
+      .sort();
+    expect(rustKeys).toEqual(sqlKeys);
+    for (const key of sqlKeys) {
+      expect(typeof (AUTH_RUST as unknown as Record<string, unknown>)[key]).toBe("function");
+    }
+    expect(AUTH.activeAuthBackend).toBe("ts");
+    expect(AUTH.login).toBe(AUTH_SQL.login);
+    expect(AUTH.currentSession).toBe(AUTH_SQL.currentSession);
+  });
 });

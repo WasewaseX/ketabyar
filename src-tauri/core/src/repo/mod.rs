@@ -10,6 +10,7 @@ use crate::{
 use rusqlite::Connection;
 use serde_json::{json, Value as Json};
 
+pub mod auth;
 pub mod books;
 pub mod circulation;
 pub mod members;

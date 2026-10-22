@@ -14,7 +14,7 @@
 ## دانلود و نصب (ویندوز)
 
 1. به بخش [Releases](https://github.com/WasewaseX/ketabyar/releases) بروید.
-2. فایل `KetabYar_1.2.1_x64-setup.exe` را دانلود و اجرا کنید (نسخهٔ MSI هم موجود است).
+2. فایل `KetabYar_1.2.2_x64-setup.exe` را دانلود و اجرا کنید (نسخهٔ MSI هم موجود است).
 3. در صورت نیاز، WebView2 به‌طور خودکار نصب می‌شود.
 
 **پین پیش‌فرض ورود: `6767`** — بعد از اولین ورود از مسیر «تنظیمات ← عمومی ← حساب میز» آن را عوض کنید.
@@ -59,7 +59,7 @@ npm test               # آزمون‌های واحد (vitest)
 | ویرایش | موتور | فایل نصب |
 | --- | --- | --- |
 | **TS Edition** | SQL در webview از طریق tauri-plugin-sql | `KetabYar_*-setup.exe` / `.msi` |
-| **Rust Edition** | موتور بومی `ketabyar-core` (rusqlite) پشت Tauri commands + اتصال‌های تولیدشده با ts-rs | `KetabYarRust_*-setup.exe` |
+| **Rust Edition** | موتور بومی `ketabyar-core` (rusqlite) پشت Tauri commands — بدون هیچ SQL در webview (مخزن، احراز هویت پین و اسکیمای اولیه همگی بومی) + اتصال‌های تولیدشده با ts-rs | `KetabYarRust_*-setup.exe` |
 
 ساخت:
 

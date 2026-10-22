@@ -9,6 +9,39 @@ to [Semantic Versioning](https://semver.org/).
 > KetabYar is a clean-room rewrite licensed under **MIT**. See
 > [NOTICE.md](NOTICE.md) for the full history.
 
+## [1.2.2] — 2026-10-22
+
+### Changed
+- **The Rust edition's webview is now 100% SQL-free.** Until now the
+  `KetabYarRust_*` installers still ran two pieces through the webview SQL
+  plugin: the PIN gate (`auth.ts` — hashing/verification via WebCrypto) and
+  the schema bootstrap DDL (`schema.ts`). Both moved behind the build-time
+  dispatcher pattern used by the repository layer:
+  - **Native auth** — new `ketabyar-core` module `repo::auth` (exact port of
+    the TS gate: salted SHA-256 in `library_settings`, identical Persian
+    error strings, constant-time hash comparison) behind four Tauri commands
+    (`pin_has`, `pin_set`, `pin_check`, `pin_bootstrap`). The hash scheme is
+    byte-identical, so a database written by either edition validates in the
+    other. The webview keeps only the localStorage session flag.
+  - **Native schema** — the Rust frontend's `ensureSchema` is now a no-op;
+    `ketabyar-core` already applies the byte-identical DDL natively when the
+    Tauri setup hook opens the database, before any webview code runs.
+- `auth.ts` and `schema.ts` became build-time dispatchers (`authSql.ts` /
+  `authRust.ts`, `schemaSql.ts` / `schemaRust.ts`) mirroring
+  `repositories/library.ts`; the `impl: typeof SQL` compiler contract now
+  also covers authentication. The TypeScript edition's behaviour is
+  unchanged.
+- Verified on both production bundles: the Rust bundle contains **zero** SQL
+  strings (no `INSERT INTO`, no DDL, no `sqlite:` connection string) and no
+  WebCrypto PIN hashing, while the TS bundle keeps them and contains none of
+  the native commands.
+
+### Added
+- Rust unit tests for the full PIN lifecycle (bootstrap idempotence,
+  validation rejections, round-trip against the TS hash scheme, empty-state
+  verification) mirroring the TS-side auth surface contract test (35 vitest
+  tests total).
+
 ## [1.2.1] — 2026-10-22
 
 ### Added

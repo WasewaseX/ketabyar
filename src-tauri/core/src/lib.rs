@@ -1,10 +1,11 @@
 //! ketabyar-core — offline library engine (pure Rust + SQLite).
 //!
-//! A faithful, function-by-function port of `src/data/repositories/library.ts`.
+//! A faithful, function-by-function port of `src/data/repositories/library.ts`
+//! plus the native PIN gate (repo::auth, port of `src/data/auth.ts`).
 //! SQL statements are byte-identical to the TypeScript edition; rows travel as
 //! JSON so the React UI consumes exactly the same shapes from either backend.
 //! Dependencies are MIT / Apache-2.0 only (rusqlite, serde, serde_json, ts-rs,
-//! uuid, chrono, rand).
+//! uuid, chrono, rand, sha2).
 
 pub mod models;
 pub mod repo;

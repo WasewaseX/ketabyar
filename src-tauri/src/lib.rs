@@ -138,6 +138,8 @@ pub fn run() {
             commands::backup_export, commands::backup_import, commands::library_wipe,
             commands::settings_get, commands::settings_save,
             commands::report_breakdowns, commands::clear_circulation,
+            // Native auth (Rust edition PIN gate)
+            commands::pin_has, commands::pin_set, commands::pin_check, commands::pin_bootstrap,
         ])
         .run(tauri::generate_context!())
         .expect("error while running KetabYar");

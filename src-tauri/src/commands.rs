@@ -3,7 +3,7 @@
 //! identical between editions; only this layer differs.
 
 use ketabyar_core::models::{DashboardMetrics, LibrarySettings};
-use ketabyar_core::repo::{books as b, circulation as c, members as m, support as s, DEFAULT_ACTOR};
+use ketabyar_core::repo::{auth as a, books as b, circulation as c, members as m, support as s, DEFAULT_ACTOR};
 use ketabyar_core::{open, schema, CommandError, Result};
 use ketabyar_core::rusqlite::Connection;
 use serde_json::Value as Json;
@@ -412,4 +412,33 @@ pub fn clear_circulation(state: State<'_, DbState>, actor: Option<String>) -> Cm
         ketabyar_core::exec(conn, "DELETE FROM loans", &[])?;
         Ok(())
     })
+}
+
+// ─────────────────────────────── Auth (PIN) ───────────────────────────────
+// Native PIN gate for the Rust edition — the exact port of src/data/auth.ts.
+// The TS edition keeps hashing in the webview (WebCrypto); both write the same
+// salted SHA-256 scheme into library_settings, so databases are interchangeable.
+
+/// True when a PIN has been set on this machine.
+#[tauri::command]
+pub fn pin_has(state: State<'_, DbState>) -> Cmd<bool> {
+    with_db(&state, |conn| a::pin_has(conn))
+}
+
+/// Hashes (salted SHA-256) and stores a new 4–8 digit PIN.
+#[tauri::command]
+pub fn pin_set(state: State<'_, DbState>, pin: String) -> Cmd<()> {
+    with_db(&state, |conn| a::pin_set(conn, &pin))
+}
+
+/// Verifies a PIN in constant time against the stored hash.
+#[tauri::command]
+pub fn pin_check(state: State<'_, DbState>, pin: String) -> Cmd<bool> {
+    with_db(&state, |conn| a::pin_check(conn, &pin))
+}
+
+/// First-boot bootstrap: creates the default 6767 PIN when none is set.
+#[tauri::command]
+pub fn pin_bootstrap(state: State<'_, DbState>) -> Cmd<bool> {
+    with_db(&state, |conn| a::bootstrap_pin_if_needed(conn))
 }
