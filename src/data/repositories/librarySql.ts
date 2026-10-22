@@ -39,7 +39,12 @@ async function upsertByName(table: "publishers" | "categories" | "authors" | "ta
   const existing = await maybeOne<{ id: string }>(`SELECT id FROM ${table} WHERE name = ?`, [trimmed]);
   if (existing) return existing.id;
   const id = uid();
-  await exec(`INSERT INTO ${table} (id, name) VALUES (?, ?)`, [id, trimmed]);
+  // authors carries a NOT NULL UNIQUE normalized_name (parity with ketabyar-core).
+  if (table === "authors") {
+    await exec(`INSERT INTO ${table} (id, name, normalized_name) VALUES (?, ?, ?)`, [id, trimmed, trimmed.toLowerCase()]);
+  } else {
+    await exec(`INSERT INTO ${table} (id, name) VALUES (?, ?)`, [id, trimmed]);
+  }
   return id;
 }
 
@@ -489,7 +494,7 @@ export async function getReservationsForMember(memberId: string): Promise<Reserv
 
 /** Shared checkout path used by direct checkout and hold fulfilment. */
 async function checkoutOne(memberId: string, copyId: string, scope: ReservationScope, rules: Awaited<ReturnType<typeof getRules>>): Promise<void> {
-  const member = await maybeOne<{ status: string; reservation_banned: number }>(`SELECT status, reservation_banned FROM members WHERE id = ?`, [memberId]);
+  const member = await maybeOne<{ status: string; reservation_banned: number; role: string | null }>(`SELECT status, reservation_banned, role FROM members WHERE id = ?`, [memberId]);
   if (!member) throw new Error("عضو یافت نشد.");
   if (member.status !== "active") throw new Error("عضویت این نفر فعال نیست.");
 
@@ -500,6 +505,12 @@ async function checkoutOne(memberId: string, copyId: string, scope: ReservationS
   const copy = await maybeOne<{ id: string; status: string; condition: string }>(`SELECT id, status, condition FROM copies WHERE id = ?`, [copyId]);
   if (!copy) throw new Error("نسخه یافت نشد.");
   if (copy.status !== "available") throw new Error("این نسخه اکنون قابل امانت نیست.");
+
+  // Visitors (walk-in guests) may only use reading-room copies — parity with
+  // the Rust engine's visitor gate in ketabyar-core.
+  if (scope === "external" && member.role === "visitor") {
+    throw new Error("مهمانان اجازهٔ امانت بیرون‌بر ندارند.");
+  }
 
   if (scope === "external") {
     const openExternal = await maybeOne<{ n: number }>(
@@ -525,6 +536,17 @@ async function checkoutOne(memberId: string, copyId: string, scope: ReservationS
 export async function checkout(memberId: string, copyIds: string[], _limit: number, scope: ReservationScope = "external"): Promise<void> {
   void _limit; // the cap comes from library_settings, not the caller
   const rules = await getRules();
+  // All-or-nothing batch cap (parity with the Rust engine): a batch that would
+  // exceed the external loan limit is refused before any copy is issued.
+  if (scope === "external" && copyIds.length > 0) {
+    const open = await maybeOne<{ n: number }>(
+      `SELECT COUNT(*) AS n FROM loans WHERE member_id = ? AND returned_at IS NULL AND scope = 'external'`,
+      [memberId],
+    );
+    if ((open?.n ?? 0) + copyIds.length > rules.loan_limit) {
+      throw new Error(`سقف امانت ${rules.loan_limit} مورد رعایت نشده است.`);
+    }
+  }
   for (const copyId of copyIds) {
     await checkoutOne(memberId, copyId, scope, rules);
     await audit("checkout", "loan", copyId, { memberId, scope });
@@ -699,6 +721,9 @@ export async function fulfilReservation(reservationId: string): Promise<Loan> {
     [reservationId],
   );
   if (hold.status !== "ready" || !hold.copy_id) throw new Error("این رزرو آمادهٔ تحویل نیست.");
+  // The held copy sits in 'reserved' status — free it first so checkoutOne
+  // passes (parity with ketabyar-core / upstream migration 0020).
+  await exec(`UPDATE copies SET status = 'available', updated_at = ? WHERE id = ? AND status = 'reserved'`, [timestamp(), hold.copy_id]);
   await checkoutOne(hold.member_id, hold.copy_id, hold.scope, rules);
   await exec(`UPDATE reservations SET status = 'fulfilled', fulfilled_at = ? WHERE id = ?`, [timestamp(), reservationId]);
   await audit("fulfil_reservation", "reservation", reservationId, { copy_id: hold.copy_id });

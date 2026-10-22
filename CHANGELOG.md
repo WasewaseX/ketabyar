@@ -9,6 +9,41 @@ to [Semantic Versioning](https://semver.org/).
 > KetabYar is a clean-room rewrite licensed under **MIT**. See
 > [NOTICE.md](NOTICE.md) for the full history.
 
+## [1.2.1] — 2026-10-22
+
+### Added
+- **Behavioural test-suite for the TypeScript engine** (`librarySql.test.ts`):
+  the real repository code runs against an in-memory SQLite (Node's built-in
+  `node:sqlite`) with `tauri-plugin-sql` mocked at the boundary — the exact
+  SQL the `KetabYar_*` installers execute. 19 tests mirror the Rust core's
+  integration suite so both editions are held to the same contract, including
+  a new **engine-contract test** asserting the Rust adapter exports the exact
+  same API surface as the SQL module and that the dispatcher folds to a
+  single engine per build. `vitest.config.ts` now defines
+  `__KETABYAR_BACKEND__` exactly like the production build.
+- **CONTRIBUTING.md** — development setup, the two-engine rules (compiler
+  contract + mirrored test-suites), Persian/RTL and i18n conventions, schema
+  parity, testing guidance, release process.
+
+### Fixed
+- **Saving a book with an author crashed the TypeScript edition**
+  (`NOT NULL constraint failed: authors.normalized_name`). The author
+  upsert omitted the required `normalized_name` column that the Rust engine
+  fills; both engines now behave identically.
+- **Fulfilling a ready hold crashed the TypeScript edition** ("این نسخه
+  اکنون قابل امانت نیست"): the held copy sits in `reserved` status and the
+  TS `fulfilReservation` never re-freed it before checkout — the Rust engine
+  has carried this fix since upstream migration 0020. TS now matches.
+- **Visitors could take books home in the TypeScript edition.** The Rust
+  engine refuses external (take-home) loans for `visitor` members; the TS
+  engine silently allowed them. The gate is now enforced in both editions
+  with the same Persian message.
+- **Over-limit external checkouts could partially succeed in the TypeScript
+  edition.** Rust rejects a whole batch that would exceed the loan limit
+  before issuing anything (all-or-nothing); TS issued copies one by one and
+  failed mid-batch, leaving a partial checkout. TS now performs the same
+  up-front batch check with the same error message.
+
 ## [1.2.0] — 2026-10-22
 
 ### Added
