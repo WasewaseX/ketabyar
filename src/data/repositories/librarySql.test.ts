@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Behavioural integration tests for the TypeScript edition's repository layer.
  *
