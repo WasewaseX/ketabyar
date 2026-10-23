@@ -49,8 +49,14 @@ export function LoginPage() {
     setError(null);
     try {
       const user: PublicUser = await login(candidate);
+      // The gate in App.tsx re-renders on setUser — navigation happens here.
       setUser(user);
-      await useLibrarySettingsStore.getState().load();
+      // Non-fatal: the dashboard needs library settings, but a failure here
+      // must never mask a successful login (the store carries defaults).
+      useLibrarySettingsStore
+        .getState()
+        .load()
+        .catch((settingsError) => console.error("library settings load failed", settingsError));
     } catch (loginError) {
       setError(loginError instanceof Error ? loginError.message : String(loginError));
       setPin("");

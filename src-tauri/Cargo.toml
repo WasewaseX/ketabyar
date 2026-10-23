@@ -1,6 +1,6 @@
 [package]
 name = "ketabyar"
-version = "1.2.2"
+version = "1.2.3"
 description = "KetabYar — Persian RTL university library management app (offline)"
 authors = ["KetabYar contributors"]
 edition = "2021"

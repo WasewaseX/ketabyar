@@ -132,6 +132,13 @@ function Boot() {
   const [progress, setProgress] = useState(12);
   const [step, setStep] = useState(0);
   const started = useRef(false);
+  // REACTIVE auth subscription — must stay ABOVE every conditional return
+  // (Rules of Hooks) and must re-render this gate the moment setUser()
+  // fires. The v1.2.2-and-earlier code read useAuthStore.getState() here —
+  // a non-reactive one-shot read, so Boot rendered LoginPage once and never
+  // left it: correct PIN, session saved, zero navigation ("nothing happens
+  // after typing the pin").
+  const user = useAuthStore((state) => state.user);
 
   useEffect(() => {
     if (started.current) return;
@@ -150,7 +157,15 @@ function Boot() {
 
         setStep(1); setProgress(62);
         await wait(480);
-        if (session) await useLibrarySettingsStore.getState().load();
+        if (session) {
+          try {
+            await useLibrarySettingsStore.getState().load();
+          } catch (settingsError) {
+            // Non-fatal: the settings store carries defaults; a broken settings
+            // row must never brick the whole app behind the Failure screen.
+            console.warn("library settings load skipped", settingsError);
+          }
+        }
         setProgress(82);
 
         setStep(2); setProgress(92);
@@ -176,7 +191,6 @@ function Boot() {
   if (error) return <Failure error={error} />;
   if (!ready) return <Splash progress={progress} step={step} />;
 
-  const user = useAuthStore.getState().user;
   if (!user) return <LoginPage />;
   return (
     <HashRouter>

@@ -9,6 +9,37 @@ to [Semantic Versioning](https://semver.org/).
 > KetabYar is a clean-room rewrite licensed under **MIT**. See
 > [NOTICE.md](NOTICE.md) for the full history.
 
+## [1.2.3] — 2026-10-23
+
+### Fixed
+- **THE login deadlock — "nothing happens after typing the pin" — root-caused
+  and fixed.** Reported since 1.1.1, survived four releases because previous
+  fixes addressed symptoms (keyboard handlers, keypads) while the real bug sat
+  one level above the login form: `Boot` in `App.tsx` read the session with
+  `useAuthStore.getState().user` inside its render body — a **non-reactive,
+  one-shot read**. `Boot` rendered the login page once and was never told that
+  `setUser()` had fired after a successful login, so the app stayed on the
+  login screen forever: PIN accepted, session stored, zero navigation, on
+  every machine, both editions. The gate now uses a reactive
+  `useAuthStore((state) => state.user)` subscription placed **above every
+  conditional return** (Rules of Hooks), so the moment login succeeds the
+  router mounts. Logout now returns to the login screen by the same
+  mechanism.
+- A failed `library_settings` load can no longer mask a successful login
+  (it used to throw inside the login `try`, clearing the PIN and showing an
+  error even though the session had been created) — the load is now
+  non-fatal at both call sites; the settings store carries defaults.
+
+### Added
+- **`appGate.test.tsx` — the first UI-level regression tests**, mounting the
+  real `App` (Providers + Boot + gate + LoginPage) in jsdom with the data
+  layer mocked at the dispatcher boundary: boot → type 6-7-6-7 → the app
+  must reach Onboarding; wrong PIN → error shown, stays on login; settings
+  failure → login still succeeds; boot with no session → login screen. The
+  hook-order mistake made while implementing the fix was caught by these
+  very tests before release (Boot crashed into the Failure screen) — they
+  exist to keep that class of bug out for good. 39 vitest tests total.
+
 ## [1.2.2] — 2026-10-22
 
 ### Changed
