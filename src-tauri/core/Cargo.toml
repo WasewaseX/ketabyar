@@ -1,6 +1,6 @@
 [package]
 name = "ketabyar-core"
-version = "1.2.3"
+version = "1.2.4"
 edition = "2021"
 description = "KetabYar offline library engine — pure Rust data layer (SQLite) with ts-rs type generation"
 license = "MIT"

@@ -7,10 +7,19 @@ import { useLibrarySettingsStore } from "../store/librarySettingsStore";
 import type { PublicUser } from "../types";
 
 /**
- * The shared-PIN gate. A Persian keypad (۰–۹), auto-submit at 4+ digits,
- * and a stored session flag — deliberately simple for a single service desk.
+ * The shared-PIN gate. A Persian keypad (۰–۹), debounced auto-submit at 4+
+ * digits, and a stored session flag — deliberately simple for a single desk.
  * Physical keyboards work regardless of focus (window-level handler) and
  * Persian/Arabic digit layouts (۶ or ٦) are normalised to ASCII.
+ *
+ * v1.2.4 hardening, all covered by the regression suite:
+ * - auto-submit now waits for a short idle window, because submitting at
+ *   exactly 4 digits sent PARTIAL PINs for anyone with a 5–8-digit PIN,
+ *   flashed a wrong-PIN error and wiped the field mid-typing;
+ * - all handlers read a pinRef mirror instead of render state, so stale
+ *   closures can no longer resurrect cleared digits into the next attempt;
+ * - a submit-lock ref (not busy state, which lags a render) prevents the
+ *   same-tick double submit from Enter + auto-submit.
  */
 
 function Shell({ children }: { children: React.ReactNode }) {
@@ -42,9 +51,22 @@ export function LoginPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  // Authoritative mirror + locks: render state lags one tick, and the lag is
+  // exactly where the old bugs lived (double submit, resurrected digits).
+  const pinRef = useRef("");
+  const submitLock = useRef(false);
+  const autoTimer = useRef<number | null>(null);
+
+  const clearAutoTimer = () => {
+    if (autoTimer.current !== null) {
+      window.clearTimeout(autoTimer.current);
+      autoTimer.current = null;
+    }
+  };
 
   const submit = async (candidate: string) => {
-    if (busy || candidate.length < 4) return;
+    if (submitLock.current || candidate.length < 4) return;
+    submitLock.current = true;
     setBusy(true);
     setError(null);
     try {
@@ -59,19 +81,44 @@ export function LoginPage() {
         .catch((settingsError) => console.error("library settings load failed", settingsError));
     } catch (loginError) {
       setError(loginError instanceof Error ? loginError.message : String(loginError));
+      pinRef.current = "";
       setPin("");
       inputRef.current?.focus();
     } finally {
+      submitLock.current = false;
       setBusy(false);
     }
   };
 
+  const scheduleAutoSubmit = () => {
+    clearAutoTimer();
+    if (pinRef.current.length < 4) return;
+    // Short idle window so 5–8-digit PINs can finish typing before the
+    // automatic attempt fires. Enter always submits immediately.
+    autoTimer.current = window.setTimeout(() => {
+      autoTimer.current = null;
+      void submit(pinRef.current);
+    }, 550);
+  };
+
   const pressDigit = (asciiDigit: string) => {
-    if (busy) return;
-    const next = (pin + asciiDigit).slice(0, 8);
-    setPin(next);
+    if (submitLock.current) return;
+    pinRef.current = (pinRef.current + asciiDigit).slice(0, 8);
+    setPin(pinRef.current);
     setError(null);
-    if (next.length >= 4) void submit(next);
+    scheduleAutoSubmit();
+  };
+
+  const pressBackspace = () => {
+    if (submitLock.current) return;
+    clearAutoTimer();
+    pinRef.current = pinRef.current.slice(0, -1);
+    setPin(pinRef.current);
+  };
+
+  const pressEnter = () => {
+    clearAutoTimer();
+    void submit(pinRef.current);
   };
 
   // Focus the (visually hidden) input on mount so soft keyboards appear.
@@ -80,26 +127,28 @@ export function LoginPage() {
   }, []);
 
   // Physical keyboard: handle digits, backspace and Enter even when the
-  // hidden input is not focused — the usual case on first launch.
+  // hidden input is not focused — the usual case on first launch. Every
+  // handler reads pinRef, so registering once can never go stale.
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.target === inputRef.current) return; // the input handles its own keys
-      if (busy || event.ctrlKey || event.metaKey || event.altKey) return;
+      if (event.ctrlKey || event.metaKey || event.altKey) return;
       const key = toAsciiDigits(event.key);
       if (/^[0-9]$/.test(key)) {
         pressDigit(key);
         event.preventDefault();
       } else if (event.key === "Backspace") {
-        setPin((current) => current.slice(0, -1));
+        pressBackspace();
         event.preventDefault();
       } else if (event.key === "Enter") {
-        void submit(pin);
+        pressEnter();
         event.preventDefault();
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <Shell>
@@ -138,12 +187,13 @@ export function LoginPage() {
           value={pin}
           onChange={(event) => {
             const digits = toAsciiDigits(event.target.value).replace(/\D/g, "").slice(0, 8);
+            pinRef.current = digits;
             setPin(digits);
             setError(null);
-            if (digits.length >= 4) void submit(digits);
+            scheduleAutoSubmit();
           }}
           onKeyDown={(event) => {
-            if (event.key === "Enter") void submit(pin);
+            if (event.key === "Enter") pressEnter();
           }}
         />
 
@@ -166,7 +216,7 @@ export function LoginPage() {
             type="button"
             aria-label="backspace"
             disabled={busy}
-            onClick={() => setPin((current) => current.slice(0, -1))}
+            onClick={pressBackspace}
             className="flex h-14 items-center justify-center rounded-xl text-copper transition hover:bg-copper/10 disabled:opacity-50"
           >
             <Delete size={19} />

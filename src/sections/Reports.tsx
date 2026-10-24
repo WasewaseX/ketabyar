@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery } from "../hooks/useLibraryQuery";
 import {
   BarChart3, BookOpen, CheckCircle2, Copy, Download, Info, Printer, RefreshCw, TrendingDown, TrendingUp,
 } from "lucide-react";

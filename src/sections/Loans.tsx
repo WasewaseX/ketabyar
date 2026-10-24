@@ -1,4 +1,5 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "../hooks/useLibraryQuery";
 import { Ban, CircleDollarSign, Eye, RefreshCcw, RotateCcw } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";

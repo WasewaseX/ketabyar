@@ -1,4 +1,5 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "../hooks/useLibraryQuery";
 import {
   AlertTriangle, ArrowLeft, BookCopy, BookOpen, Clock3, RotateCcw, ScanLine, UserPlus, UsersRound,
   CalendarPlus, UserCog,

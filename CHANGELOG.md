@@ -9,6 +9,49 @@ to [Semantic Versioning](https://semver.org/).
 > KetabYar is a clean-room rewrite licensed under **MIT**. See
 > [NOTICE.md](NOTICE.md) for the full history.
 
+## [1.2.4] — 2026-10-24
+
+### Summary
+Follow-up to the 1.2.3 login-deadlock root cause: a full sweep of the codebase
+for the **same class of bug** — silent, invisible failures — plus hardening of
+the login submit machinery itself. "Nothing loads" can no longer happen
+quietly anywhere in the app: every remaining silent-failure path now surfaces
+a visible error, and every fix is pinned by a UI-level regression test.
+
+### Fixed
+- **Failed queries rendered a silently empty library.** All 30 `useQuery`
+  call sites checked `isLoading` only — a failed query (disk error, locked
+  database, engine hiccup) produced a confidently empty dashboard, catalog,
+  members list, etc. with zero feedback: the same "nothing loads" experience
+  as the login deadlock, one level down. A single choke point,
+  `src/hooks/useLibraryQuery.ts`, now wraps every read query in the app and
+  surfaces any failure as an error toast (fired on the idle→error transition,
+  so a persistent error does not spam on refocus). Return contract is
+  identical to tanstack's `useQuery` — verified by tests.
+- **The PIN field sabotaged long PINs.** Auto-submit fired at exactly 4
+  digits, so anyone with a 5–8-digit PIN got a partial PIN submitted (which
+  can only fail), a wrong-PIN error flash, and their field wiped mid-typing —
+  then their next keystrokes re-triggered auto-submit with tail digits.
+  Auto-submit now waits for a short 550 ms idle window; Enter still submits
+  immediately.
+- **Login submit races.** Three stacked defects: a same-tick double submit
+  was possible (Enter + auto-submit both passing the lagging `busy` state
+  check); stale render closures could resurrect cleared digits into the next
+  attempt after a failed login; and the keyboard listener re-registered every
+  render. All handlers now read a `pinRef` mirror, a `submitLock` ref guards
+  re-entry, and the listener registers once.
+- **Onboarding could trap the user with zero feedback.** `complete()` had
+  `try/finally` with no `catch`: a failed settings read or save left the user
+  stuck on the first-run screen — clicks did nothing visible. The error is
+  now toasted and the screen stays retryable.
+
+### Added
+- New regression tests (46 total, up from 39): a 6-digit PIN must be
+  submitted **once and in full**; backspacing below 4 digits must cancel the
+  pending auto-submit; a failed query must toast its error (and a successful
+  one must stay silent); a failed onboarding save must show the error and
+  remain retryable.
+
 ## [1.2.3] — 2026-10-23
 
 ### Fixed

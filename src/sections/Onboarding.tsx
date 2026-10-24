@@ -2,6 +2,7 @@ import { Moon, ShieldCheck, Sun, Laptop } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 import i18n from "../i18n";
 import { getLibrarySettings, saveLibrarySettings } from "../data/repositories/library";
 import { useUiStore } from "../store/uiStore";
@@ -37,6 +38,14 @@ export function OnboardingPage() {
       document.documentElement.dir = "rtl";
       void i18n.changeLanguage("fa");
       navigate("/dashboard");
+    } catch (completeError) {
+      // v1.2.4: this path used to have NO catch — a failed settings read or
+      // save left the user stuck on onboarding with zero feedback (the same
+      // silent-failure class as the login deadlock). Surface it and stay
+      // retryable instead.
+      const message = completeError instanceof Error ? completeError.message : String(completeError);
+      console.error("onboarding completion failed", completeError);
+      toast.error(message || "راه‌اندازی ناموفق بود. دوباره تلاش کنید.");
     } finally {
       setBusy(false);
     }

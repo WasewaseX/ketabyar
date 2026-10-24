@@ -1,4 +1,5 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "../hooks/useLibraryQuery";
 import {
   Bell, BookMarked, CheckCircle2, CircleAlert, Database, Download, Eye, EyeOff, Globe, Info,
   Laptop, ListChecks, Lock, Moon, Palette, RotateCcw, Search, Settings as SettingsIcon,

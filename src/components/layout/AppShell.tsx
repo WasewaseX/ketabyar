@@ -1,4 +1,5 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "../../hooks/useLibraryQuery";
 import {
   Bell, BookMarked, BookOpen, CalendarClock, ChevronLeft, ChevronRight, ClipboardList,
   Cog, LayoutDashboard, LogOut, Menu, Minus, Moon, Search, Settings, Square,

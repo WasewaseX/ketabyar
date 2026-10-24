@@ -166,8 +166,40 @@ describe("login gate (v1.2.2 deadlock regression)", () => {
 
     typePin("1111");
 
-    expect(await screen.findByText("پین اشتباه است. دوباره تلاش کنید.")).toBeInTheDocument();
+    // Auto-submit fires after the ~550ms idle window, not instantly.
+    expect(await screen.findByText("پین اشتباه است. دوباره تلاش کنید.", {}, { timeout: 6000 })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "PIN" })).toBeInTheDocument();
     expect(useAuthStore.getState().user).toBeNull();
+  }, 15000);
+
+  it("a 6-digit PIN is submitted ONCE and in FULL (regression: auto-submit used to fire at 4 digits, sending a partial PIN and wiping the field mid-typing)", async () => {
+    vi.mocked(login).mockResolvedValueOnce({ ...OPERATOR, last_login_at: new Date().toISOString() });
+    render(<App />);
+    await waitFor(() => expect(screen.getByRole("button", { name: "PIN" })).toBeInTheDocument(), { timeout: 6000 });
+
+    typePin("123456");
+
+    // Old behaviour: login("1234") immediately on the 4th digit — a partial
+    // PIN that can only fail — plus a cleared field while the user was still
+    // typing. New behaviour: exactly one attempt with the complete PIN.
+    await waitFor(
+      () => expect(screen.getByDisplayValue(/کتابخانه مرکزی دانشگاه/)).toBeInTheDocument(),
+      { timeout: 6000 },
+    );
+    expect(login).toHaveBeenCalledTimes(1);
+    expect(login).toHaveBeenCalledWith("123456");
+  }, 15000);
+
+  it("backspacing below 4 digits cancels the pending auto-submit", async () => {
+    render(<App />);
+    await waitFor(() => expect(screen.getByRole("button", { name: "PIN" })).toBeInTheDocument(), { timeout: 6000 });
+
+    typePin("6767");
+    fireEvent.keyDown(window, { key: "Backspace" });
+
+    // Longer than the 550ms idle window: nothing may fire.
+    await new Promise((resolve) => setTimeout(resolve, 800));
+    expect(login).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "PIN" })).toBeInTheDocument();
   }, 15000);
 });

@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery } from "../hooks/useLibraryQuery";
 import { Activity, BookOpen, Clock, Download, Eye, RefreshCw, Tag, User } from "lucide-react";
 import { useMemo, useState } from "react";
 import Papa from "papaparse";
