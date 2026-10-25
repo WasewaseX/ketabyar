@@ -492,7 +492,7 @@ export async function getReservationsForMember(memberId: string): Promise<Reserv
   return select<Reservation>(`SELECT * FROM reservation_details WHERE member_id = ? ORDER BY requested_at DESC`, [memberId]);
 }
 
-/** Shared checkout path used by direct checkout and hold fulfilment. */
+/** Shared checkout path used by hold fulfilment. */
 async function checkoutOne(memberId: string, copyId: string, scope: ReservationScope, rules: Awaited<ReturnType<typeof getRules>>): Promise<void> {
   const member = await maybeOne<{ status: string; reservation_banned: number; role: string | null }>(`SELECT status, reservation_banned, role FROM members WHERE id = ?`, [memberId]);
   if (!member) throw new Error("عضو یافت نشد.");
@@ -535,10 +535,24 @@ async function checkoutOne(memberId: string, copyId: string, scope: ReservationS
 
 export async function checkout(memberId: string, copyIds: string[], _limit: number, scope: ReservationScope = "external"): Promise<void> {
   void _limit; // the cap comes from library_settings, not the caller
+  if (copyIds.length === 0) return;
   const rules = await getRules();
+  const member = await maybeOne<{ status: string; reservation_banned: number; role: string | null }>(
+    `SELECT status, reservation_banned, role FROM members WHERE id = ?`,
+    [memberId],
+  );
+  if (!member) throw new Error("عضو یافت نشد.");
+  if (member.status !== "active") throw new Error("عضویت این نفر فعال نیست.");
+  if (scope === "external" && member.reservation_banned) {
+    throw new Error("این عضو از امانت‌گیری محروم شده است.");
+  }
+  if (scope === "external" && member.role === "visitor") {
+    throw new Error("مهمانان اجازهٔ امانت بیرون‌بر ندارند.");
+  }
+
   // All-or-nothing batch cap (parity with the Rust engine): a batch that would
   // exceed the external loan limit is refused before any copy is issued.
-  if (scope === "external" && copyIds.length > 0) {
+  if (scope === "external") {
     const open = await maybeOne<{ n: number }>(
       `SELECT COUNT(*) AS n FROM loans WHERE member_id = ? AND returned_at IS NULL AND scope = 'external'`,
       [memberId],
@@ -547,8 +561,33 @@ export async function checkout(memberId: string, copyIds: string[], _limit: numb
       throw new Error(`سقف امانت ${rules.loan_limit} مورد رعایت نشده است.`);
     }
   }
+
+  // ALL-OR-NOTHING batch (v1.2.5 atomicity audit): every copy is validated
+  // BEFORE any write. The plugin-sql pool cannot run cross-statement
+  // transactions, so the batch is made failure-free by construction instead —
+  // a bad copy can no longer leave the earlier copies of the batch issued.
+  // (The Rust edition additionally wraps the whole batch in a real
+  // transaction; behavioural parity is what these tests pin.)
+  const conditions = new Map<string, string | null>();
   for (const copyId of copyIds) {
-    await checkoutOne(memberId, copyId, scope, rules);
+    const copy = await maybeOne<{ id: string; status: string; condition: string }>(
+      `SELECT id, status, condition FROM copies WHERE id = ?`,
+      [copyId],
+    );
+    if (!copy) throw new Error("نسخه یافت نشد.");
+    if (copy.status !== "available") throw new Error("این نسخه اکنون قابل امانت نیست.");
+    conditions.set(copyId, copy.condition);
+  }
+
+  const days = scope === "internal" ? rules.reservation_internal_days : rules.loan_days;
+  const dueAt = new Date(Date.now() + days * DAY_MS).toISOString();
+  for (const copyId of copyIds) {
+    await exec(
+      `INSERT INTO loans (id, copy_id, member_id, scope, borrowed_at, due_at, renewed_count, issued_by, condition_out)
+       VALUES (?,?,?,?,?,?,0,?,?)`,
+      [uid(), copyId, memberId, scope, timestamp(), dueAt, currentActor(), conditions.get(copyId) ?? null],
+    );
+    await exec(`UPDATE copies SET status = 'on-loan', updated_at = ? WHERE id = ?`, [timestamp(), copyId]);
     await audit("checkout", "loan", copyId, { memberId, scope });
   }
 }

@@ -54,6 +54,7 @@ import {
   deleteMember,
   exportLibraryBackup,
   fulfilReservation,
+  getLoansForMember,
   fines,
   getLibrarySettings,
   hardDeleteMember,
@@ -206,6 +207,23 @@ describe("librarySql repository (TS engine, real SQLite)", () => {
     await expect(checkout(v.id, [copy.id], 3, "external")).rejects.toThrow("مهمانان اجازهٔ امانت بیرون‌بر ندارند.");
     await checkout(v.id, [copy.id], 3, "internal");
     expect((await loans(true))[0].scope).toBe("internal");
+  });
+
+  it("batch checkout is all-or-nothing: a bad copy must leave NO partial loans (v1.2.5 atomicity audit)", async () => {
+    const m = await member("610200");
+    const good = await bookWithCopy("کتاب آزاد اتمی", "BAR-AT1");
+    const taken = await bookWithCopy("کتاب اشغال اتمی", "BAR-AT2");
+    const other = await member("610201");
+    await checkout(other.id, [taken.copy.id], 3, "external");
+
+    // The batch hits the on-loan copy second: without pre-validation the
+    // first copy was already issued and left dangling after the error.
+    await expect(checkout(m.id, [good.copy.id, taken.copy.id], 3, "external")).rejects.toThrow("قابل امانت نیست");
+
+    const loansForMember = await getLoansForMember(m.id);
+    expect(loansForMember).toEqual([]);
+    const goodCopyAfter = (await copies("")).find((c) => c.id === good.copy.id)!;
+    expect(goodCopyAfter.status).toBe("available");
   });
 
   it("banned member cannot checkout external until unbanned", async () => {

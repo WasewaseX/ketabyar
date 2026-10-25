@@ -400,7 +400,13 @@ pub fn export_library_backup(conn: &Connection) -> Result<Json> {
     Ok(json!({ "_version": 1, "_exported_at": now_iso(), "tables": tables }))
 }
 
+/// Atomic restore: a malformed or FK-violating row rolls back the ENTIRE
+/// import — the database is left exactly as it was (v1.2.5 atomicity audit).
 pub fn import_library_backup(conn: &Connection, actor: &str, backup: &Json) -> Result<Json> {
+    super::in_transaction(conn, |conn| import_library_backup_tx(conn, actor, backup))
+}
+
+fn import_library_backup_tx(conn: &Connection, actor: &str, backup: &Json) -> Result<Json> {
     let mut counts = Map::new();
     let tables = backup.get("tables").cloned().unwrap_or(Json::Null);
     for table in BACKUP_TABLES {
@@ -482,7 +488,13 @@ pub fn import_library_backup(conn: &Connection, actor: &str, backup: &Json) -> R
     Ok(counts_json)
 }
 
+/// Factory reset commits as one unit — a failure mid-wipe cannot leave a
+/// half-deleted library behind.
 pub fn delete_all_library_data(conn: &Connection, actor: &str) -> Result<Json> {
+    super::in_transaction(conn, |conn| delete_all_library_data_tx(conn, actor))
+}
+
+fn delete_all_library_data_tx(conn: &Connection, actor: &str) -> Result<Json> {
     let mut counts = Map::new();
     for table in BACKUP_TABLES.iter().rev() {
         let count = scalar_i64(

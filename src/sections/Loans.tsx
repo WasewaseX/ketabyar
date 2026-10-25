@@ -57,10 +57,11 @@ function FinesPanel({ onManage }: { onManage: (fine: FineRow) => void }) {
   const total = openFines.reduce((sum, fine) => sum + fine.amount, 0);
   const visible = showAll ? openFines : openFines.slice(0, 3);
 
+  // Blanket invalidation (v1.2.5 audit): the app's other mutations invalidate
+  // everything; the previous targeted keys missed ["loans-reports"] and the
+  // shell queries, leaving stale counts on Reports and the sidebar.
   const invalidate = () => {
-    void queryClient.invalidateQueries({ queryKey: ["fines"] });
-    void queryClient.invalidateQueries({ queryKey: ["loans"] });
-    void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+    void queryClient.invalidateQueries();
   };
 
   const pay = async (fine: FineRow) => {

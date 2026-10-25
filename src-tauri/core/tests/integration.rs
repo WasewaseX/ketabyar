@@ -734,3 +734,68 @@ fn notifications_mark_read_rules() {
     let err = s::mark_notification_read(&conn, "missing").unwrap_err();
     assert!(err.message.contains("اعلان"));
 }
+
+#[test]
+fn batch_checkout_is_all_or_nothing() {
+    let conn = db();
+    let m = m::save_member(&conn, DEFAULT_ACTOR, &member_json("610300", "student")).unwrap();
+    let member_id = m["id"].as_str().unwrap().to_string();
+    let mut free_input = book_json("کتاب آزاد اتمی");
+    free_input["barcode"] = json!("BAR-AT1");
+    free_input["accession"] = json!("ACC-AT1");
+    b::save_book(&conn, DEFAULT_ACTOR, &free_input).unwrap();
+    let mut taken_input = book_json("کتاب اشغال اتمی");
+    taken_input["barcode"] = json!("BAR-AT2");
+    taken_input["accession"] = json!("ACC-AT2");
+    b::save_book(&conn, DEFAULT_ACTOR, &taken_input).unwrap();
+
+    let free_copy_id = b::copies(&conn, "").unwrap()
+        .iter().find(|c| c["barcode"] == "BAR-AT1").unwrap()["id"]
+        .as_str().unwrap().to_string();
+    let taken_copy_id = b::copies(&conn, "").unwrap()
+        .iter().find(|c| c["barcode"] == "BAR-AT2").unwrap()["id"]
+        .as_str().unwrap().to_string();
+
+    // The second copy goes to another member, so the batch MUST fail on it.
+    let other = m::save_member(&conn, DEFAULT_ACTOR, &member_json("610301", "student")).unwrap();
+    c::checkout(&conn, DEFAULT_ACTOR, other["id"].as_str().unwrap(), &[taken_copy_id.clone()], 3.0, "external").unwrap();
+
+    let err = c::checkout(&conn, DEFAULT_ACTOR, &member_id, &[free_copy_id.clone(), taken_copy_id.clone()], 3.0, "external").unwrap_err();
+    assert!(err.message.contains("در دسترس نیست"));
+
+    // THE ATOMICITY CONTRACT: not a single loan for the batch member may exist.
+    assert!(c::get_loans_for_member(&conn, &member_id).unwrap().is_empty());
+    // And the free copy must still be available, not issued-then-forgotten.
+    let free_copy = b::copies(&conn, "").unwrap()
+        .into_iter().find(|c| c["id"] == json!(free_copy_id)).unwrap();
+    assert_eq!(free_copy["status"], "available");
+}
+
+#[test]
+fn backup_import_is_all_or_nothing() {
+    let conn = db();
+    assert!(m::members(&conn, "").unwrap().is_empty());
+    // A valid members row followed by a loans row whose copy/member violate
+    // the foreign keys: the import must fail and roll back the member too.
+    let backup = json!({
+        "_version": 1,
+        "_exported_at": "2026-01-01T00:00:00.000Z",
+        "tables": {
+            "members": [{
+                "id": "mem-atomic-1", "member_number": "610999", "full_name": "عضو بازگردانی",
+                "role": "student", "status": "active", "reservation_banned": 0,
+                "joined_at": "2026-01-01T00:00:00.000Z",
+                "created_at": "2026-01-01T00:00:00.000Z", "updated_at": "2026-01-01T00:00:00.000Z"
+            }],
+            "loans": [{
+                "id": "loan-atomic-1", "copy_id": "ghost-copy", "member_id": "mem-atomic-1",
+                "scope": "external", "borrowed_at": "2026-01-01T00:00:00.000Z",
+                "due_at": "2026-01-15T00:00:00.000Z", "renewed_count": 0
+            }]
+        }
+    });
+    assert!(s::import_library_backup(&conn, DEFAULT_ACTOR, &backup).is_err());
+    // THE ATOMICITY CONTRACT: nothing from the failed import may remain.
+    assert!(m::members(&conn, "").unwrap().is_empty());
+    assert!(c::loans(&conn, false).unwrap().is_empty());
+}

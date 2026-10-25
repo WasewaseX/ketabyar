@@ -9,6 +9,53 @@ to [Semantic Versioning](https://semver.org/).
 > KetabYar is a clean-room rewrite licensed under **MIT**. See
 > [NOTICE.md](NOTICE.md) for the full history.
 
+## [1.2.5] — 2026-10-25
+
+### Summary
+Six-area source audit (requested as a review distinguishing confirmed defects
+from suspicious code and test gaps): authentication parity, circulation
+atomicity, backup restoration, schema parity, UI staleness, and release
+configuration. Two areas produced confirmed defects — both fixed and pinned
+by new integration tests on BOTH engines. The other four verified clean.
+
+### Fixed — confirmed defects
+- **Circulation mutations were not atomic (both engines).** Batch checkout,
+  batch returns, reservation fulfilment, the expiry sweep, backup import and
+  factory reset performed multi-statement sequences with no transaction: a
+  failure halfway through left half-applied state (e.g. copies 1–2 of a
+  5-copy batch issued, with the error giving no indication which). The Rust
+  edition now wraps each of these in a single deferred transaction — commit
+  on success, full rollback on any error (`in_transaction` in ketabyar-core;
+  `unchecked_transaction`). The TypeScript edition cannot do cross-statement
+  transactions through the plugin-sql pool, so its batch checkout is instead
+  made failure-free by construction: every member gate and EVERY copy is
+  validated before the first write. Behavioural parity of the all-or-nothing
+  contract is pinned by new integration tests on both sides: a batch whose
+  second copy is on loan must leave ZERO loans for the batch member; a
+  backup whose later row violates a foreign key must import NOTHING.
+- **Loans section used targeted cache invalidation** (`fines`/`loans`/
+  `dashboard`) while the rest of the app invalidates everything — reports
+  and sidebar counts could go stale after paying a fine. Now blanket,
+  matching the app-wide convention.
+
+### Verified clean (audit results, no change needed)
+- **Auth parity (TS ↔ Rust):** identical validation (`/^\d{4,8}$/`, same
+  Persian errors), 16-byte hex salt, SHA-256(salt+pin), constant-time
+  compare, identical bootstrap and session flag; both editions trim input.
+  Pinned by existing Rust round-trip and UI gate tests.
+- **Backup restoration:** both engines export/import the same 15 tables
+  (junction tables included; audit_logs/notifications/library_settings
+  deliberately excluded), identical FK-safe table order, upsert-merge that
+  tolerates partial files — and with 1.2.5, a failed import is atomic.
+- **Schema parity:** all 18 tables byte-compared between
+  `src-tauri/core/src/schema.rs` and `src/data/schemaSql.ts` — zero column
+  differences.
+- **Release configuration:** Tauri capabilities are scoped defaults only
+  (no broad fs/shell); CSP whitelists only the four metadata endpoints;
+  package-lock committed and `npm ci`-clean. Note: `src-tauri/Cargo.lock`
+  is deliberately gitignored (CI resolves crates per build) — acceptable
+  for now, worth revisiting for bit-perfect rebuilds.
+
 ## [1.2.4] — 2026-10-24
 
 ### Summary

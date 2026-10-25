@@ -33,7 +33,20 @@ pub fn get_reservations_for_member(conn: &Connection, member_id: &str) -> Result
 }
 
 /// Direct-desk checkout (no reservation involved). Loan duration comes from library_settings.
+/// All-or-nothing batch: one failed copy rolls back the whole batch
+/// (v1.2.5 atomicity audit).
 pub fn checkout(
+    conn: &Connection,
+    actor: &str,
+    member_id: &str,
+    copy_ids: &[String],
+    limit: f64,
+    scope: &str,
+) -> Result<()> {
+    super::in_transaction(conn, |conn| checkout_tx(conn, actor, member_id, copy_ids, limit, scope))
+}
+
+fn checkout_tx(
     conn: &Connection,
     actor: &str,
     member_id: &str,
@@ -60,7 +73,13 @@ pub fn checkout(
     Ok(())
 }
 
+/// All-or-nothing batch: every copy's return (loan update, copy status,
+/// overdue fine, queue advance, audit) commits together or not at all.
 pub fn return_copies(conn: &Connection, actor: &str, copy_ids: &[String]) -> Result<()> {
+    super::in_transaction(conn, |conn| return_copies_tx(conn, actor, copy_ids))
+}
+
+fn return_copies_tx(conn: &Connection, actor: &str, copy_ids: &[String]) -> Result<()> {
     if copy_ids.is_empty() {
         return Ok(());
     }
@@ -178,7 +197,13 @@ pub fn update_loan_due_date(
 
 // ─────────────────────────────── Reservations ───────────────────────────────
 
+/// Expiry sweep commits as one unit — a failure mid-sweep cannot leave some
+/// reservations expired and their copies half-released.
 pub fn sweep_reservations(conn: &Connection, actor: &str) -> Result<()> {
+    super::in_transaction(conn, |conn| sweep_reservations_tx(conn, actor))
+}
+
+fn sweep_reservations_tx(conn: &Connection, actor: &str) -> Result<()> {
     let expired = select(
         conn,
         "SELECT id, copy_id FROM reservations WHERE status = 'ready' AND expires_at IS NOT NULL AND expires_at < ?",
@@ -411,7 +436,13 @@ pub fn decline_reservation(
     )
 }
 
+/// Atomic fulfilment: freeing the held copy, issuing the loan, marking the
+/// reservation fulfilled and the audit row commit together or not at all.
 pub fn fulfil_reservation(conn: &Connection, actor: &str, reservation_id: &str) -> Result<Json> {
+    super::in_transaction(conn, |conn| fulfil_reservation_tx(conn, actor, reservation_id))
+}
+
+fn fulfil_reservation_tx(conn: &Connection, actor: &str, reservation_id: &str) -> Result<Json> {
     let res = maybe_one(
         conn,
         "SELECT * FROM reservations WHERE id = ?",
