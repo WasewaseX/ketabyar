@@ -43,6 +43,23 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
+      - name: Ensure the release exists (both matrix jobs race on it)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="v$(node -p "require('./package.json').version")"
+          echo "Release tag: $TAG"
+          if ! gh release view "$TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            # Pre-create so tauri-action never races its own find-or-create
+            # across the two parallel publish jobs (v1.2.5: the Rust job hit
+            # "already_exists" on create and died before uploading its asset).
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" \
+              --title "KetabYar v${TAG#v}" \
+              --notes "KetabYar installers — TS Edition (KetabYar_*) and Rust Edition with the native ketabyar-core engine (KetabYarRust_*). MIT. Default PIN: 6767" \
+              || true
+          fi
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" > /dev/null
+
       - name: Build and release
         uses: tauri-apps/tauri-action@v0
         env:
