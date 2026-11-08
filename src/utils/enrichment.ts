@@ -1,6 +1,10 @@
-import type { Book } from "../types";
-import { fetchBookMetadata, enrichMetadataWithGroq, downloadCoverAsBase64 } from "./metadata";
 import { updateBook } from "../data/repositories/library";
+import type { Book } from "../types";
+import {
+  downloadCoverAsBase64,
+  enrichMetadataWithGroq,
+  fetchBookMetadata,
+} from "./metadata";
 
 /**
  * Bulk cataloguing assistant: scans the collection for incomplete records
@@ -38,7 +42,10 @@ export async function enrichBook(
   book: Book,
   opts: { groqApiKey?: string },
 ): Promise<{ patch: EnrichPatch; notes: string[] }> {
-  const query = book.isbn13 || book.isbn10 || [book.title, book.author].filter(Boolean).join(" ");
+  const query =
+    book.isbn13 ||
+    book.isbn10 ||
+    [book.title, book.author].filter(Boolean).join(" ");
   let meta;
   try {
     meta = await fetchBookMetadata(query);
@@ -80,9 +87,17 @@ export async function enrichAllBooks(
       const { patch, notes } = await enrichBook(book, opts);
       if (Object.keys(patch).length > 0) {
         await updateBook(book.id, patch as Partial<Book>);
-        onProgress({ book, status: "success", message: notes.join("; ") || "Record updated" });
+        onProgress({
+          book,
+          status: "success",
+          message: notes.join("; ") || "Record updated",
+        });
       } else {
-        onProgress({ book, status: "skipped", message: notes[0] || "Nothing to fill" });
+        onProgress({
+          book,
+          status: "skipped",
+          message: notes[0] || "Nothing to fill",
+        });
       }
     } catch (error) {
       onProgress({ book, status: "error", message: String(error) });

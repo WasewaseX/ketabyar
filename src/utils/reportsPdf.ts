@@ -1,7 +1,7 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
-import vazirmatnRegular from "../assets/fonts/Vazirmatn-Regular.ttf?inline";
 import vazirmatnBold from "../assets/fonts/Vazirmatn-Bold.ttf?inline";
+import vazirmatnRegular from "../assets/fonts/Vazirmatn-Regular.ttf?inline";
 
 /**
  * The printed analytics report. A4 portrait, one page per section, with a
@@ -64,9 +64,14 @@ function localeTag(locale: string): string {
 }
 
 /** Registers the Persian faces when the report contains any Persian text. */
-function prepareFonts(doc: jsPDF, input: ReportsPdfInput): { persian: boolean } {
-  const needsPersian = input.locale === "fa" || input.locale === "ar"
-    || JSON.stringify(input).match(HAS_PERSIAN) !== null;
+function prepareFonts(
+  doc: jsPDF,
+  input: ReportsPdfInput,
+): { persian: boolean } {
+  const needsPersian =
+    input.locale === "fa" ||
+    input.locale === "ar" ||
+    JSON.stringify(input).match(HAS_PERSIAN) !== null;
   if (needsPersian) {
     doc.addFileToVFS("Vazirmatn-Regular.ttf", ttfBase64(vazirmatnRegular));
     doc.addFileToVFS("Vazirmatn-Bold.ttf", ttfBase64(vazirmatnBold));
@@ -76,7 +81,12 @@ function prepareFonts(doc: jsPDF, input: ReportsPdfInput): { persian: boolean } 
   return { persian: needsPersian };
 }
 
-function fontFor(doc: jsPDF, persian: boolean, text: string, bold = false): string {
+function fontFor(
+  doc: jsPDF,
+  persian: boolean,
+  text: string,
+  bold = false,
+): string {
   if (persian && HAS_PERSIAN.test(text)) {
     doc.setFont("Vazirmatn", bold ? "bold" : "normal");
     return "Vazirmatn";
@@ -85,7 +95,19 @@ function fontFor(doc: jsPDF, persian: boolean, text: string, bold = false): stri
   return "helvetica";
 }
 
-function drawText(doc: jsPDF, text: string, x: number, y: number, opts: { size: number; bold?: boolean; color?: string; rtl?: boolean; align?: "left" | "right" | "center" }): void {
+function drawText(
+  doc: jsPDF,
+  text: string,
+  x: number,
+  y: number,
+  opts: {
+    size: number;
+    bold?: boolean;
+    color?: string;
+    rtl?: boolean;
+    align?: "left" | "right" | "center";
+  },
+): void {
   const { size, bold, color, rtl, align } = opts;
   const family = fontFor(doc, true, text, bold);
   doc.setFontSize(size);
@@ -97,19 +119,36 @@ function drawText(doc: jsPDF, text: string, x: number, y: number, opts: { size: 
 function drawKpis(doc: jsPDF, kpis: ReportsPdfInput["kpis"]): number {
   const contentWidth = 210 - PAGE_MARGIN * 2;
   const cardWidth = (contentWidth - 3 * 4) / 4;
-  let y = PAGE_MARGIN + 6;
+  const y = PAGE_MARGIN + 6;
   kpis.forEach((kpi, index) => {
     const x = PAGE_MARGIN + index * (cardWidth + 4);
     doc.setFillColor(PARCHMENT);
     doc.roundedRect(x, y, cardWidth, 20, 2, 2, "F");
-    drawText(doc, kpi.value, x + cardWidth / 2, y + 9, { size: 13, bold: true, align: "center" });
-    drawText(doc, kpi.label.toUpperCase(), x + cardWidth / 2, y + 14, { size: 6.5, color: COPPER, align: "center" });
-    if (kpi.sub) drawText(doc, kpi.sub, x + cardWidth / 2, y + 17.8, { size: 6.5, color: MUTED, align: "center" });
+    drawText(doc, kpi.value, x + cardWidth / 2, y + 9, {
+      size: 13,
+      bold: true,
+      align: "center",
+    });
+    drawText(doc, kpi.label.toUpperCase(), x + cardWidth / 2, y + 14, {
+      size: 6.5,
+      color: COPPER,
+      align: "center",
+    });
+    if (kpi.sub)
+      drawText(doc, kpi.sub, x + cardWidth / 2, y + 17.8, {
+        size: 6.5,
+        color: MUTED,
+        align: "center",
+      });
   });
   return y + 24;
 }
 
-function drawChartGrid(doc: jsPDF, charts: ReportsPdfChart[], yStart: number): number {
+function drawChartGrid(
+  doc: jsPDF,
+  charts: ReportsPdfChart[],
+  yStart: number,
+): number {
   const contentWidth = 210 - PAGE_MARGIN * 2;
   const gap = 4;
   const cardWidth = (contentWidth - gap) / 2;
@@ -145,7 +184,11 @@ function drawChartGrid(doc: jsPDF, charts: ReportsPdfChart[], yStart: number): n
   return column === 1 ? y + rowHeight + 4 : y;
 }
 
-function drawTables(doc: jsPDF, tables: ReportsPdfTable[], yStart: number): void {
+function drawTables(
+  doc: jsPDF,
+  tables: ReportsPdfTable[],
+  yStart: number,
+): void {
   let y = yStart;
   for (const table of tables) {
     if (table.rows.length === 0) continue;
@@ -158,52 +201,127 @@ function drawTables(doc: jsPDF, tables: ReportsPdfTable[], yStart: number): void
     autoTable(doc, {
       startY: y + 6,
       head: [table.columns],
-      body: table.rows.length > 0 ? table.rows.map((r) => r.map(String)) : [[{ content: "—", colSpan: table.columns.length, styles: { halign: "center", fontStyle: "italic" } }]],
+      body:
+        table.rows.length > 0
+          ? table.rows.map((r) => r.map(String))
+          : [
+              [
+                {
+                  content: "—",
+                  colSpan: table.columns.length,
+                  styles: { halign: "center", fontStyle: "italic" },
+                },
+              ],
+            ],
       theme: "plain",
       styles: { fontSize: 8.5, cellPadding: 1.6, textColor: INK },
-      headStyles: { fillColor: INK, textColor: "#ffffff", fontSize: 8, fontStyle: "bold" },
+      headStyles: {
+        fillColor: INK,
+        textColor: "#ffffff",
+        fontSize: 8,
+        fontStyle: "bold",
+      },
       alternateRowStyles: { fillColor: "#fcfbf8" },
       margin: { left: PAGE_MARGIN, right: PAGE_MARGIN },
     });
-    const cursor = (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable;
+    const cursor = (doc as unknown as { lastAutoTable?: { finalY: number } })
+      .lastAutoTable;
     y = (cursor?.finalY ?? y) + 8;
   }
 }
 
-function drawPageChrome(doc: jsPDF, input: ReportsPdfInput, persian: boolean): void {
+function drawPageChrome(
+  doc: jsPDF,
+  input: ReportsPdfInput,
+  persian: boolean,
+): void {
   const pageCount = doc.getNumberOfPages();
   for (let page = 1; page <= pageCount; page++) {
     doc.setPage(page);
     doc.setFillColor(INK);
     doc.rect(0, 0, 210, 22, "F");
     const rtl = persian && HAS_PERSIAN.test(input.libraryName);
-    drawText(doc, input.libraryName || "KetabYar Library", rtl ? 210 - PAGE_MARGIN : PAGE_MARGIN, 9, { size: 14, bold: true, color: "#ffffff", rtl });
-    drawText(doc, input.librarySubtitle || "Library Analytics & Reports", rtl ? 210 - PAGE_MARGIN : PAGE_MARGIN, 15, { size: 8.5, color: "#c9d6d2", rtl });
-    drawText(doc, input.rangeLabel, 210 - PAGE_MARGIN, 9, { size: 9, bold: true, color: COPPER, align: "right" });
-    drawText(doc, input.generatedAt.toLocaleString(localeTag(input.locale), { dateStyle: "medium", timeStyle: "short" }), 210 - PAGE_MARGIN, 15, { size: 8, color: "#c9d6d2", align: "right" });
+    drawText(
+      doc,
+      input.libraryName || "KetabYar Library",
+      rtl ? 210 - PAGE_MARGIN : PAGE_MARGIN,
+      9,
+      { size: 14, bold: true, color: "#ffffff", rtl },
+    );
+    drawText(
+      doc,
+      input.librarySubtitle || "Library Analytics & Reports",
+      rtl ? 210 - PAGE_MARGIN : PAGE_MARGIN,
+      15,
+      { size: 8.5, color: "#c9d6d2", rtl },
+    );
+    drawText(doc, input.rangeLabel, 210 - PAGE_MARGIN, 9, {
+      size: 9,
+      bold: true,
+      color: COPPER,
+      align: "right",
+    });
+    drawText(
+      doc,
+      input.generatedAt.toLocaleString(localeTag(input.locale), {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }),
+      210 - PAGE_MARGIN,
+      15,
+      { size: 8, color: "#c9d6d2", align: "right" },
+    );
 
     doc.setDrawColor(MUTED);
     doc.setLineWidth(0.2);
     doc.line(PAGE_MARGIN, 285, 210 - PAGE_MARGIN, 285);
-    drawText(doc, "Generated by KetabYar: University Library Management", PAGE_MARGIN, 290, { size: 7.5, color: MUTED });
-    drawText(doc, `Page ${page} of ${pageCount}`, 210 - PAGE_MARGIN, 290, { size: 7.5, color: MUTED, align: "right" });
+    drawText(
+      doc,
+      "Generated by KetabYar: University Library Management",
+      PAGE_MARGIN,
+      290,
+      { size: 7.5, color: MUTED },
+    );
+    drawText(doc, `Page ${page} of ${pageCount}`, 210 - PAGE_MARGIN, 290, {
+      size: 7.5,
+      color: MUTED,
+      align: "right",
+    });
   }
 }
 
-export async function generateReportsPdf(input: ReportsPdfInput): Promise<void> {
+export async function generateReportsPdf(
+  input: ReportsPdfInput,
+): Promise<void> {
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const { persian } = prepareFonts(doc, input);
 
   input.sections.forEach((section, index) => {
     if (index > 0) doc.addPage();
     doc.setFillColor(BRAND);
-    doc.roundedRect(PAGE_MARGIN, PAGE_MARGIN, 210 - PAGE_MARGIN * 2, 14, 2, 2, "F");
-    drawText(doc, section.title, PAGE_MARGIN + 4, PAGE_MARGIN + 7, { size: 13, bold: true, color: "#ffffff" });
-    drawText(doc, section.subtitle, PAGE_MARGIN + 4, PAGE_MARGIN + 12, { size: 8.5, color: "#cfe0db" });
+    doc.roundedRect(
+      PAGE_MARGIN,
+      PAGE_MARGIN,
+      210 - PAGE_MARGIN * 2,
+      14,
+      2,
+      2,
+      "F",
+    );
+    drawText(doc, section.title, PAGE_MARGIN + 4, PAGE_MARGIN + 7, {
+      size: 13,
+      bold: true,
+      color: "#ffffff",
+    });
+    drawText(doc, section.subtitle, PAGE_MARGIN + 4, PAGE_MARGIN + 12, {
+      size: 8.5,
+      color: "#cfe0db",
+    });
 
     let y = PAGE_MARGIN + 18;
     if (index === 0 && input.kpis.length > 0) y = drawKpis(doc, input.kpis);
-    if (section.charts && section.charts.length > 0) y = drawChartGrid(doc, section.charts, y);
+    if (section.charts && section.charts.length > 0)
+      y = drawChartGrid(doc, section.charts, y);
     drawTables(doc, section.tables, y);
   });
 

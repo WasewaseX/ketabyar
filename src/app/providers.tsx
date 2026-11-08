@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import type { ReactNode } from "react";
 import { Toaster } from "sonner";
 import { ContextMenuProvider } from "../components/ui/ContextMenu";
-import type { ReactNode } from "react";
 
 /**
  * Global providers: one query client (short stale time — a library desk is

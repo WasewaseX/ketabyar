@@ -7,7 +7,10 @@
 const fs = require("fs");
 const path = require("path");
 
-const src = fs.readFileSync(path.join(__dirname, "../src/data/schema.ts"), "utf8");
+const src = fs.readFileSync(
+  path.join(__dirname, "../src/data/schema.ts"),
+  "utf8",
+);
 
 function extractArray(name) {
   const start = src.indexOf(`const ${name}: string[] = [`);
@@ -15,18 +18,33 @@ function extractArray(name) {
   const eq = src.indexOf("=", start);
   const open = src.indexOf("[", eq);
   // scan for matching closing bracket
-  let depth = 0, end = open;
-  let inStr = false, quote = "";
+  let depth = 0,
+    end = open;
+  let inStr = false,
+    quote = "";
   for (let i = open; i < src.length; i++) {
     const ch = src[i];
     if (inStr) {
-      if (ch === "\\") { i++; continue; }
+      if (ch === "\\") {
+        i++;
+        continue;
+      }
       if (ch === quote) inStr = false;
       continue;
     }
-    if (ch === "`" || ch === '"' || ch === "'") { inStr = true; quote = ch; continue; }
+    if (ch === "`" || ch === '"' || ch === "'") {
+      inStr = true;
+      quote = ch;
+      continue;
+    }
     if (ch === "[") depth++;
-    if (ch === "]") { depth--; if (depth === 0) { end = i; break; } }
+    if (ch === "]") {
+      depth--;
+      if (depth === 0) {
+        end = i;
+        break;
+      }
+    }
   }
   const body = src.slice(open + 1, end);
   // extract backtick template literals (no ${} interpolation inside DDL)
@@ -42,9 +60,11 @@ function rustEscape(s) {
 }
 
 function emit(name, items) {
-  return `pub const ${name}: &[&str] = &[\n` +
+  return (
+    `pub const ${name}: &[&str] = &[\n` +
     items.map((s) => `    "${rustEscape(s)}",`).join("\n") +
-    "\n];\n";
+    "\n];\n"
+  );
 }
 
 const TABLES = extractArray("TABLES");
@@ -77,4 +97,6 @@ pub fn ensure_schema(conn: &Connection) -> Result<(), rusqlite::Error> {
 `;
 
 fs.writeFileSync(path.join(__dirname, "../src-tauri/core/src/schema.rs"), out);
-console.log(`schema.rs generated: ${TABLES.length} tables, ${INDEXES.length} indexes, ${VIEWS.length} views`);
+console.log(
+  `schema.rs generated: ${TABLES.length} tables, ${INDEXES.length} indexes, ${VIEWS.length} views`,
+);

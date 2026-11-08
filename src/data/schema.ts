@@ -10,8 +10,9 @@
  * `__KETABYAR_BACKEND__` is inlined by Vite's `define`, so the bundler folds
  * this selection and tree-shakes the unused implementation.
  */
-import * as SQL from "./schemaSql";
+
 import * as RUST from "./schemaRust";
+import * as SQL from "./schemaSql";
 
 declare const __KETABYAR_BACKEND__: "ts" | "rust";
 

@@ -28,7 +28,14 @@ const LOCAL_ACTOR: PublicUser = {
 const SESSION_KEY = "ketabyar-session";
 
 export async function getLoginAccounts(): Promise<LoginAccount[]> {
-  return [{ username: LOCAL_ACTOR.username, full_name: LOCAL_ACTOR.full_name, role: "admin", avatar_path: null }];
+  return [
+    {
+      username: LOCAL_ACTOR.username,
+      full_name: LOCAL_ACTOR.full_name,
+      role: "admin",
+      avatar_path: null,
+    },
+  ];
 }
 
 /** Creates the default PIN (6767) on first boot if none has been set yet. */
@@ -49,7 +56,10 @@ export async function checkPin(pin: string): Promise<boolean> {
 }
 
 /** Logs the operator in with the shared PIN. Mirrors the SQL edition exactly. */
-export async function login(pin: string, _password?: string): Promise<PublicUser> {
+export async function login(
+  pin: string,
+  _password?: string,
+): Promise<PublicUser> {
   void _password;
   const ok = await checkPin(pin.trim());
   if (!ok) throw new Error("پین اشتباه است. دوباره تلاش کنید.");
@@ -66,8 +76,12 @@ export async function currentSession(): Promise<PublicUser | null> {
 }
 
 /** PIN change for the desk operator: verifies the current PIN first. Mirrors changeOwnPassword(). */
-export async function changeOwnPassword(currentPin: string, newPin: string): Promise<void> {
-  if (currentPin === newPin) throw new Error("پین جدید باید با پین فعلی متفاوت باشد.");
+export async function changeOwnPassword(
+  currentPin: string,
+  newPin: string,
+): Promise<void> {
+  if (currentPin === newPin)
+    throw new Error("پین جدید باید با پین فعلی متفاوت باشد.");
   const ok = await checkPin(currentPin);
   if (!ok) throw new Error("پین فعلی اشتباه است.");
   await setPin(newPin);
@@ -79,16 +93,33 @@ export async function listUsers(): Promise<PublicUser[]> {
   return [LOCAL_ACTOR];
 }
 
-export async function createUser(input?: { username?: string; fullName?: string; email?: string | null; role?: UserRole; password?: string }): Promise<{ id: string; username: string }> {
+export async function createUser(input?: {
+  username?: string;
+  fullName?: string;
+  email?: string | null;
+  role?: UserRole;
+  password?: string;
+}): Promise<{ id: string; username: string }> {
   void input;
   throw new Error("در نسخهٔ پین ساده، ایجاد کاربر جدید در دسترس نیست.");
 }
 
-export async function updateUser(_id?: string, _updates?: { fullName?: string; email?: string | null; role?: UserRole; status?: UserStatus }): Promise<void> {
+export async function updateUser(
+  _id?: string,
+  _updates?: {
+    fullName?: string;
+    email?: string | null;
+    role?: UserRole;
+    status?: UserStatus;
+  },
+): Promise<void> {
   throw new Error("در نسخهٔ پین ساده، ویرایش کاربر در دسترس نیست.");
 }
 
-export async function resetPassword(_id: string, newPassword: string): Promise<void> {
+export async function resetPassword(
+  _id: string,
+  newPassword: string,
+): Promise<void> {
   void _id;
   await setPin(newPassword);
 }
@@ -98,6 +129,9 @@ export async function deleteUser(_id?: string): Promise<void> {
 }
 
 /** Kept so the Tauri diagnostics surface stays honest about the offline mode. */
-export async function applicationDiagnostics(): Promise<{ database: string; mode: string }> {
+export async function applicationDiagnostics(): Promise<{
+  database: string;
+  mode: string;
+}> {
   return invoke<{ database: string; mode: string }>("application_diagnostics");
 }

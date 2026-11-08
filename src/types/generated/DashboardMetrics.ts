@@ -5,8 +5,21 @@ import type { CirculationSlot } from "./CirculationSlot";
 /**
  * Dashboard KPI header — the same `DashboardMetrics` shape the TS edition returns.
  */
-export type DashboardMetrics = { titles: bigint, copies: bigint, onLoan: bigint, members: bigint, overdue: bigint, readyReservations: bigint, dueSoon: bigint, 
-/**
- * loan_details rows (loose JSON, structurally `Loan[]` on the TS side).
- */
-recentLoans: any, overdueLoans: any, dueSoonLoans: any, activity: Array<ActivityPoint>, activeDepartments: any, circulationRhythm: Array<CirculationSlot>, };
+export type DashboardMetrics = {
+  titles: bigint;
+  copies: bigint;
+  onLoan: bigint;
+  members: bigint;
+  overdue: bigint;
+  readyReservations: bigint;
+  dueSoon: bigint;
+  /**
+   * loan_details rows (loose JSON, structurally `Loan[]` on the TS side).
+   */
+  recentLoans: any;
+  overdueLoans: any;
+  dueSoonLoans: any;
+  activity: Array<ActivityPoint>;
+  activeDepartments: any;
+  circulationRhythm: Array<CirculationSlot>;
+};

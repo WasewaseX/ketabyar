@@ -64,7 +64,8 @@ export function toIsbn13(value: string): string | null {
 /** Converts a 978-prefixed ISBN-13 back into ISBN-10 where possible. */
 export function toIsbn10(value: string): string | null {
   const raw = normalizeIsbn(value);
-  if (raw.length !== 13 || !raw.startsWith("978") || !isValidIsbn13(raw)) return null;
+  if (raw.length !== 13 || !raw.startsWith("978") || !isValidIsbn13(raw))
+    return null;
   const body = raw.slice(3, 12);
   return body + isbn10Checksum(body);
 }
@@ -128,11 +129,15 @@ export function normalizeDigits(value: string): string {
  * visitor codes like "VIS-123456" also round-trip).
  */
 export function cleanMemberNumber(value: string): string {
-  return normalizeDigits(value ?? "").replace(/[^0-9A-Za-z-]/g, "").trim();
+  return normalizeDigits(value ?? "")
+    .replace(/[^0-9A-Za-z-]/g, "")
+    .trim();
 }
 
 /** Renders the member's ID code for cards and badges, exactly as stored. */
-export function formatMemberNumber(value: string | number | null | undefined): string {
+export function formatMemberNumber(
+  value: string | number | null | undefined,
+): string {
   if (value === null || value === undefined || value === "") return "";
   return String(value);
 }

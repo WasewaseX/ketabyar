@@ -8,12 +8,25 @@
  *   Hold   → a reservation request, queued per book until a copy frees up.
  */
 
-export type CopyStatus = "available" | "on-loan" | "reserved" | "repair" | "lost" | "archived";
+export type CopyStatus =
+  | "available"
+  | "on-loan"
+  | "reserved"
+  | "repair"
+  | "lost"
+  | "archived";
 export type MemberStatus = "active" | "suspended" | "expired" | "archived";
 export type ItemType = "book" | "fyp" | "journal" | "other";
 export type MemberRole = "visitor" | "student" | "staff" | "medic" | "other";
 export type ReservationScope = "internal" | "external";
-export type ReservationStatus = "pending" | "queued" | "ready" | "fulfilled" | "cancelled" | "declined" | "expired";
+export type ReservationStatus =
+  | "pending"
+  | "queued"
+  | "ready"
+  | "fulfilled"
+  | "cancelled"
+  | "declined"
+  | "expired";
 export type ShelfType = "floor" | "top";
 
 /** Code of the oversized ground-level shelf of a bookcase column. */
@@ -185,8 +198,16 @@ export interface Reservation {
   copy_condition?: string | null;
 }
 
-export interface Room { id: string; name: string; notes?: string | null; }
-export interface Column { id: string; room_id: string; number: number; }
+export interface Room {
+  id: string;
+  name: string;
+  notes?: string | null;
+}
+export interface Column {
+  id: string;
+  room_id: string;
+  number: number;
+}
 export interface Shelf {
   id: string;
   column_id: string;

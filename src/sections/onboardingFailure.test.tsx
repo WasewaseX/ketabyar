@@ -7,17 +7,27 @@
  * retryable. These tests pin both paths.
  */
 import "@testing-library/jest-dom/vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn() } }));
 vi.mock("../data/repositories/library", () => ({
   getLibrarySettings: vi.fn(),
   saveLibrarySettings: vi.fn(),
 }));
+
 import { toast } from "sonner";
-import { getLibrarySettings, saveLibrarySettings } from "../data/repositories/library";
+import {
+  getLibrarySettings,
+  saveLibrarySettings,
+} from "../data/repositories/library";
 import { OnboardingPage } from "./Onboarding";
 
 const renderOnboarding = () =>
@@ -27,7 +37,8 @@ const renderOnboarding = () =>
     </MemoryRouter>,
   );
 
-const finishButton = () => screen.getByRole("button", { name: /شروع کار با کتابیار/ });
+const finishButton = () =>
+  screen.getByRole("button", { name: /شروع کار با کتابیار/ });
 
 describe("onboarding completion — failures must be visible, success must navigate", () => {
   beforeEach(() => {
@@ -43,25 +54,38 @@ describe("onboarding completion — failures must be visible, success must navig
   });
 
   it("a failed settings save shows a toast and stays retryable", async () => {
-    vi.mocked(getLibrarySettings).mockResolvedValue({ id: 1, library_name: "" } as never);
-    vi.mocked(saveLibrarySettings).mockRejectedValueOnce(new Error("settings row missing"));
+    vi.mocked(getLibrarySettings).mockResolvedValue({
+      id: 1,
+      library_name: "",
+    } as never);
+    vi.mocked(saveLibrarySettings).mockRejectedValueOnce(
+      new Error("settings row missing"),
+    );
 
     renderOnboarding();
     fireEvent.click(finishButton());
 
-    await waitFor(() => expect(toast.error).toHaveBeenCalledWith("settings row missing"), { timeout: 4000 });
+    await waitFor(
+      () => expect(toast.error).toHaveBeenCalledWith("settings row missing"),
+      { timeout: 4000 },
+    );
     // Still on onboarding — the user can simply press the button again.
     expect(finishButton()).toBeInTheDocument();
   }, 8000);
 
   it("a successful completion saves the settings and stays silent", async () => {
-    vi.mocked(getLibrarySettings).mockResolvedValue({ id: 1, library_name: "" } as never);
+    vi.mocked(getLibrarySettings).mockResolvedValue({
+      id: 1,
+      library_name: "",
+    } as never);
     vi.mocked(saveLibrarySettings).mockResolvedValueOnce(undefined as never);
 
     renderOnboarding();
     fireEvent.click(finishButton());
 
-    await waitFor(() => expect(saveLibrarySettings).toHaveBeenCalledTimes(1), { timeout: 4000 });
+    await waitFor(() => expect(saveLibrarySettings).toHaveBeenCalledTimes(1), {
+      timeout: 4000,
+    });
     expect(toast.error).not.toHaveBeenCalled();
   }, 8000);
 });

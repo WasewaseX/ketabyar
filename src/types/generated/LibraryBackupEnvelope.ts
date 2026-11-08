@@ -3,4 +3,8 @@
 /**
  * Backup file envelope (v1).
  */
-export type LibraryBackupEnvelope = { version: bigint, exportedAt: string, tables: any, };
+export type LibraryBackupEnvelope = {
+  version: bigint;
+  exportedAt: string;
+  tables: any;
+};

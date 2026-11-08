@@ -14,7 +14,10 @@ export interface DisplayTitleResult {
  *  • "original" → catalog title first, Arabic title / subtitle underneath.
  *  • "arabic"   → Arabic title first when present, catalog title underneath.
  */
-export function getDisplayTitle(item: Titleable, preference: "original" | "arabic" = "original"): DisplayTitleResult {
+export function getDisplayTitle(
+  item: Titleable,
+  preference: "original" | "arabic" = "original",
+): DisplayTitleResult {
   const arabic = item.arabic_title?.trim() ?? "";
 
   if (preference === "arabic" && arabic) {

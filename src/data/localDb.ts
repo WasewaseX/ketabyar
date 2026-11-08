@@ -18,19 +18,28 @@ export async function getDb(): Promise<Database> {
 
 /** Runs a SELECT and returns typed rows. Defaults to `any[]` for loosely-typed log rows. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function select<T = any>(sql: string, params: unknown[] = []): Promise<T[]> {
+export async function select<T = any>(
+  sql: string,
+  params: unknown[] = [],
+): Promise<T[]> {
   const db = await getDb();
   return db.select<T[]>(sql, params);
 }
 
 /** Runs a single INSERT / UPDATE / DELETE / DDL statement. */
-export async function exec(sql: string, params: unknown[] = []): Promise<{ rowsAffected: number; lastInsertId?: unknown }> {
+export async function exec(
+  sql: string,
+  params: unknown[] = [],
+): Promise<{ rowsAffected: number; lastInsertId?: unknown }> {
   const db = await getDb();
   return db.execute(sql, params);
 }
 
 /** SELECT that expects exactly zero or one row. */
-export async function maybeOne<T>(sql: string, params: unknown[] = []): Promise<T | null> {
+export async function maybeOne<T>(
+  sql: string,
+  params: unknown[] = [],
+): Promise<T | null> {
   const rows = await select<T>(sql, params);
   return rows.length > 0 ? rows[0] : null;
 }

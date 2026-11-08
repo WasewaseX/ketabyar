@@ -48,7 +48,9 @@ function readLocale(): string {
  *  • others → institution format + configured timezone via date-fns tokens.
  * Returns "" for empty or unparseable input.
  */
-export function formatDisplayDate(dateInput: string | null | undefined): string {
+export function formatDisplayDate(
+  dateInput: string | null | undefined,
+): string {
   if (!dateInput) return "";
   let date = new Date(dateInput);
   if (Number.isNaN(date.getTime()) && !dateInput.includes("T")) {
@@ -59,7 +61,9 @@ export function formatDisplayDate(dateInput: string | null | undefined): string 
   const locale = readLocale();
   const settings = useLibrarySettingsStore.getState().settings;
   const timezone = settings.timezone || "Asia/Tehran";
-  const token = (ACCEPTED_FORMATS as readonly string[]).includes(settings.date_format)
+  const token = (ACCEPTED_FORMATS as readonly string[]).includes(
+    settings.date_format,
+  )
     ? settings.date_format
     : "dd/MM/yyyy";
 
@@ -79,10 +83,16 @@ export function formatDisplayDate(dateInput: string | null | undefined): string 
     // format that wall clock with the configured token.
     const parts = new Intl.DateTimeFormat("en-US", {
       timeZone: timezone,
-      year: "numeric", month: "2-digit", day: "2-digit",
-      hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
     }).formatToParts(date);
-    const pick = (type: string) => parts.find((p) => p.type === type)?.value ?? "00";
+    const pick = (type: string) =>
+      parts.find((p) => p.type === type)?.value ?? "00";
     const wallClock = new Date(
       Number(pick("year")),
       Number(pick("month")) - 1,

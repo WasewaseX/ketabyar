@@ -21,11 +21,18 @@ export function StatPill({
   };
   return (
     <div className="flex items-center gap-3 rounded-[var(--radius-card)] border border-ink/8 bg-white px-4 py-3 shadow-card dark:border-white/8 dark:bg-[#1b2723]">
-      <span className={cn("flex h-9 w-9 items-center justify-center rounded-full", tones[tone])}>
+      <span
+        className={cn(
+          "flex h-9 w-9 items-center justify-center rounded-full",
+          tones[tone],
+        )}
+      >
         <Icon size={16} />
       </span>
       <div className="min-w-0">
-        <p className="truncate text-[11px] font-semibold uppercase tracking-wide text-ink/50 dark:text-ivory/50">{label}</p>
+        <p className="truncate text-[11px] font-semibold uppercase tracking-wide text-ink/50 dark:text-ivory/50">
+          {label}
+        </p>
         <p className="font-display text-lg font-bold leading-tight">{value}</p>
       </div>
     </div>
@@ -33,9 +40,19 @@ export function StatPill({
 }
 
 /** Filter pill row used by Loans / Reservations / Catalog saved views. */
-export function FilterPill({ active, count, children, onClick }: { active: boolean; count?: number; children: ReactNode; onClick: () => void }) {
+export function FilterPill({
+  active,
+  count,
+  children,
+  onClick,
+}: {
+  active: boolean;
+  count?: number;
+  children: ReactNode;
+  onClick: () => void;
+}) {
   return (
-    <button
+    <button type="button"
       onClick={onClick}
       className={cn(
         "inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition",
@@ -46,7 +63,14 @@ export function FilterPill({ active, count, children, onClick }: { active: boole
     >
       {children}
       {count !== undefined ? (
-        <span className={cn("rounded-full px-1.5 text-[10px] font-bold", active ? "bg-white/25" : "bg-ink/10 dark:bg-white/10")}>{count}</span>
+        <span
+          className={cn(
+            "rounded-full px-1.5 text-[10px] font-bold",
+            active ? "bg-white/25" : "bg-ink/10 dark:bg-white/10",
+          )}
+        >
+          {count}
+        </span>
       ) : null}
     </button>
   );

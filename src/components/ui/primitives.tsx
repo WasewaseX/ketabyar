@@ -1,21 +1,59 @@
-import { BookOpen, FileQuestion, GraduationCap, Loader2, Newspaper, X } from "lucide-react";
-import { useEffect, type ButtonHTMLAttributes, type ElementType, type InputHTMLAttributes, type ReactNode } from "react";
+import {
+  BookOpen,
+  FileQuestion,
+  GraduationCap,
+  Loader2,
+  Newspaper,
+  X,
+} from "lucide-react";
+import {
+  type ButtonHTMLAttributes,
+  type ElementType,
+  type InputHTMLAttributes,
+  type ReactNode,
+  useEffect,
+} from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { cn } from "../../utils/cn";
 
 /** Shared loading spinner. */
-export function Spinner({ size = 20, className }: { size?: number; className?: string }) {
-  return <Loader2 size={size} className={cn("animate-spin text-accent", className)} aria-hidden />;
+export function Spinner({
+  size = 20,
+  className,
+}: {
+  size?: number;
+  className?: string;
+}) {
+  return (
+    <Loader2
+      size={size}
+      className={cn("animate-spin text-accent", className)}
+      aria-hidden
+    />
+  );
 }
 
 /** Centred, full-height loading state for pages. */
-export function PageLoader({ label, className }: { label?: string; className?: string }) {
+export function PageLoader({
+  label,
+  className,
+}: {
+  label?: string;
+  className?: string;
+}) {
   const { t } = useTranslation();
   return (
-    <div className={cn("flex h-[60vh] flex-col items-center justify-center gap-3", className)}>
+    <div
+      className={cn(
+        "flex h-[60vh] flex-col items-center justify-center gap-3",
+        className,
+      )}
+    >
       <Spinner size={30} />
-      <p className="text-sm text-ink/60 dark:text-ivory/60">{label ?? t("common.loading", "Loading…")}</p>
+      <p className="text-sm text-ink/60 dark:text-ivory/60">
+        {label ?? t("common.loading", "Loading…")}
+      </p>
     </div>
   );
 }
@@ -31,14 +69,23 @@ export const ITEM_TYPE_VALUES = ["book", "fyp", "journal", "other"] as const;
 
 const BUTTON_VARIANTS: Record<string, string> = {
   primary: "bg-accent text-white hover:opacity-90 dark:bg-accent-dark",
-  secondary: "bg-ivory text-ink border border-ink/15 hover:border-ink/30 dark:bg-ink dark:text-ivory dark:border-white/15",
+  secondary:
+    "bg-ivory text-ink border border-ink/15 hover:border-ink/30 dark:bg-ink dark:text-ivory dark:border-white/15",
   danger: "bg-red-700 text-white hover:bg-red-800",
-  ghost: "bg-transparent text-ink/70 hover:bg-ink/5 dark:text-ivory/70 dark:hover:bg-white/5",
+  ghost:
+    "bg-transparent text-ink/70 hover:bg-ink/5 dark:text-ivory/70 dark:hover:bg-white/5",
 };
 
-export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & { variant?: keyof typeof BUTTON_VARIANTS };
+export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+  variant?: keyof typeof BUTTON_VARIANTS;
+};
 
-export function Button({ variant = "primary", className, type, ...props }: ButtonProps) {
+export function Button({
+  variant = "primary",
+  className,
+  type,
+  ...props
+}: ButtonProps) {
   return (
     <button
       type={type ?? "button"}
@@ -52,13 +99,27 @@ export function Button({ variant = "primary", className, type, ...props }: Butto
   );
 }
 
-export function Input({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) {
+export function Input({
+  className,
+  ...props
+}: InputHTMLAttributes<HTMLInputElement>) {
   return <input className={cn("field-input", className)} {...props} />;
 }
 
-export function Card({ children, className }: { children: ReactNode; className?: string }) {
+export function Card({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
   return (
-    <div className={cn("rounded-[var(--radius-card)] border border-ink/5 bg-white p-5 shadow-card dark:border-white/5 dark:bg-[#1b2723]", className)}>
+    <div
+      className={cn(
+        "rounded-[var(--radius-card)] border border-ink/5 bg-white p-5 shadow-card dark:border-white/5 dark:bg-[#1b2723]",
+        className,
+      )}
+    >
       {children}
     </div>
   );
@@ -73,11 +134,23 @@ const STATUS_TONES: Record<string, string> = {
 };
 
 /** Coloured status pill; unknown statuses fall back to a neutral tone. */
-export function StatusBadge({ value, className }: { value: string; className?: string }) {
+export function StatusBadge({
+  value,
+  className,
+}: {
+  value: string;
+  className?: string;
+}) {
   const { t } = useTranslation();
   const tone = STATUS_TONES[value] ?? "bg-red-700/10 text-red-700";
   return (
-    <span className={cn("inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize", tone, className)}>
+    <span
+      className={cn(
+        "inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize",
+        tone,
+        className,
+      )}
+    >
       {t(value, value)}
     </span>
   );
@@ -90,12 +163,24 @@ const ITEM_TYPE_TONES: Record<string, string> = {
   other: "bg-slate-500/10 text-slate-500",
 };
 
-export function ItemTypeBadge({ type, className }: { type?: string; className?: string }) {
+export function ItemTypeBadge({
+  type,
+  className,
+}: {
+  type?: string;
+  className?: string;
+}) {
   const { t } = useTranslation();
   const normalized = (type ?? "book") as string;
   const Icon = ITEM_TYPE_ICONS[normalized] ?? BookOpen;
   return (
-    <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold", ITEM_TYPE_TONES[normalized] ?? ITEM_TYPE_TONES.book, className)}>
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold",
+        ITEM_TYPE_TONES[normalized] ?? ITEM_TYPE_TONES.book,
+        className,
+      )}
+    >
       <Icon size={12} />
       {t(`itemTypes.${normalized}`, normalized)}
     </span>
@@ -103,18 +188,39 @@ export function ItemTypeBadge({ type, className }: { type?: string; className?: 
 }
 
 /** Cover placeholder with a type-tinted icon. */
-export function DefaultCover({ type, className, iconSize = 18 }: { type?: string | null; className?: string; iconSize?: number }) {
+export function DefaultCover({
+  type,
+  className,
+  iconSize = 18,
+}: {
+  type?: string | null;
+  className?: string;
+  iconSize?: number;
+}) {
   const normalized = (type ?? "book") as string;
   const Icon = ITEM_TYPE_ICONS[normalized] ?? BookOpen;
   return (
-    <div className={cn("flex items-center justify-center border border-ink/10 bg-ivory text-ink/40 dark:border-white/10 dark:bg-ink dark:text-ivory/40", className)}>
+    <div
+      className={cn(
+        "flex items-center justify-center border border-ink/10 bg-ivory text-ink/40 dark:border-white/10 dark:bg-ink dark:text-ivory/40",
+        className,
+      )}
+    >
       <Icon size={iconSize} />
     </div>
   );
 }
 
 /** Grid of item-type buttons used in the book form. */
-export function ItemTypeSelect({ value, onChange, className }: { value: string; onChange: (v: string) => void; className?: string }) {
+export function ItemTypeSelect({
+  value,
+  onChange,
+  className,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  className?: string;
+}) {
   const { t } = useTranslation();
   return (
     <div className={cn("grid grid-cols-4 gap-2", className)}>
@@ -158,9 +264,16 @@ export function EmptyState({
 }) {
   return (
     <div className="flex min-h-48 flex-col items-center justify-center gap-3 rounded-[var(--radius-card)] border border-dashed border-ink/12 p-8 text-center dark:border-white/12">
-      {artwork ?? (Icon ? <span className="flex h-14 w-14 items-center justify-center rounded-full bg-accent/10 text-accent dark:text-accent-dark"><Icon size={26} /></span> : null)}
+      {artwork ??
+        (Icon ? (
+          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-accent/10 text-accent dark:text-accent-dark">
+            <Icon size={26} />
+          </span>
+        ) : null)}
       <h3 className="font-display text-base font-bold">{title}</h3>
-      <p className="max-w-md text-sm text-ink/55 dark:text-ivory/55">{description}</p>
+      <p className="max-w-md text-sm text-ink/55 dark:text-ivory/55">
+        {description}
+      </p>
       {action}
     </div>
   );
@@ -203,7 +316,10 @@ export function Modal({
   if (!isOpen) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[900] flex items-start justify-center overflow-y-auto bg-black/60 p-4 pt-[8vh] backdrop-blur-sm" onMouseDown={onClose}>
+    <div
+      className="fixed inset-0 z-[900] flex items-start justify-center overflow-y-auto bg-black/60 p-4 pt-[8vh] backdrop-blur-sm"
+      onMouseDown={onClose}
+    >
       <div
         role="dialog"
         aria-modal="true"
@@ -217,7 +333,11 @@ export function Modal({
       >
         <header className="flex items-center justify-between border-b border-ink/8 px-5 py-3.5 dark:border-white/8">
           <h2 className="font-display text-base font-bold">{title}</h2>
-          <button onClick={onClose} aria-label={t("common.closeDialog", "Close dialog")} className="rounded-full p-1.5 text-ink/50 hover:bg-ink/5 hover:text-ink dark:text-ivory/50 dark:hover:bg-white/10 dark:hover:text-ivory">
+          <button type="button"
+            onClick={onClose}
+            aria-label={t("common.closeDialog", "Close dialog")}
+            className="rounded-full p-1.5 text-ink/50 hover:bg-ink/5 hover:text-ink dark:text-ivory/50 dark:hover:bg-white/10 dark:hover:text-ivory"
+          >
             <X size={17} />
           </button>
         </header>

@@ -12,7 +12,13 @@ describe("CSV building", () => {
   });
 
   it("builds a BOM-prefixed CSV with a header row", () => {
-    const csv = buildCsv(["name", "count"], [["کتاب", 3], ["x,y", 4]]);
+    const csv = buildCsv(
+      ["name", "count"],
+      [
+        ["کتاب", 3],
+        ["x,y", 4],
+      ],
+    );
     expect(csv.charCodeAt(0)).toBe(0xfeff);
     const lines = csv.slice(1).split("\n");
     expect(lines[0]).toBe("name,count");
@@ -22,18 +28,31 @@ describe("CSV building", () => {
 });
 
 describe("display title preference", () => {
-  const item = { title: "Data Structures", arabic_title: "بنى المعلومات", subtitle: "An Introduction" };
+  const item = {
+    title: "Data Structures",
+    arabic_title: "بنى المعلومات",
+    subtitle: "An Introduction",
+  };
 
   it("prefers the catalog title in original mode", () => {
-    expect(getDisplayTitle(item, "original")).toEqual({ main: "Data Structures", sub: "بنى المعلومات" });
+    expect(getDisplayTitle(item, "original")).toEqual({
+      main: "Data Structures",
+      sub: "بنى المعلومات",
+    });
   });
 
   it("leads with the arabic title when requested", () => {
-    expect(getDisplayTitle(item, "arabic")).toEqual({ main: "بنى المعلومات", sub: "Data Structures" });
+    expect(getDisplayTitle(item, "arabic")).toEqual({
+      main: "بنى المعلومات",
+      sub: "Data Structures",
+    });
   });
 
   it("falls back to the subtitle when titles match", () => {
     const same = { title: "Fables", arabic_title: "Fables" };
-    expect(getDisplayTitle(same, "arabic")).toEqual({ main: "Fables", sub: undefined });
+    expect(getDisplayTitle(same, "arabic")).toEqual({
+      main: "Fables",
+      sub: undefined,
+    });
   });
 });

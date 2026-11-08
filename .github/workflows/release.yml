@@ -67,7 +67,12 @@ jobs:
         with:
           tagName: v__VERSION__
           releaseName: 'KetabYar v__VERSION__'
-          releaseBody: 'کتابیار — مدیریت کتابخانهٔ دانشگاه، آفلاین و تحت مجوز MIT. دو نسخه: TS Edition (فایل‌های KetabYar_*) و Rust Edition با موتور بومی ketabyar-core (فایل‌های KetabYarRust_*). | Two editions: TS (KetabYar_*) and Rust with the native ketabyar-core engine (KetabYarRust_*). MIT-licensed. Default PIN: 6767'
+          releaseBody: >-
+            کتابیار — مدیریت کتابخانهٔ دانشگاه، آفلاین و تحت مجوز MIT.
+            دو نسخه: TS Edition (فایل‌های KetabYar_*) و Rust Edition با موتور
+            بومی ketabyar-core (فایل‌های KetabYarRust_*). | Two editions:
+            TS (KetabYar_*) and Rust with the native ketabyar-core engine
+            (KetabYarRust_*). MIT-licensed. Default PIN: 6767
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.settings.args }}

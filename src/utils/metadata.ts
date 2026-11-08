@@ -26,7 +26,11 @@ export interface ExternalBookMetadata {
 
 const REQUEST_TIMEOUT_MS = 12_000;
 
-async function fetchWithTimeout(url: string, options?: RequestInit, timeoutMs = REQUEST_TIMEOUT_MS): Promise<Response> {
+async function fetchWithTimeout(
+  url: string,
+  options?: RequestInit,
+  timeoutMs = REQUEST_TIMEOUT_MS,
+): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -41,25 +45,40 @@ const HAS_ARABIC_SCRIPT = /[\u0600-\u06FF\u0750-\u077F]/;
 /** Maps provider language codes onto catalog labels; Persian included. */
 function normalizeLanguage(code: string | undefined): string {
   switch ((code || "").slice(0, 2).toLowerCase()) {
-    case "fa": return "فارسی";
-    case "en": return "English";
-    case "ar": return "Arabic";
-    case "fr": return "French";
-    default: return code || "English";
+    case "fa":
+      return "فارسی";
+    case "en":
+      return "English";
+    case "ar":
+      return "Arabic";
+    case "fr":
+      return "French";
+    default:
+      return code || "English";
   }
 }
 
 /** Drops generic catch-all subjects that make poor category labels. */
 function cleanCategory(raw: string): string {
-  const noise = /(translation|voyage|travel|general|textbook|study guide|handbook)/i;
-  const parts = raw.split(",").map((p) => p.trim()).filter(Boolean);
+  const noise =
+    /(translation|voyage|travel|general|textbook|study guide|handbook)/i;
+  const parts = raw
+    .split(",")
+    .map((p) => p.trim())
+    .filter(Boolean);
   return parts.find((p) => !noise.test(p)) ?? parts[0] ?? "";
 }
 
 const TAG_BUCKETS: { test: RegExp; tags: string[] }[] = [
-  { test: /alchemist|philosoph|sina/i, tags: ["philosophy", "classic", "allegory"] },
+  {
+    test: /alchemist|philosoph|sina/i,
+    tags: ["philosophy", "classic", "allegory"],
+  },
   { test: /pride|prejudice|austen/i, tags: ["classic", "romance", "society"] },
-  { test: /medic|anatomy|health|nursing/i, tags: ["medical", "reference", "science"] },
+  {
+    test: /medic|anatomy|health|nursing/i,
+    tags: ["medical", "reference", "science"],
+  },
   { test: /histor|civiliz/i, tags: ["history", "non-fiction"] },
   { test: /novel|story|fiction/i, tags: ["fiction", "literature"] },
 ];
@@ -73,18 +92,31 @@ function generateFallbackTags(category: string): string {
   return Array.from(tags).join(", ");
 }
 
-function firstIsbn(volumes: unknown): { isbn10: string | null; isbn13: string | null } {
-  const identifiers = (volumes as { industryIdentifiers?: { type: string; identifier: string }[] })?.industryIdentifiers ?? [];
+function firstIsbn(volumes: unknown): {
+  isbn10: string | null;
+  isbn13: string | null;
+} {
+  const identifiers =
+    (
+      volumes as {
+        industryIdentifiers?: { type: string; identifier: string }[];
+      }
+    )?.industryIdentifiers ?? [];
   let isbn10: string | null = null;
   let isbn13: string | null = null;
   for (const entry of identifiers) {
-    if (entry.type === "ISBN_10" && !isbn10) isbn10 = entry.identifier.replace(/[- ]/g, "");
-    if (entry.type === "ISBN_13" && !isbn13) isbn13 = entry.identifier.replace(/[- ]/g, "");
+    if (entry.type === "ISBN_10" && !isbn10)
+      isbn10 = entry.identifier.replace(/[- ]/g, "");
+    if (entry.type === "ISBN_13" && !isbn13)
+      isbn13 = entry.identifier.replace(/[- ]/g, "");
   }
   return { isbn10, isbn13 };
 }
 
-async function queryGoogleBooks(query: string, isIsbn: boolean): Promise<ExternalBookMetadata | null> {
+async function queryGoogleBooks(
+  query: string,
+  isIsbn: boolean,
+): Promise<ExternalBookMetadata | null> {
   try {
     const url = isIsbn
       ? `https://www.googleapis.com/books/v1/volumes?q=isbn:${encodeURIComponent(query)}`
@@ -96,18 +128,36 @@ async function queryGoogleBooks(query: string, isIsbn: boolean): Promise<Externa
     if (items.length === 0) return null;
     const chosen = isIsbn
       ? items[0]
-      : (items.find((item) => firstIsbn((item as { volumeInfo?: unknown }).volumeInfo).isbn13 || firstIsbn((item as { volumeInfo?: unknown }).volumeInfo).isbn10) ?? items[0]);
-    const volume = (chosen as { volumeInfo?: Record<string, unknown> }).volumeInfo ?? {};
+      : (items.find(
+          (item) =>
+            firstIsbn((item as { volumeInfo?: unknown }).volumeInfo).isbn13 ||
+            firstIsbn((item as { volumeInfo?: unknown }).volumeInfo).isbn10,
+        ) ?? items[0]);
+    const volume =
+      (chosen as { volumeInfo?: Record<string, unknown> }).volumeInfo ?? {};
     const identifiers = firstIsbn(volume);
-    const imageLinks = volume.imageLinks as { thumbnail?: string; smallThumbnail?: string } | undefined;
-    const cover = (imageLinks?.thumbnail || imageLinks?.smallThumbnail || "")?.replace(/^http:/, "https:");
+    const imageLinks = volume.imageLinks as
+      | { thumbnail?: string; smallThumbnail?: string }
+      | undefined;
+    const cover = (
+      imageLinks?.thumbnail ||
+      imageLinks?.smallThumbnail ||
+      ""
+    )?.replace(/^http:/, "https:");
     return {
       title: String(volume.title ?? ""),
       subtitle: volume.subtitle ? String(volume.subtitle) : undefined,
-      author: Array.isArray(volume.authors) ? volume.authors.join(", ") : undefined,
+      author: Array.isArray(volume.authors)
+        ? volume.authors.join(", ")
+        : undefined,
       publisher: volume.publisher ? String(volume.publisher) : undefined,
-      publicationYear: volume.publishedDate ? parseInt(String(volume.publishedDate).slice(0, 4), 10) || undefined : undefined,
-      category: Array.isArray(volume.categories) && volume.categories.length ? String(volume.categories[0]) : undefined,
+      publicationYear: volume.publishedDate
+        ? parseInt(String(volume.publishedDate).slice(0, 4), 10) || undefined
+        : undefined,
+      category:
+        Array.isArray(volume.categories) && volume.categories.length
+          ? String(volume.categories[0])
+          : undefined,
       language: normalizeLanguage(volume.language as string | undefined),
       description: volume.description ? String(volume.description) : undefined,
       cover_url: cover || null,
@@ -119,7 +169,9 @@ async function queryGoogleBooks(query: string, isIsbn: boolean): Promise<Externa
   }
 }
 
-async function queryOpenLibraryByIsbn(clean: string): Promise<ExternalBookMetadata | null> {
+async function queryOpenLibraryByIsbn(
+  clean: string,
+): Promise<ExternalBookMetadata | null> {
   try {
     const url = `https://openlibrary.org/api/books?bibkeys=ISBN:${clean}&jscmd=data&format=json`;
     const response = await fetchWithTimeout(url);
@@ -130,12 +182,27 @@ async function queryOpenLibraryByIsbn(clean: string): Promise<ExternalBookMetada
     const yearMatch = /\d{4}/.exec(String(book.publish_date ?? ""));
     return {
       title: String(book.title ?? ""),
-      author: (book.authors ?? []).map((a: { name: string }) => a.name).join(", ") || undefined,
-      publisher: (book.publishers ?? []).map((p: { name: string }) => p.name).join(", ") || undefined,
+      author:
+        (book.authors ?? []).map((a: { name: string }) => a.name).join(", ") ||
+        undefined,
+      publisher:
+        (book.publishers ?? [])
+          .map((p: { name: string }) => p.name)
+          .join(", ") || undefined,
       publicationYear: yearMatch ? parseInt(yearMatch[0], 10) : undefined,
-      category: (book.subjects ?? []).slice(0, 3).map((s: { name: string }) => s.name).join(", ") || undefined,
-      language: normalizeLanguage(String(book.key ?? "").includes("/OLA/") ? "" : undefined),
-      cover_url: book.cover?.large || book.cover?.medium || book.cover?.small || `https://covers.openlibrary.org/b/isbn/${clean}-L.jpg`,
+      category:
+        (book.subjects ?? [])
+          .slice(0, 3)
+          .map((s: { name: string }) => s.name)
+          .join(", ") || undefined,
+      language: normalizeLanguage(
+        String(book.key ?? "").includes("/OLA/") ? "" : undefined,
+      ),
+      cover_url:
+        book.cover?.large ||
+        book.cover?.medium ||
+        book.cover?.small ||
+        `https://covers.openlibrary.org/b/isbn/${clean}-L.jpg`,
       dewey_code: book.classifications?.dewey_decimal_class?.[0] ?? null,
     };
   } catch (error) {
@@ -144,7 +211,9 @@ async function queryOpenLibraryByIsbn(clean: string): Promise<ExternalBookMetada
   }
 }
 
-async function queryOpenLibraryByText(query: string): Promise<ExternalBookMetadata | null> {
+async function queryOpenLibraryByText(
+  query: string,
+): Promise<ExternalBookMetadata | null> {
   try {
     const url = `https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=5`;
     const response = await fetchWithTimeout(url);
@@ -156,15 +225,27 @@ async function queryOpenLibraryByText(query: string): Promise<ExternalBookMetada
     const isbns = (doc.isbn as string[]).map((i) => i.replace(/[- ]/g, ""));
     const isbn13 = isbns.find((i) => i.length === 13) ?? null;
     const isbn10 = isbns.find((i) => i.length === 10) ?? null;
-    const coverId = doc.cover_i ? `https://covers.openlibrary.org/b/id/${doc.cover_i}-L.jpg` : null;
+    const coverId = doc.cover_i
+      ? `https://covers.openlibrary.org/b/id/${doc.cover_i}-L.jpg`
+      : null;
     return {
       title: String(doc.title ?? ""),
-      author: Array.isArray(doc.author_name) ? doc.author_name.join(", ") : undefined,
+      author: Array.isArray(doc.author_name)
+        ? doc.author_name.join(", ")
+        : undefined,
       publisher: Array.isArray(doc.publisher) ? doc.publisher[0] : undefined,
-      publicationYear: (doc.first_publish_year as number) ?? (Array.isArray(doc.publish_year) ? doc.publish_year[0] : undefined),
-      category: Array.isArray(doc.subject) ? doc.subject.slice(0, 3).join(", ") : undefined,
+      publicationYear:
+        (doc.first_publish_year as number) ??
+        (Array.isArray(doc.publish_year) ? doc.publish_year[0] : undefined),
+      category: Array.isArray(doc.subject)
+        ? doc.subject.slice(0, 3).join(", ")
+        : undefined,
       language: "English",
-      cover_url: coverId || (isbn13 || isbn10 ? `https://covers.openlibrary.org/b/isbn/${isbn13 || isbn10}-L.jpg` : null),
+      cover_url:
+        coverId ||
+        (isbn13 || isbn10
+          ? `https://covers.openlibrary.org/b/isbn/${isbn13 || isbn10}-L.jpg`
+          : null),
       isbn10,
       isbn13,
     };
@@ -174,7 +255,11 @@ async function queryOpenLibraryByText(query: string): Promise<ExternalBookMetada
   }
 }
 
-function mergeResults(google: ExternalBookMetadata | null, openLibrary: ExternalBookMetadata | null, query: string): ExternalBookMetadata {
+function mergeResults(
+  google: ExternalBookMetadata | null,
+  openLibrary: ExternalBookMetadata | null,
+  query: string,
+): ExternalBookMetadata {
   // Google's catalogue wins per-field where it answered; Open Library fills
   // the gaps (notably Dewey and covers).
   const merged: ExternalBookMetadata = {
@@ -203,7 +288,8 @@ function mergeResults(google: ExternalBookMetadata | null, openLibrary: External
   const unresolved: ExternalBookMetadata["unresolvedFields"] = [];
   if (!merged.arabic_title) unresolved.push("arabic_title");
   if (!merged.subtitle) unresolved.push("subtitle");
-  if (!merged.description || merged.description.length < 30) unresolved.push("description");
+  if (!merged.description || merged.description.length < 30)
+    unresolved.push("description");
   merged.unresolvedFields = unresolved;
 
   if (!merged.title && !merged.author) {
@@ -213,11 +299,15 @@ function mergeResults(google: ExternalBookMetadata | null, openLibrary: External
 }
 
 /** Runs Google Books and Open Library in parallel and merges the answers. */
-export async function fetchBookMetadata(query: string): Promise<ExternalBookMetadata> {
+export async function fetchBookMetadata(
+  query: string,
+): Promise<ExternalBookMetadata> {
   const trimmed = query.trim();
-  if (!trimmed) throw new Error("Please enter a non-empty ISBN or search query.");
+  if (!trimmed)
+    throw new Error("Please enter a non-empty ISBN or search query.");
   const clean = trimmed.replace(/[- ]/g, "");
-  const isIsbn = (clean.length === 10 || clean.length === 13) && /^\d{9}/.test(clean);
+  const isIsbn =
+    (clean.length === 10 || clean.length === 13) && /^\d{9}/.test(clean);
 
   const [google, openLibrary] = await Promise.all([
     queryGoogleBooks(clean, isIsbn),
@@ -227,7 +317,9 @@ export async function fetchBookMetadata(query: string): Promise<ExternalBookMeta
 }
 
 /** Convenience alias for ISBN-only lookups. */
-export async function fetchBookMetadataByIsbn(isbn: string): Promise<ExternalBookMetadata> {
+export async function fetchBookMetadataByIsbn(
+  isbn: string,
+): Promise<ExternalBookMetadata> {
   return fetchBookMetadata(isbn);
 }
 
@@ -247,7 +339,10 @@ export async function enrichMetadataWithGroq(
   try {
     const response = await fetchWithTimeout(GROQ_ENDPOINT, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
       body: JSON.stringify({
         model: "llama-3.1-8b-instant",
         messages: [
@@ -264,10 +359,15 @@ export async function enrichMetadataWithGroq(
         temperature: 0.1,
       }),
     });
-    if (!response.ok) throw new Error(`Groq API returned status ${response.status}`);
+    if (!response.ok)
+      throw new Error(`Groq API returned status ${response.status}`);
     const payload = await response.json();
-    const parsed = JSON.parse(payload.choices[0].message.content) as Record<string, unknown>;
-    const pick = (key: string) => (parsed[key] ? String(parsed[key]) : undefined);
+    const parsed = JSON.parse(payload.choices[0].message.content) as Record<
+      string,
+      unknown
+    >;
+    const pick = (key: string) =>
+      parsed[key] ? String(parsed[key]) : undefined;
 
     const result: ExternalBookMetadata = {
       ...existingMetadata,
@@ -280,7 +380,9 @@ export async function enrichMetadataWithGroq(
       tags: pick("tags") || existingMetadata.tags,
       language: pick("language") || existingMetadata.language,
       description: pick("description") || existingMetadata.description,
-      publicationYear: parsed.publicationYear ? Number(parsed.publicationYear) : existingMetadata.publicationYear,
+      publicationYear: parsed.publicationYear
+        ? Number(parsed.publicationYear)
+        : existingMetadata.publicationYear,
       isbn10: pick("isbn10") || existingMetadata.isbn10,
       isbn13: pick("isbn13") || existingMetadata.isbn13,
       dewey_code: pick("dewey_code") || existingMetadata.dewey_code,
@@ -290,7 +392,8 @@ export async function enrichMetadataWithGroq(
     const unresolved: ExternalBookMetadata["unresolvedFields"] = [];
     if (!result.arabic_title) unresolved.push("arabic_title");
     if (!result.subtitle) unresolved.push("subtitle");
-    if (!result.description || result.description.length < 30) unresolved.push("description");
+    if (!result.description || result.description.length < 30)
+      unresolved.push("description");
     result.unresolvedFields = unresolved;
     return result;
   } catch (error) {
@@ -300,7 +403,9 @@ export async function enrichMetadataWithGroq(
 }
 
 /** Fetches a cover image and stores it as a base64 data URL; falls back to the URL itself. */
-export async function downloadCoverAsBase64(coverUrl: string | null | undefined): Promise<string | null> {
+export async function downloadCoverAsBase64(
+  coverUrl: string | null | undefined,
+): Promise<string | null> {
   if (!coverUrl) return null;
   try {
     const response = await fetchWithTimeout(coverUrl);

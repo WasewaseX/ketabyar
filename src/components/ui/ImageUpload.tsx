@@ -20,7 +20,10 @@ const SHAPE_PREVIEW: Record<Shape, string> = {
   cover: "aspect-[2/3] w-[132px] rounded-[var(--radius-control)]",
 };
 
-const SHAPE_CROP: Record<Shape, { w: number; h: number; radius: number; canvas: [number, number] }> = {
+const SHAPE_CROP: Record<
+  Shape,
+  { w: number; h: number; radius: number; canvas: [number, number] }
+> = {
   circle: { w: 200, h: 200, radius: 100, canvas: [300, 300] },
   rect: { w: 280, h: 175, radius: 10, canvas: [480, 300] },
   cover: { w: 200, h: 300, radius: 10, canvas: [360, 540] },
@@ -38,7 +41,8 @@ function mimeFor(path: string): string {
 
 function bytesToDataUrl(bytes: Uint8Array, mime: string): string {
   let binary = "";
-  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  for (let i = 0; i < bytes.length; i++)
+    binary += String.fromCharCode(bytes[i]);
   return `data:${mime};base64,${btoa(binary)}`;
 }
 
@@ -60,7 +64,12 @@ export function ImageUpload({
   const [cropping, setCropping] = useState(false);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
-  const dragRef = useRef<{ startX: number; startY: number; baseX: number; baseY: number } | null>(null);
+  const dragRef = useRef<{
+    startX: number;
+    startY: number;
+    baseX: number;
+    baseY: number;
+  } | null>(null);
 
   async function readNativeFile(): Promise<string | null> {
     const { open } = await import("@tauri-apps/plugin-dialog");
@@ -79,7 +88,9 @@ export function ImageUpload({
       let dataUrl: string | null = null;
       if (file) {
         if (!file.type.startsWith("image/")) {
-          toast.warning(t("common.uploadImageFileType", "Only image files are accepted."));
+          toast.warning(
+            t("common.uploadImageFileType", "Only image files are accepted."),
+          );
           return;
         }
         dataUrl = await new Promise<string>((resolve, reject) => {
@@ -158,7 +169,10 @@ export function ImageUpload({
   return (
     <div className="flex flex-col gap-2">
       <div
-        className={cn("relative overflow-hidden border border-ink/12 bg-ivory dark:border-white/12 dark:bg-ink", SHAPE_PREVIEW[shape])}
+        className={cn(
+          "relative overflow-hidden border border-ink/12 bg-ivory dark:border-white/12 dark:bg-ink",
+          SHAPE_PREVIEW[shape],
+        )}
         onDragOver={(event) => event.preventDefault()}
         onDrop={(event) => {
           event.preventDefault();
@@ -230,24 +244,50 @@ export function ImageUpload({
       />
 
       {cropping && original ? (
-        <div className="fixed inset-0 z-[950] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" onMouseDown={() => setCropping(false)}>
-          <div className="w-[360px] rounded-2xl border border-ink/10 bg-white p-4 shadow-2xl dark:border-white/10 dark:bg-[#1b2723]" onMouseDown={(event) => event.stopPropagation()}>
-            <h3 className="mb-3 font-display text-sm font-bold">Crop &amp; Position</h3>
+        <div
+          className="fixed inset-0 z-[950] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+          onMouseDown={() => setCropping(false)}
+        >
+          <div
+            className="w-[360px] rounded-2xl border border-ink/10 bg-white p-4 shadow-2xl dark:border-white/10 dark:bg-[#1b2723]"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <h3 className="mb-3 font-display text-sm font-bold">
+              Crop &amp; Position
+            </h3>
             <div
               className="relative mx-auto overflow-hidden rounded-xl bg-ink/10 dark:bg-white/5"
-              style={{ width: SHAPE_CROP[shape].w, height: SHAPE_CROP[shape].h, cursor: "grab" }}
+              style={{
+                width: SHAPE_CROP[shape].w,
+                height: SHAPE_CROP[shape].h,
+                cursor: "grab",
+              }}
               onMouseDown={(event) => {
-                dragRef.current = { startX: event.clientX, startY: event.clientY, baseX: offset.x, baseY: offset.y };
+                dragRef.current = {
+                  startX: event.clientX,
+                  startY: event.clientY,
+                  baseX: offset.x,
+                  baseY: offset.y,
+                };
               }}
               onMouseMove={(event) => {
                 const drag = dragRef.current;
-                if (drag) setOffset({ x: drag.baseX + (event.clientX - drag.startX), y: drag.baseY + (event.clientY - drag.startY) });
+                if (drag)
+                  setOffset({
+                    x: drag.baseX + (event.clientX - drag.startX),
+                    y: drag.baseY + (event.clientY - drag.startY),
+                  });
               }}
               onMouseUp={() => (dragRef.current = null)}
               onMouseLeave={() => (dragRef.current = null)}
               onWheel={(event) => {
                 event.preventDefault();
-                setZoom((z) => Math.min(3, Math.max(0.2, z + (event.deltaY > 0 ? -0.05 : 0.05))));
+                setZoom((z) =>
+                  Math.min(
+                    3,
+                    Math.max(0.2, z + (event.deltaY > 0 ? -0.05 : 0.05)),
+                  ),
+                );
               }}
             >
               <img
@@ -267,13 +307,27 @@ export function ImageUpload({
 
             <div className="mt-3 flex items-center gap-2">
               <ZoomIn size={14} className="text-ink/50 dark:text-ivory/50" />
-              <input type="range" min={0.2} max={3} step={0.05} value={zoom} onChange={(event) => setZoom(Number(event.target.value))} className="flex-1 accent-[var(--color-accent)]" />
-              <span className="w-10 text-end text-xs tabular-nums text-ink/55 dark:text-ivory/55">{Math.round(zoom * 100)}%</span>
+              <input
+                type="range"
+                min={0.2}
+                max={3}
+                step={0.05}
+                value={zoom}
+                onChange={(event) => setZoom(Number(event.target.value))}
+                className="flex-1 accent-[var(--color-accent)]"
+              />
+              <span className="w-10 text-end text-xs tabular-nums text-ink/55 dark:text-ivory/55">
+                {Math.round(zoom * 100)}%
+              </span>
             </div>
-            <p className="mt-1 text-[11px] text-ink/45 dark:text-ivory/45">Drag to position. Scroll to zoom.</p>
+            <p className="mt-1 text-[11px] text-ink/45 dark:text-ivory/45">
+              Drag to position. Scroll to zoom.
+            </p>
 
             <div className="mt-4 flex justify-end gap-2">
-              <Button variant="ghost" onClick={() => setCropping(false)}>Cancel</Button>
+              <Button variant="ghost" onClick={() => setCropping(false)}>
+                Cancel
+              </Button>
               <Button onClick={applyCrop}>Apply Crop</Button>
             </div>
           </div>

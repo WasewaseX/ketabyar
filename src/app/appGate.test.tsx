@@ -16,7 +16,13 @@
  * covers the gate, not the engine.
  */
 import "@testing-library/jest-dom/vitest";
-import { fireEvent, render, screen, waitFor, cleanup } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // ── jsdom stubs for the UI stack (sonner Toaster, radix, accents) ──
@@ -33,21 +39,33 @@ if (!window.matchMedia) {
   })) as unknown as typeof window.matchMedia;
 }
 if (!(globalThis as unknown as { ResizeObserver?: unknown }).ResizeObserver) {
-  (globalThis as unknown as { ResizeObserver: unknown }).ResizeObserver = class {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-  };
+  (globalThis as unknown as { ResizeObserver: unknown }).ResizeObserver =
+    class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    };
 }
 
 // ── Auth dispatcher mock (App.tsx + Login.tsx both import "../data/auth") ──
 vi.mock("../data/auth", () => ({
   activeAuthBackend: "ts",
-  ...Object.fromEntries([
-    "getLoginAccounts", "hasPin", "setPin", "checkPin", "logout",
-    "changeOwnPassword", "listUsers", "createUser", "updateUser",
-    "resetPassword", "deleteUser", "applicationDiagnostics",
-  ].map((n) => [n, vi.fn()])),
+  ...Object.fromEntries(
+    [
+      "getLoginAccounts",
+      "hasPin",
+      "setPin",
+      "checkPin",
+      "logout",
+      "changeOwnPassword",
+      "listUsers",
+      "createUser",
+      "updateUser",
+      "resetPassword",
+      "deleteUser",
+      "applicationDiagnostics",
+    ].map((n) => [n, vi.fn()]),
+  ),
   bootstrapAdminIfNeeded: vi.fn(async () => false),
   currentSession: vi.fn(async () => null),
   login: vi.fn(),
@@ -56,21 +74,70 @@ vi.mock("../data/auth", () => ({
 // ── Repository dispatcher mock (settings store, Onboarding, sections) ──
 vi.mock("../data/repositories/library", () => ({
   activeBackend: "ts",
-  ...Object.fromEntries([
-    "dashboard", "books", "saveBook", "updateBook", "deleteBook", "getCopiesForBook",
-    "addCopy", "updateCopy", "deleteCopy", "copies", "members", "saveMember",
-    "updateMember", "deleteMember", "hardDeleteMember", "banMember", "unbanMember",
-    "loans", "getLoansForMember", "getReservationsForMember", "checkout", "returnCopies",
-    "renewLoan", "updateLoanDueDate", "sweepReservations", "reservations", "addReservation",
-    "acceptReservation", "declineReservation", "fulfilReservation", "extendReservation",
-    "updateReservation", "cancelReservation", "deleteReservation", "fines", "payFine",
-    "waiveFine", "getRooms", "createRoom", "renameRoom", "deleteRoom", "getColumns",
-    "createColumn", "deleteColumn", "getShelves", "createShelf", "updateShelf",
-    "notifications", "markNotificationRead", "markAllNotificationsRead", "auditLog",
-    "exportLibraryBackup", "importLibraryBackup", "deleteAllLibraryData", "reportBreakdowns",
-    "clearCirculation",
-  ].map((n) => [n, vi.fn()])),
-  getLibrarySettings: vi.fn(async () => ({ id: 1, library_name: "کتابخانه مرکزی دانشگاه" })),
+  ...Object.fromEntries(
+    [
+      "dashboard",
+      "books",
+      "saveBook",
+      "updateBook",
+      "deleteBook",
+      "getCopiesForBook",
+      "addCopy",
+      "updateCopy",
+      "deleteCopy",
+      "copies",
+      "members",
+      "saveMember",
+      "updateMember",
+      "deleteMember",
+      "hardDeleteMember",
+      "banMember",
+      "unbanMember",
+      "loans",
+      "getLoansForMember",
+      "getReservationsForMember",
+      "checkout",
+      "returnCopies",
+      "renewLoan",
+      "updateLoanDueDate",
+      "sweepReservations",
+      "reservations",
+      "addReservation",
+      "acceptReservation",
+      "declineReservation",
+      "fulfilReservation",
+      "extendReservation",
+      "updateReservation",
+      "cancelReservation",
+      "deleteReservation",
+      "fines",
+      "payFine",
+      "waiveFine",
+      "getRooms",
+      "createRoom",
+      "renameRoom",
+      "deleteRoom",
+      "getColumns",
+      "createColumn",
+      "deleteColumn",
+      "getShelves",
+      "createShelf",
+      "updateShelf",
+      "notifications",
+      "markNotificationRead",
+      "markAllNotificationsRead",
+      "auditLog",
+      "exportLibraryBackup",
+      "importLibraryBackup",
+      "deleteAllLibraryData",
+      "reportBreakdowns",
+      "clearCirculation",
+    ].map((n) => [n, vi.fn()]),
+  ),
+  getLibrarySettings: vi.fn(async () => ({
+    id: 1,
+    library_name: "کتابخانه مرکزی دانشگاه",
+  })),
   saveLibrarySettings: vi.fn(async () => {}),
 }));
 
@@ -84,8 +151,8 @@ vi.mock("@tauri-apps/api/core", () => ({
 
 import { bootstrapAdminIfNeeded, currentSession, login } from "../data/auth";
 import { getLibrarySettings } from "../data/repositories/library";
-import { App } from "./App";
 import { useAuthStore } from "../store/authStore";
+import { App } from "./App";
 
 const OPERATOR = {
   id: "local-ketabdar",
@@ -110,7 +177,10 @@ describe("login gate (v1.2.2 deadlock regression)", () => {
     useAuthStore.setState({ user: null });
     vi.mocked(bootstrapAdminIfNeeded).mockResolvedValue(false);
     vi.mocked(currentSession).mockResolvedValue(null);
-    vi.mocked(getLibrarySettings).mockResolvedValue({ id: 1, library_name: "کتابخانه مرکزی دانشگاه" } as never);
+    vi.mocked(getLibrarySettings).mockResolvedValue({
+      id: 1,
+      library_name: "کتابخانه مرکزی دانشگاه",
+    } as never);
     vi.mocked(login).mockReset();
   });
 
@@ -122,60 +192,109 @@ describe("login gate (v1.2.2 deadlock regression)", () => {
 
   it("boots to the login screen when no session exists", async () => {
     render(<App />);
-    await waitFor(() => expect(screen.getByRole("button", { name: "PIN" })).toBeInTheDocument(), { timeout: 6000 });
+    await waitFor(
+      () =>
+        expect(screen.getByRole("button", { name: "PIN" })).toBeInTheDocument(),
+      { timeout: 6000 },
+    );
     expect(login).not.toHaveBeenCalled();
   }, 15000);
 
   it("types the correct PIN and REACHES THE APP (the deadlock: it used to stay on LoginPage forever)", async () => {
-    vi.mocked(login).mockResolvedValueOnce({ ...OPERATOR, last_login_at: new Date().toISOString() });
+    vi.mocked(login).mockResolvedValueOnce({
+      ...OPERATOR,
+      last_login_at: new Date().toISOString(),
+    });
     render(<App />);
-    await waitFor(() => expect(screen.getByRole("button", { name: "PIN" })).toBeInTheDocument(), { timeout: 6000 });
+    await waitFor(
+      () =>
+        expect(screen.getByRole("button", { name: "PIN" })).toBeInTheDocument(),
+      { timeout: 6000 },
+    );
 
     typePin("6767");
 
     // The gate must re-render on setUser: Onboarding (first run) appears and
     // the login screen is gone. Before the fix this expectation hung forever.
     await waitFor(
-      () => expect(screen.getByDisplayValue(/کتابخانه مرکزی دانشگاه/)).toBeInTheDocument(),
+      () =>
+        expect(
+          screen.getByDisplayValue(/کتابخانه مرکزی دانشگاه/),
+        ).toBeInTheDocument(),
       { timeout: 6000 },
     );
-    expect(screen.queryByRole("button", { name: "PIN" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "PIN" }),
+    ).not.toBeInTheDocument();
     expect(login).toHaveBeenCalledWith("6767");
     expect(useAuthStore.getState().user?.username).toBe("ketabdar");
   }, 15000);
 
   it("a failed library-settings load must NOT mask a successful login", async () => {
-    vi.mocked(login).mockResolvedValueOnce({ ...OPERATOR, last_login_at: new Date().toISOString() });
-    vi.mocked(getLibrarySettings).mockRejectedValueOnce(new Error("settings row missing"));
+    vi.mocked(login).mockResolvedValueOnce({
+      ...OPERATOR,
+      last_login_at: new Date().toISOString(),
+    });
+    vi.mocked(getLibrarySettings).mockRejectedValueOnce(
+      new Error("settings row missing"),
+    );
     render(<App />);
-    await waitFor(() => expect(screen.getByRole("button", { name: "PIN" })).toBeInTheDocument(), { timeout: 6000 });
+    await waitFor(
+      () =>
+        expect(screen.getByRole("button", { name: "PIN" })).toBeInTheDocument(),
+      { timeout: 6000 },
+    );
 
     typePin("6767");
 
     await waitFor(
-      () => expect(screen.getByDisplayValue(/کتابخانه مرکزی دانشگاه/)).toBeInTheDocument(),
+      () =>
+        expect(
+          screen.getByDisplayValue(/کتابخانه مرکزی دانشگاه/),
+        ).toBeInTheDocument(),
       { timeout: 6000 },
     );
-    expect(screen.queryByRole("button", { name: "PIN" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "PIN" }),
+    ).not.toBeInTheDocument();
   }, 15000);
 
   it("a wrong PIN shows the error and stays on the login screen", async () => {
-    vi.mocked(login).mockRejectedValueOnce(new Error("پین اشتباه است. دوباره تلاش کنید."));
+    vi.mocked(login).mockRejectedValueOnce(
+      new Error("پین اشتباه است. دوباره تلاش کنید."),
+    );
     render(<App />);
-    await waitFor(() => expect(screen.getByRole("button", { name: "PIN" })).toBeInTheDocument(), { timeout: 6000 });
+    await waitFor(
+      () =>
+        expect(screen.getByRole("button", { name: "PIN" })).toBeInTheDocument(),
+      { timeout: 6000 },
+    );
 
     typePin("1111");
 
     // Auto-submit fires after the ~550ms idle window, not instantly.
-    expect(await screen.findByText("پین اشتباه است. دوباره تلاش کنید.", {}, { timeout: 6000 })).toBeInTheDocument();
+    expect(
+      await screen.findByText(
+        "پین اشتباه است. دوباره تلاش کنید.",
+        {},
+        { timeout: 6000 },
+      ),
+    ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "PIN" })).toBeInTheDocument();
     expect(useAuthStore.getState().user).toBeNull();
   }, 15000);
 
   it("a 6-digit PIN is submitted ONCE and in FULL (regression: auto-submit used to fire at 4 digits, sending a partial PIN and wiping the field mid-typing)", async () => {
-    vi.mocked(login).mockResolvedValueOnce({ ...OPERATOR, last_login_at: new Date().toISOString() });
+    vi.mocked(login).mockResolvedValueOnce({
+      ...OPERATOR,
+      last_login_at: new Date().toISOString(),
+    });
     render(<App />);
-    await waitFor(() => expect(screen.getByRole("button", { name: "PIN" })).toBeInTheDocument(), { timeout: 6000 });
+    await waitFor(
+      () =>
+        expect(screen.getByRole("button", { name: "PIN" })).toBeInTheDocument(),
+      { timeout: 6000 },
+    );
 
     typePin("123456");
 
@@ -183,7 +302,10 @@ describe("login gate (v1.2.2 deadlock regression)", () => {
     // PIN that can only fail — plus a cleared field while the user was still
     // typing. New behaviour: exactly one attempt with the complete PIN.
     await waitFor(
-      () => expect(screen.getByDisplayValue(/کتابخانه مرکزی دانشگاه/)).toBeInTheDocument(),
+      () =>
+        expect(
+          screen.getByDisplayValue(/کتابخانه مرکزی دانشگاه/),
+        ).toBeInTheDocument(),
       { timeout: 6000 },
     );
     expect(login).toHaveBeenCalledTimes(1);
@@ -192,7 +314,11 @@ describe("login gate (v1.2.2 deadlock regression)", () => {
 
   it("backspacing below 4 digits cancels the pending auto-submit", async () => {
     render(<App />);
-    await waitFor(() => expect(screen.getByRole("button", { name: "PIN" })).toBeInTheDocument(), { timeout: 6000 });
+    await waitFor(
+      () =>
+        expect(screen.getByRole("button", { name: "PIN" })).toBeInTheDocument(),
+      { timeout: 6000 },
+    );
 
     typePin("6767");
     fireEvent.keyDown(window, { key: "Backspace" });

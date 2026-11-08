@@ -3,4 +3,20 @@
 /**
  * One overdue-fine row with enrichment, as the Fines section renders it.
  */
-export type FineRow = { id: string, loan_id: string, member_id: string, amount: number, reason: string, status: string, waived_reason?: string, paid_at?: string, created_at: string, member_name?: string, member_number?: string, title?: string, barcode?: string, due_at?: string, returned_at?: string, };
+export type FineRow = {
+  id: string;
+  loan_id: string;
+  member_id: string;
+  amount: number;
+  reason: string;
+  status: string;
+  waived_reason?: string;
+  paid_at?: string;
+  created_at: string;
+  member_name?: string;
+  member_number?: string;
+  title?: string;
+  barcode?: string;
+  due_at?: string;
+  returned_at?: string;
+};

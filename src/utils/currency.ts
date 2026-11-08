@@ -39,12 +39,21 @@ export function formatDisplayCurrency(amount: number): string {
   }
 
   try {
-    return new Intl.NumberFormat(locale === "fa" ? "fa-IR" : locale === "ar" ? "ar-DZ" : locale === "fr" ? "fr-FR" : "en-US", {
-      style: "currency",
-      currency,
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 2,
-    }).format(amount);
+    return new Intl.NumberFormat(
+      locale === "fa"
+        ? "fa-IR"
+        : locale === "ar"
+          ? "ar-DZ"
+          : locale === "fr"
+            ? "fr-FR"
+            : "en-US",
+      {
+        style: "currency",
+        currency,
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+      },
+    ).format(amount);
   } catch {
     return `${amount} ${currency}`;
   }

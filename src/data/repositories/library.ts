@@ -19,8 +19,9 @@
  * `impl` is typed as `typeof SQL` so the Rust module must stay structurally
  * identical to the SQL module — the compiler is the compatibility contract.
  */
-import * as SQL from "./librarySql";
+
 import * as RUST from "./libraryRust";
+import * as SQL from "./librarySql";
 
 declare const __KETABYAR_BACKEND__: "ts" | "rust";
 export const activeBackend: "ts" | "rust" = __KETABYAR_BACKEND__;

@@ -15,8 +15,13 @@ export function csvField(v: unknown): string {
 }
 
 /** One CSV document: header row first, BOM-prefixed so Excel detects UTF-8. */
-export function buildCsv(columns: string[], rows: (string | number)[][]): string {
-  return "﻿" + [columns, ...rows].map((row) => row.map(csvField).join(",")).join("\n");
+export function buildCsv(
+  columns: string[],
+  rows: (string | number)[][],
+): string {
+  return (
+    "﻿" + [columns, ...rows].map((row) => row.map(csvField).join(",")).join("\n")
+  );
 }
 
 function triggerDownload(blob: Blob, filename: string) {
@@ -42,7 +47,12 @@ export async function openDownloadsFolder(): Promise<void> {
 }
 
 /** Downloads a blob and confirms with a toast that links to the Downloads folder. */
-export function exportBlobWithToast(blob: Blob, filename: string, message: string, openLabel: string) {
+export function exportBlobWithToast(
+  blob: Blob,
+  filename: string,
+  message: string,
+  openLabel: string,
+) {
   triggerDownload(blob, filename);
   toast.success(message, {
     duration: 8000,
@@ -58,7 +68,8 @@ export async function exportCsvZip(
   openLabel: string,
 ) {
   const zip = new JSZip();
-  for (const file of files) zip.file(file.name, buildCsv(file.columns, file.rows));
+  for (const file of files)
+    zip.file(file.name, buildCsv(file.columns, file.rows));
   const blob = await zip.generateAsync({ type: "blob" });
   exportBlobWithToast(blob, zipName, message, openLabel);
 }

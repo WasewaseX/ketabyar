@@ -1,8 +1,25 @@
-import { BookMarked, BookOpen, CalendarClock, Cog, Database, Globe, LayoutDashboard, Plus, Search, Settings, Sparkles, Users, Warehouse, Zap, Bell, ClipboardList } from "lucide-react";
 import { Command } from "cmdk";
+import {
+  Bell,
+  BookMarked,
+  BookOpen,
+  CalendarClock,
+  ClipboardList,
+  Cog,
+  Database,
+  Globe,
+  LayoutDashboard,
+  Plus,
+  Search,
+  Settings,
+  Sparkles,
+  Users,
+  Warehouse,
+  Zap,
+} from "lucide-react";
 import { createPortal } from "react-dom";
-import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 import { useUiStore } from "../../store/uiStore";
 import { cn } from "../../utils/cn";
 
@@ -27,32 +44,80 @@ export function CommandPalette() {
     close();
   };
 
-  const isDark = preferences.theme === "dark" || (preferences.theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+  const isDark =
+    preferences.theme === "dark" ||
+    (preferences.theme === "system" &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches);
 
   const navItems = [
-    { route: "/dashboard", icon: LayoutDashboard, label: t("nav.dashboard", "Dashboard") },
+    {
+      route: "/dashboard",
+      icon: LayoutDashboard,
+      label: t("nav.dashboard", "Dashboard"),
+    },
     { route: "/catalog", icon: BookOpen, label: t("nav.catalog", "Catalog") },
     { route: "/members", icon: Users, label: t("nav.members", "Members") },
-    { route: "/reservations", icon: CalendarClock, label: t("nav.reservations", "Reservations") },
+    {
+      route: "/reservations",
+      icon: CalendarClock,
+      label: t("nav.reservations", "Reservations"),
+    },
     { route: "/loans", icon: BookMarked, label: t("nav.loans", "Loans") },
-    { route: "/inventory", icon: Warehouse, label: t("nav.inventory", "Inventory") },
-    { route: "/reports", icon: ClipboardList, label: t("nav.reports", "Reports") },
-    { route: "/activity", icon: ClipboardList, label: t("nav.activity", "Activity") },
-    { route: "/notifications", icon: Bell, label: t("nav.notifications", "Notifications") },
+    {
+      route: "/inventory",
+      icon: Warehouse,
+      label: t("nav.inventory", "Inventory"),
+    },
+    {
+      route: "/reports",
+      icon: ClipboardList,
+      label: t("nav.reports", "Reports"),
+    },
+    {
+      route: "/activity",
+      icon: ClipboardList,
+      label: t("nav.activity", "Activity"),
+    },
+    {
+      route: "/notifications",
+      icon: Bell,
+      label: t("nav.notifications", "Notifications"),
+    },
     { route: "/settings", icon: Cog, label: t("nav.settings", "Settings") },
   ];
 
   const settingsTabs = [
-    { route: "/settings?tab=profile", label: t("commandPalette.actions.profile", "Library Profile") },
-    { route: "/settings?tab=appearance", label: t("commandPalette.actions.appearance", "Appearance") },
-    { route: "/settings?tab=localization", label: t("commandPalette.actions.localization", "Localization") },
-    { route: "/settings?tab=rules", label: t("commandPalette.actions.rules", "Circulation Rules") },
-    { route: "/settings?tab=backuprestore", label: t("commandPalette.actions.backupTab", "Backup & Restore") },
-    { route: "/settings?tab=integrationsai", label: t("commandPalette.actions.integrations", "Integrations") },
+    {
+      route: "/settings?tab=profile",
+      label: t("commandPalette.actions.profile", "Library Profile"),
+    },
+    {
+      route: "/settings?tab=appearance",
+      label: t("commandPalette.actions.appearance", "Appearance"),
+    },
+    {
+      route: "/settings?tab=localization",
+      label: t("commandPalette.actions.localization", "Localization"),
+    },
+    {
+      route: "/settings?tab=rules",
+      label: t("commandPalette.actions.rules", "Circulation Rules"),
+    },
+    {
+      route: "/settings?tab=backuprestore",
+      label: t("commandPalette.actions.backupTab", "Backup & Restore"),
+    },
+    {
+      route: "/settings?tab=integrationsai",
+      label: t("commandPalette.actions.integrations", "Integrations"),
+    },
   ];
 
   return createPortal(
-    <div className="fixed inset-0 z-[950] bg-ink/60 pt-[18vh] backdrop-blur-sm dark:bg-black/75" onMouseDown={close}>
+    <div
+      className="fixed inset-0 z-[950] bg-ink/60 pt-[18vh] backdrop-blur-sm dark:bg-black/75"
+      onMouseDown={close}
+    >
       <div
         className={cn(
           "mx-auto w-full max-w-xl overflow-hidden rounded-2xl border border-ink/10 bg-white shadow-2xl dark:border-white/10 dark:bg-[#1b2723]",
@@ -60,11 +125,17 @@ export function CommandPalette() {
         )}
         onMouseDown={(event) => event.stopPropagation()}
       >
-        <Command label={t("commandPalette.placeholder", "Type a command or search…")} className="[&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-[10px] [&_[cmdk-group-heading]]:font-bold [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wider [&_[cmdk-group-heading]]:text-ink/40 dark:[&_[cmdk-group-heading]]:text-ivory/40">
+        <Command
+          label={t("commandPalette.placeholder", "Type a command or search…")}
+          className="[&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-[10px] [&_[cmdk-group-heading]]:font-bold [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wider [&_[cmdk-group-heading]]:text-ink/40 dark:[&_[cmdk-group-heading]]:text-ivory/40"
+        >
           <div className="border-b border-ink/8 px-3 py-2.5 dark:border-white/8">
             <Command.Input
               autoFocus
-              placeholder={t("commandPalette.placeholder", "Type a command or search…")}
+              placeholder={t(
+                "commandPalette.placeholder",
+                "Type a command or search…",
+              )}
               className="w-full bg-transparent text-sm outline-none placeholder:text-ink/40 dark:placeholder:text-ivory/40"
             />
           </div>
@@ -75,16 +146,44 @@ export function CommandPalette() {
 
             <Command.Group heading={t("commandPalette.action", "Action")}>
               {navItems.map((item) => (
-                <Item key={item.route} onSelect={() => go(item.route)} icon={item.icon} label={item.label} />
+                <Item
+                  key={item.route}
+                  onSelect={() => go(item.route)}
+                  icon={item.icon}
+                  label={item.label}
+                />
               ))}
             </Command.Group>
 
             <Command.Group heading={t("commandPalette.action", "Action")}>
-              <Item onSelect={() => go("/catalog?focus=search")} icon={Search} label={t("commandPalette.actions.searchBook", "Search catalog")} />
-              <Item onSelect={() => go("/members?focus=search")} icon={Search} label={t("commandPalette.actions.searchMember", "Search members")} />
-              <Item onSelect={() => go("/catalog?action=add-book")} icon={Plus} label={t("commandPalette.actions.addBook", "Add book")} />
-              <Item onSelect={() => go("/members?action=add-member")} icon={Plus} label={t("commandPalette.actions.addMember", "Add member")} />
-              <Item onSelect={() => go("/reservations?action=new-reservation")} icon={Plus} label={t("dashboard.newReservation", "New reservation")} />
+              <Item
+                onSelect={() => go("/catalog?focus=search")}
+                icon={Search}
+                label={t("commandPalette.actions.searchBook", "Search catalog")}
+              />
+              <Item
+                onSelect={() => go("/members?focus=search")}
+                icon={Search}
+                label={t(
+                  "commandPalette.actions.searchMember",
+                  "Search members",
+                )}
+              />
+              <Item
+                onSelect={() => go("/catalog?action=add-book")}
+                icon={Plus}
+                label={t("commandPalette.actions.addBook", "Add book")}
+              />
+              <Item
+                onSelect={() => go("/members?action=add-member")}
+                icon={Plus}
+                label={t("commandPalette.actions.addMember", "Add member")}
+              />
+              <Item
+                onSelect={() => go("/reservations?action=new-reservation")}
+                icon={Plus}
+                label={t("dashboard.newReservation", "New reservation")}
+              />
               <Item
                 onSelect={() => {
                   updatePreferences({ theme: isDark ? "light" : "dark" });
@@ -97,7 +196,18 @@ export function CommandPalette() {
 
             <Command.Group heading={t("commandPalette.action", "Action")}>
               {settingsTabs.map((item) => (
-                <Item key={item.route} onSelect={() => go(item.route)} icon={item.route.includes("integrations") ? Zap : item.route.includes("backup") ? Database : Settings} label={item.label} />
+                <Item
+                  key={item.route}
+                  onSelect={() => go(item.route)}
+                  icon={
+                    item.route.includes("integrations")
+                      ? Zap
+                      : item.route.includes("backup")
+                        ? Database
+                        : Settings
+                  }
+                  label={item.label}
+                />
               ))}
             </Command.Group>
           </Command.List>
@@ -108,7 +218,15 @@ export function CommandPalette() {
   );
 }
 
-function Item({ onSelect, icon: Icon, label }: { onSelect: () => void; icon: typeof Search; label: string }) {
+function Item({
+  onSelect,
+  icon: Icon,
+  label,
+}: {
+  onSelect: () => void;
+  icon: typeof Search;
+  label: string;
+}) {
   return (
     <Command.Item
       onSelect={onSelect}
@@ -117,7 +235,9 @@ function Item({ onSelect, icon: Icon, label }: { onSelect: () => void; icon: typ
     >
       <Icon size={15} />
       <span className="flex-1">{label}</span>
-      <span className="font-mono text-[10px] opacity-0 data-[selected=true]:opacity-60">↵</span>
+      <span className="font-mono text-[10px] opacity-0 data-[selected=true]:opacity-60">
+        ↵
+      </span>
     </Command.Item>
   );
 }

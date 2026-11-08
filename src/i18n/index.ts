@@ -1,7 +1,7 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
-import fa from "./fa.json";
 import { PREFERENCES_KEY } from "../store/uiStore";
+import fa from "./fa.json";
 
 /**
  * KetabYar speaks Persian. The Persian dictionary is the single source of
@@ -11,7 +11,10 @@ import { PREFERENCES_KEY } from "../store/uiStore";
 
 const savedLocale = (() => {
   try {
-    const stored = typeof localStorage !== "undefined" ? localStorage.getItem(PREFERENCES_KEY) : null;
+    const stored =
+      typeof localStorage !== "undefined"
+        ? localStorage.getItem(PREFERENCES_KEY)
+        : null;
     if (stored) {
       const prefs = JSON.parse(stored) as { locale?: string };
       if (prefs.locale === "fa") return "fa" as const;

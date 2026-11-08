@@ -1,5 +1,8 @@
 import { create } from "zustand";
-import { getLibrarySettings, saveLibrarySettings } from "../data/repositories/library";
+import {
+  getLibrarySettings,
+  saveLibrarySettings,
+} from "../data/repositories/library";
 import type { LibrarySettings } from "../types";
 
 /**
@@ -50,20 +53,24 @@ interface LibrarySettingsState {
   update: (values: Partial<LibrarySettings>) => Promise<void>;
 }
 
-export const useLibrarySettingsStore = create<LibrarySettingsState>((set, get) => ({
-  settings: defaults,
-  loaded: false,
-  load: async () => {
-    const data = await getLibrarySettings();
-    const merged: Record<string, unknown> = { ...defaults };
-    for (const [key, value] of Object.entries(data as unknown as Record<string, unknown>)) {
-      if (value !== null && value !== undefined) merged[key] = value;
-    }
-    set({ settings: merged as unknown as LibrarySettings, loaded: true });
-  },
-  update: async (values) => {
-    await saveLibrarySettings(values);
-    const data = await getLibrarySettings();
-    set({ settings: { ...get().settings, ...data } });
-  },
-}));
+export const useLibrarySettingsStore = create<LibrarySettingsState>(
+  (set, get) => ({
+    settings: defaults,
+    loaded: false,
+    load: async () => {
+      const data = await getLibrarySettings();
+      const merged: Record<string, unknown> = { ...defaults };
+      for (const [key, value] of Object.entries(
+        data as unknown as Record<string, unknown>,
+      )) {
+        if (value !== null && value !== undefined) merged[key] = value;
+      }
+      set({ settings: merged as unknown as LibrarySettings, loaded: true });
+    },
+    update: async (values) => {
+      await saveLibrarySettings(values);
+      const data = await getLibrarySettings();
+      set({ settings: { ...get().settings, ...data } });
+    },
+  }),
+);

@@ -1,6 +1,6 @@
-import { useEffect } from "react";
-import { useQuery as useTanstackQuery } from "@tanstack/react-query";
 import type { UseQueryOptions, UseQueryResult } from "@tanstack/react-query";
+import { useQuery as useTanstackQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { toast } from "sonner";
 
 /**
@@ -19,7 +19,11 @@ import { toast } from "sonner";
  * spam toasts on every window refocus.
  */
 
-export function useQuery<TQueryFnData = unknown, TError = Error, TData = TQueryFnData>(
+export function useQuery<
+  TQueryFnData = unknown,
+  TError = Error,
+  TData = TQueryFnData,
+>(
   options: UseQueryOptions<TQueryFnData, TError, TData>,
 ): UseQueryResult<TData, TError> {
   const query = useTanstackQuery<TQueryFnData, TError, TData>(options);
@@ -27,7 +31,8 @@ export function useQuery<TQueryFnData = unknown, TError = Error, TData = TQueryF
   useEffect(() => {
     if (query.isError) {
       const error: unknown = query.error;
-      const message = error instanceof Error && error.message ? error.message : String(error);
+      const message =
+        error instanceof Error && error.message ? error.message : String(error);
       toast.error(message || "خطای ناشناخته در بارگذاری داده‌ها");
     }
   }, [query.isError, query.error]);

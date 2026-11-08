@@ -13,8 +13,9 @@
  * fine caps, reservation queues, the student-ID (کد دانشجویی) rules, and the
  * backup roundtrip.
  */
-import { beforeEach, describe, expect, it, vi } from "vitest";
+
 import type { DatabaseSync } from "node:sqlite";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const holder = vi.hoisted(() => ({ conn: null as unknown }));
 
@@ -24,21 +25,39 @@ vi.mock("@tauri-apps/plugin-sql", async () => {
   const normalize = (params: unknown[]) =>
     // Tauri serializes `undefined` to JSON null and SQLite has no boolean type
     // (sqlx stores true/false as 1/0) — mirror both here.
-    params.map((v) => (v === undefined ? null : typeof v === "boolean" ? (v ? 1 : 0) : v));
+    params.map((v) =>
+      v === undefined ? null : typeof v === "boolean" ? (v ? 1 : 0) : v,
+    );
   class MockDatabase {
-    async select(sql: string, params: unknown[] = []): Promise<Record<string, unknown>[]> {
-      const rows = (holder.conn as DatabaseSync).prepare(sql).all(...(normalize(params) as never[]));
+    async select(
+      sql: string,
+      params: unknown[] = [],
+    ): Promise<Record<string, unknown>[]> {
+      const rows = (holder.conn as DatabaseSync)
+        .prepare(sql)
+        .all(...(normalize(params) as never[]));
       return rows.map((row) => ({ ...row }));
     }
-    async execute(sql: string, params: unknown[] = []): Promise<{ rowsAffected: number; lastInsertId: number }> {
-      const info = (holder.conn as DatabaseSync).prepare(sql).run(...(normalize(params) as never[]));
-      return { rowsAffected: Number(info.changes), lastInsertId: Number(info.lastInsertRowid) };
+    async execute(
+      sql: string,
+      params: unknown[] = [],
+    ): Promise<{ rowsAffected: number; lastInsertId: number }> {
+      const info = (holder.conn as DatabaseSync)
+        .prepare(sql)
+        .run(...(normalize(params) as never[]));
+      return {
+        rowsAffected: Number(info.changes),
+        lastInsertId: Number(info.lastInsertRowid),
+      };
     }
   }
   return { default: { load: async () => new MockDatabase() } };
 });
 
 import { ensureSchema } from "../schema";
+import * as LIB from "./library";
+import * as RUST from "./libraryRust";
+import * as SQL from "./librarySql";
 import {
   acceptReservation,
   addCopy,
@@ -53,10 +72,10 @@ import {
   deleteBook,
   deleteMember,
   exportLibraryBackup,
-  fulfilReservation,
-  getLoansForMember,
   fines,
+  fulfilReservation,
   getLibrarySettings,
+  getLoansForMember,
   hardDeleteMember,
   importLibraryBackup,
   loans,
@@ -79,9 +98,6 @@ import {
   updateMember,
   updateReservation,
 } from "./librarySql";
-import * as SQL from "./librarySql";
-import * as RUST from "./libraryRust";
-import * as LIB from "./library";
 
 const DAY_MS = 86_400_000;
 const daysAgo = (n: number) => new Date(Date.now() - n * DAY_MS).toISOString();
@@ -95,11 +111,22 @@ async function resetAll() {
 }
 
 async function member(number: string, role: string = "student") {
-  return saveMember({ full_name: `عضو ${number}`, status: "active", role, member_number: number });
+  return saveMember({
+    full_name: `عضو ${number}`,
+    status: "active",
+    role,
+    member_number: number,
+  });
 }
 
 async function bookWithCopy(title: string, barcode: string) {
-  await saveBook({ title, barcode, accession: `ACC-${barcode}`, author: "نویسنده آزمون", language: "فارسی" });
+  await saveBook({
+    title,
+    barcode,
+    accession: `ACC-${barcode}`,
+    author: "نویسنده آزمون",
+    language: "فارسی",
+  });
   const book = (await books(title)).find((b) => b.title === title)!;
   const copy = (await copies("")).find((c) => c.barcode === barcode)!;
   return { book, copy };
@@ -129,9 +156,15 @@ describe("librarySql repository (TS engine, real SQLite)", () => {
 
   it("saveBook registers title, author, publisher, tags and the first copy; searchable by title and ISBN", async () => {
     await saveBook({
-      title: "ریاضیات پایه", isbn13: "9786000000001", author: "الف. مردان",
-      publisher: "نشر ریاضی", category: "علوم", tags: "ریاضی, مدرسه",
-      barcode: "BAR-M1", accession: "ACC-M1", language: "فارسی",
+      title: "ریاضیات پایه",
+      isbn13: "9786000000001",
+      author: "الف. مردان",
+      publisher: "نشر ریاضی",
+      category: "علوم",
+      tags: "ریاضی, مدرسه",
+      barcode: "BAR-M1",
+      accession: "ACC-M1",
+      language: "فارسی",
     });
     const list = await books("ریاضیات");
     expect(list).toHaveLength(1);
@@ -148,14 +181,21 @@ describe("librarySql repository (TS engine, real SQLite)", () => {
     await saveBook({ title: "الف", barcode: "BAR-D1" });
     await saveBook({ title: "ب", barcode: "BAR-D2", accession: "ACC-DUP" });
     const bookA = (await books("الف"))[0];
-    await expect(addCopy(bookA.id, "BAR-D1", "ACC-X", "good")).rejects.toThrow("بارکد");
+    await expect(addCopy(bookA.id, "BAR-D1", "ACC-X", "good")).rejects.toThrow(
+      "بارکد",
+    );
     await addCopy(bookA.id, "BAR-D3", "ACC-DUP", "good");
     const accessions = (await copies("")).map((c) => c.accession_number);
     expect(new Set(accessions).size).toBe(accessions.length);
   });
 
   it("updateBook patches only provided fields and swaps the author", async () => {
-    await saveBook({ title: "کتاب ویرایش", isbn13: "9786000000002", author: "نویسنده اول", barcode: "BAR-U1" });
+    await saveBook({
+      title: "کتاب ویرایش",
+      isbn13: "9786000000002",
+      author: "نویسنده اول",
+      barcode: "BAR-U1",
+    });
     const b = (await books("کتاب ویرایش"))[0];
     await updateBook(b.id, { subtitle: "ویرایش دوم", author: "نویسنده تازه" });
     const after = (await books("کتاب ویرایش"))[0];
@@ -176,17 +216,27 @@ describe("librarySql repository (TS engine, real SQLite)", () => {
 
   it("member is saved by the typed student ID (کد دانشجویی), Persian digits normalized, duplicates refused", async () => {
     const created = await saveMember({
-      full_name: "سارا محمدی", status: "active", role: "student", member_number: "۴۰۲۱۳۴۵",
+      full_name: "سارا محمدی",
+      status: "active",
+      role: "student",
+      member_number: "۴۰۲۱۳۴۵",
     });
     expect(created.member_number).toBe("4021345");
     const found = await members("۴۰۲");
     expect(found).toHaveLength(1);
     expect(found[0].id).toBe(created.id);
     await expect(
-      saveMember({ full_name: "دیگری", status: "active", role: "student", member_number: "4021345" }),
+      saveMember({
+        full_name: "دیگری",
+        status: "active",
+        role: "student",
+        member_number: "4021345",
+      }),
     ).rejects.toThrow("این کد دانشجویی قبلاً ثبت شده است.");
     const other = await member("999999");
-    await expect(updateMember(other.id, { member_number: "4021345" })).rejects.toThrow("قبلاً ثبت شده");
+    await expect(
+      updateMember(other.id, { member_number: "4021345" }),
+    ).rejects.toThrow("قبلاً ثبت شده");
   });
 
   it("member archive and hard-delete follow loan-history rules", async () => {
@@ -204,7 +254,9 @@ describe("librarySql repository (TS engine, real SQLite)", () => {
   it("visitor cannot checkout external but internal is allowed", async () => {
     const v = await member("444444", "visitor");
     const { copy } = await bookWithCopy("کتاب مهمان", "BAR-V");
-    await expect(checkout(v.id, [copy.id], 3, "external")).rejects.toThrow("مهمانان اجازهٔ امانت بیرون‌بر ندارند.");
+    await expect(checkout(v.id, [copy.id], 3, "external")).rejects.toThrow(
+      "مهمانان اجازهٔ امانت بیرون‌بر ندارند.",
+    );
     await checkout(v.id, [copy.id], 3, "internal");
     expect((await loans(true))[0].scope).toBe("internal");
   });
@@ -218,11 +270,15 @@ describe("librarySql repository (TS engine, real SQLite)", () => {
 
     // The batch hits the on-loan copy second: without pre-validation the
     // first copy was already issued and left dangling after the error.
-    await expect(checkout(m.id, [good.copy.id, taken.copy.id], 3, "external")).rejects.toThrow("قابل امانت نیست");
+    await expect(
+      checkout(m.id, [good.copy.id, taken.copy.id], 3, "external"),
+    ).rejects.toThrow("قابل امانت نیست");
 
     const loansForMember = await getLoansForMember(m.id);
     expect(loansForMember).toEqual([]);
-    const goodCopyAfter = (await copies("")).find((c) => c.id === good.copy.id)!;
+    const goodCopyAfter = (await copies("")).find(
+      (c) => c.id === good.copy.id,
+    )!;
     expect(goodCopyAfter.status).toBe("available");
   });
 
@@ -231,7 +287,9 @@ describe("librarySql repository (TS engine, real SQLite)", () => {
     const first = await bookWithCopy("کتاب محروم یک", "BAR-BAN1");
     const second = await bookWithCopy("کتاب محروم دو", "BAR-BAN2");
     await banMember(m.id, "تاخیر مزمن");
-    await expect(checkout(m.id, [first.copy.id], 3, "external")).rejects.toThrow("محروم");
+    await expect(
+      checkout(m.id, [first.copy.id], 3, "external"),
+    ).rejects.toThrow("محروم");
     await checkout(m.id, [first.copy.id], 3, "internal");
     await unbanMember(m.id);
     await checkout(m.id, [second.copy.id], 3, "external");
@@ -242,14 +300,23 @@ describe("librarySql repository (TS engine, real SQLite)", () => {
     const m = await member("333333");
     const a = await bookWithCopy("کتاب سقف یک", "BAR-L1");
     const b = await bookWithCopy("کتاب سقف دو", "BAR-L2");
-    await expect(checkout(m.id, [a.copy.id, b.copy.id], 1, "external")).rejects.toThrow("سقف امانت 1 مورد رعایت نشده است.");
+    await expect(
+      checkout(m.id, [a.copy.id, b.copy.id], 1, "external"),
+    ).rejects.toThrow("سقف امانت 1 مورد رعایت نشده است.");
     expect(await loans(true)).toHaveLength(0);
     await checkout(m.id, [a.copy.id], 1, "external");
-    await expect(checkout(m.id, [b.copy.id], 1, "external")).rejects.toThrow("سقف امانت");
+    await expect(checkout(m.id, [b.copy.id], 1, "external")).rejects.toThrow(
+      "سقف امانت",
+    );
   });
 
   it("return charges one overdue fine with grace period and cap; payment closes it", async () => {
-    await saveLibrarySettings({ grace_period_enabled: true, grace_period_days: 2, fine_per_day: 500, max_fine_amount: 1200 });
+    await saveLibrarySettings({
+      grace_period_enabled: true,
+      grace_period_days: 2,
+      fine_per_day: 500,
+      max_fine_amount: 1200,
+    });
     const { copy } = await bookWithCopy("کتاب جریمه", "BAR-F");
     const m = await member("700100");
     await checkout(m.id, [copy.id], 3, "external");
@@ -293,7 +360,9 @@ describe("librarySql repository (TS engine, real SQLite)", () => {
     const loan = await fulfilReservation(rid);
     expect(loan.member_id).toBe(a.id);
     expect(loan.returned_at ?? null).toBeNull();
-    expect((await copies("")).find((c) => c.id === copy.id)!.status).toBe("on-loan");
+    expect((await copies("")).find((c) => c.id === copy.id)!.status).toBe(
+      "on-loan",
+    );
   });
 
   it("sweepReservations expires uncollected ready holds and frees the copy", async () => {
@@ -301,11 +370,17 @@ describe("librarySql repository (TS engine, real SQLite)", () => {
     const a = await member("800101");
     const rid = await addReservation(book.id, a.id, "external");
     await acceptReservation(rid);
-    expect((await copies("")).find((c) => c.id === copy.id)!.status).toBe("reserved");
+    expect((await copies("")).find((c) => c.id === copy.id)!.status).toBe(
+      "reserved",
+    );
     await updateReservation(rid, { expiresAt: daysAgo(1) });
     await sweepReservations();
-    expect((await reservations()).find((h) => h.id === rid)!.status).toBe("expired");
-    expect((await copies("")).find((c) => c.id === copy.id)!.status).toBe("available");
+    expect((await reservations()).find((h) => h.id === rid)!.status).toBe(
+      "expired",
+    );
+    expect((await copies("")).find((c) => c.id === copy.id)!.status).toBe(
+      "available",
+    );
   });
 
   it("backup export → factory reset → import restores the library", async () => {
@@ -323,7 +398,10 @@ describe("librarySql repository (TS engine, real SQLite)", () => {
   });
 
   it("library settings roundtrip with boolean coercion", async () => {
-    await saveLibrarySettings({ grace_period_enabled: true, fine_per_day: 750 });
+    await saveLibrarySettings({
+      grace_period_enabled: true,
+      fine_per_day: 750,
+    });
     const s = await getLibrarySettings();
     expect(s.grace_period_enabled).toBe(1);
     expect(s.fine_per_day).toBe(750);
@@ -339,7 +417,9 @@ describe("librarySql repository (TS engine, real SQLite)", () => {
     expect(r.loanCategories.find((x) => x.label === "")!.n).toBe(1);
     await clearCirculation();
     expect(await loans(true)).toHaveLength(0);
-    expect((await copies("")).find((c) => c.id === copy.id)!.status).toBe("available");
+    expect((await copies("")).find((c) => c.id === copy.id)!.status).toBe(
+      "available",
+    );
   });
 
   it("notifications: mark once succeeds, re-mark throws, mark-all clears", async () => {
@@ -352,7 +432,9 @@ describe("librarySql repository (TS engine, real SQLite)", () => {
     await markNotificationRead(list[0].id);
     await expect(markNotificationRead(list[0].id)).rejects.toThrow();
     await markAllNotificationsRead();
-    expect((await notifications()).every((n) => Number(n.is_read) === 1)).toBe(true);
+    expect((await notifications()).every((n) => Number(n.is_read) === 1)).toBe(
+      true,
+    );
   });
 
   it("engine contract: the Rust adapter exposes the exact same API surface as the SQL module", () => {
@@ -360,7 +442,9 @@ describe("librarySql repository (TS engine, real SQLite)", () => {
     const rustKeys = Object.keys(RUST).sort();
     expect(rustKeys).toEqual(sqlKeys);
     for (const key of sqlKeys) {
-      expect(typeof (RUST as unknown as Record<string, unknown>)[key]).toBe("function");
+      expect(typeof (RUST as unknown as Record<string, unknown>)[key]).toBe(
+        "function",
+      );
     }
     expect(LIB.activeBackend).toBe("ts");
     expect(LIB.dashboard).toBe(SQL.dashboard);
@@ -374,14 +458,24 @@ describe("librarySql repository (TS engine, real SQLite)", () => {
       import("../auth"),
     ]);
     const sqlKeys = Object.keys(AUTH_SQL)
-      .filter((k) => typeof (AUTH_SQL as unknown as Record<string, unknown>)[k] === "function")
+      .filter(
+        (k) =>
+          typeof (AUTH_SQL as unknown as Record<string, unknown>)[k] ===
+          "function",
+      )
       .sort();
     const rustKeys = Object.keys(AUTH_RUST)
-      .filter((k) => typeof (AUTH_RUST as unknown as Record<string, unknown>)[k] === "function")
+      .filter(
+        (k) =>
+          typeof (AUTH_RUST as unknown as Record<string, unknown>)[k] ===
+          "function",
+      )
       .sort();
     expect(rustKeys).toEqual(sqlKeys);
     for (const key of sqlKeys) {
-      expect(typeof (AUTH_RUST as unknown as Record<string, unknown>)[key]).toBe("function");
+      expect(
+        typeof (AUTH_RUST as unknown as Record<string, unknown>)[key],
+      ).toBe("function");
     }
     expect(AUTH.activeAuthBackend).toBe("ts");
     expect(AUTH.login).toBe(AUTH_SQL.login);

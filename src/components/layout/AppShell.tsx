@@ -1,25 +1,49 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useQuery } from "../../hooks/useLibraryQuery";
 import {
-  Bell, BookMarked, BookOpen, CalendarClock, ChevronLeft, ChevronRight, ClipboardList,
-  Cog, LayoutDashboard, LogOut, Menu, Minus, Moon, Search, Settings, Square,
-  Sparkles, Sun, Users, Warehouse, X, type LucideIcon,
+  Bell,
+  BookMarked,
+  BookOpen,
+  CalendarClock,
+  ChevronLeft,
+  ChevronRight,
+  ClipboardList,
+  Cog,
+  LayoutDashboard,
+  LogOut,
+  type LucideIcon,
+  Menu,
+  Minus,
+  Moon,
+  Search,
+  Settings,
+  Sparkles,
+  Square,
+  Sun,
+  Users,
+  Warehouse,
+  X,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { dashboard, notifications as fetchNotifications, reservations, markNotificationRead } from "../../data/repositories/library";
-import { useAuthStore } from "../../store/authStore";
+import { applyAccent } from "../../config/accent";
 import { logout } from "../../data/auth";
+import {
+  dashboard,
+  notifications as fetchNotifications,
+  markNotificationRead,
+  reservations,
+} from "../../data/repositories/library";
+import { useQuery } from "../../hooks/useLibraryQuery";
+import i18n from "../../i18n";
+import { useAuthStore } from "../../store/authStore";
 import { useLibrarySettingsStore } from "../../store/librarySettingsStore";
 import { useNotificationsStore } from "../../store/notificationsStore";
 import { PREFERENCES_KEY, useUiStore } from "../../store/uiStore";
-import { applyAccent } from "../../config/accent";
-import { formatDisplayDate } from "../../utils/dates";
 import { cn } from "../../utils/cn";
+import { formatDisplayDate } from "../../utils/dates";
 import { useContextMenu } from "../ui/ContextMenu";
-import i18n from "../../i18n";
 
 /**
  * The application shell: custom OS titlebar, resizable sidebar, global
@@ -44,9 +68,21 @@ const NAV_ITEMS: { route: string; icon: LucideIcon; key: string }[] = [
 /** Original KetabYar sidebar ornament: a row of book spines drawn in code. */
 function SpineOrnament() {
   const spines = [64, 40, 52, 34, 58, 44, 50, 38, 62, 46, 36, 54];
-  const tones = ["#c06b3e", "#1b9277", "#8a6d3b", "#4d7fb3", "#b23244", "#1a4d40"];
+  const tones = [
+    "#c06b3e",
+    "#1b9277",
+    "#8a6d3b",
+    "#4d7fb3",
+    "#b23244",
+    "#1a4d40",
+  ];
   return (
-    <svg viewBox="0 0 220 72" className="h-16 w-full opacity-25" aria-hidden preserveAspectRatio="xMidYMax meet">
+    <svg
+      viewBox="0 0 220 72"
+      className="h-16 w-full opacity-25"
+      aria-hidden
+      preserveAspectRatio="xMidYMax meet"
+    >
       {spines.map((height, index) => (
         <rect
           key={index}
@@ -83,7 +119,9 @@ export function AppShell() {
 
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     const stored = Number(localStorage.getItem(SIDEBAR_WIDTH_KEY));
-    return Number.isFinite(stored) && stored >= 200 && stored <= 480 ? stored : 260;
+    return Number.isFinite(stored) && stored >= 200 && stored <= 480
+      ? stored
+      : 260;
   });
   const resizing = useRef(false);
   const [search, setSearch] = useState("");
@@ -97,7 +135,9 @@ export function AppShell() {
   useEffect(() => {
     const media = window.matchMedia("(prefers-color-scheme: dark)");
     const apply = () => {
-      const dark = preferences.theme === "dark" || (preferences.theme === "system" && media.matches);
+      const dark =
+        preferences.theme === "dark" ||
+        (preferences.theme === "system" && media.matches);
       document.documentElement.classList.toggle("dark", dark);
     };
     apply();
@@ -105,17 +145,25 @@ export function AppShell() {
     return () => media.removeEventListener("change", apply);
   }, [preferences.theme]);
 
-  useEffect(() => { applyAccent(preferences.accentColor); }, [preferences.accentColor]);
+  useEffect(() => {
+    applyAccent(preferences.accentColor);
+  }, [preferences.accentColor]);
 
   useEffect(() => {
-    const px = preferences.fontSize === "small" ? "13px" : preferences.fontSize === "large" ? "17px" : "15px";
+    const px =
+      preferences.fontSize === "small"
+        ? "13px"
+        : preferences.fontSize === "large"
+          ? "17px"
+          : "15px";
     document.documentElement.style.setProperty("--font-size-base", px);
   }, [preferences.fontSize]);
 
   useEffect(() => {
     document.documentElement.lang = preferences.locale;
     document.documentElement.dir = "rtl";
-    if (i18n.language !== preferences.locale) void i18n.changeLanguage(preferences.locale);
+    if (i18n.language !== preferences.locale)
+      void i18n.changeLanguage(preferences.locale);
   }, [preferences.locale]);
 
   /* ── Close-to-tray wiring ────────────────────────────────────────── */
@@ -133,7 +181,9 @@ export function AppShell() {
             await current.hide();
           }
         };
-        const promise = current.onCloseRequested(handler as Parameters<typeof current.onCloseRequested>[0]);
+        const promise = current.onCloseRequested(
+          handler as Parameters<typeof current.onCloseRequested>[0],
+        );
         unlisten = await promise;
         if (cancelled) unlisten();
       } catch {
@@ -152,7 +202,10 @@ export function AppShell() {
     if (!preferences.autosaveEnabled) return;
     const interval = window.setInterval(() => {
       try {
-        localStorage.setItem(PREFERENCES_KEY, JSON.stringify(useUiStore.getState().preferences));
+        localStorage.setItem(
+          PREFERENCES_KEY,
+          JSON.stringify(useUiStore.getState().preferences),
+        );
       } catch {
         /* storage unavailable */
       }
@@ -176,11 +229,22 @@ export function AppShell() {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
-      const typing = target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable);
-      if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === "s") {
+      const typing =
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable);
+      if (
+        (event.ctrlKey || event.metaKey) &&
+        event.shiftKey &&
+        event.key.toLowerCase() === "s"
+      ) {
         event.preventDefault();
         toggleSidebar();
-      } else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
+      } else if (
+        (event.ctrlKey || event.metaKey) &&
+        event.key.toLowerCase() === "k"
+      ) {
         event.preventDefault();
         setPaletteOpen(true);
       } else if (event.key === "/" && !typing) {
@@ -207,7 +271,8 @@ export function AppShell() {
       setSidebarWidth(Math.max(200, Math.min(480, width)));
     };
     const onUp = () => {
-      if (resizing.current) localStorage.setItem(SIDEBAR_WIDTH_KEY, String(sidebarWidth));
+      if (resizing.current)
+        localStorage.setItem(SIDEBAR_WIDTH_KEY, String(sidebarWidth));
       resizing.current = false;
     };
     window.addEventListener("mousemove", onMove);
@@ -220,35 +285,73 @@ export function AppShell() {
 
   /* ── Notification bell data ──────────────────────────────────────── */
 
-  const dashQuery = useQuery({ queryKey: ["dashboard-shell"], queryFn: dashboard });
+  const dashQuery = useQuery({
+    queryKey: ["dashboard-shell"],
+    queryFn: dashboard,
+  });
   const resQuery = useQuery({
     queryKey: ["reservations-shell"],
     queryFn: reservations,
     enabled: !!settings.notify_ready,
   });
-  const historyQuery = useQuery({ queryKey: ["notifications"], queryFn: () => fetchNotifications(50) });
+  const historyQuery = useQuery({
+    queryKey: ["notifications"],
+    queryFn: () => fetchNotifications(50),
+  });
 
   const { seen, markSeen, sync } = useNotificationsStore();
 
   const syntheticAlerts = useMemo(() => {
-    const alerts: { id: string; title: string; date: string; route: string; kind: "overdue" | "duesoon" | "ready" }[] = [];
+    const alerts: {
+      id: string;
+      title: string;
+      date: string;
+      route: string;
+      kind: "overdue" | "duesoon" | "ready";
+    }[] = [];
     if (settings.notify_overdue) {
       for (const loan of dashQuery.data?.overdueLoans ?? []) {
-        alerts.push({ id: `overdue-${loan.id}`, title: loan.title ?? "", date: loan.due_at, route: "/members", kind: "overdue" });
+        alerts.push({
+          id: `overdue-${loan.id}`,
+          title: loan.title ?? "",
+          date: loan.due_at,
+          route: "/members",
+          kind: "overdue",
+        });
       }
     }
     if (settings.notify_due_soon) {
       for (const loan of dashQuery.data?.dueSoonLoans ?? []) {
-        alerts.push({ id: `duesoon-${loan.id}`, title: loan.title ?? "", date: loan.due_at, route: "/members", kind: "duesoon" });
+        alerts.push({
+          id: `duesoon-${loan.id}`,
+          title: loan.title ?? "",
+          date: loan.due_at,
+          route: "/members",
+          kind: "duesoon",
+        });
       }
     }
     if (settings.notify_ready) {
-      for (const reservation of (resQuery.data ?? []).filter((item) => item.status === "ready")) {
-        alerts.push({ id: `ready-${reservation.id}`, title: reservation.title ?? "", date: reservation.reserved_at || reservation.requested_at, route: "/reservations", kind: "ready" });
+      for (const reservation of (resQuery.data ?? []).filter(
+        (item) => item.status === "ready",
+      )) {
+        alerts.push({
+          id: `ready-${reservation.id}`,
+          title: reservation.title ?? "",
+          date: reservation.reserved_at || reservation.requested_at,
+          route: "/reservations",
+          kind: "ready",
+        });
       }
     }
     return alerts;
-  }, [dashQuery.data, resQuery.data, settings.notify_due_soon, settings.notify_overdue, settings.notify_ready]);
+  }, [
+    dashQuery.data,
+    resQuery.data,
+    settings.notify_due_soon,
+    settings.notify_overdue,
+    settings.notify_ready,
+  ]);
 
   const syntheticIds = syntheticAlerts.map((alert) => alert.id).join("|");
   useEffect(() => {
@@ -256,23 +359,36 @@ export function AppShell() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [syntheticIds]);
 
-  const unreadDb = (historyQuery.data ?? []).filter((item) => !item.is_read).length;
-  const unseenSynthetic = syntheticAlerts.filter((alert) => !seen.includes(alert.id)).length;
+  const unreadDb = (historyQuery.data ?? []).filter(
+    (item) => !item.is_read,
+  ).length;
+  const unseenSynthetic = syntheticAlerts.filter(
+    (alert) => !seen.includes(alert.id),
+  ).length;
   const badgeCount = unreadDb + unseenSynthetic;
 
   const previewRows = useMemo(() => {
     const rows = [
       ...syntheticAlerts.map((alert) => ({ ...alert, isDb: false as const })),
       ...(historyQuery.data ?? []).map((item) => ({
-        id: item.id, kind: "db" as const, title: item.title, date: item.created_at, route: item.link || "/notifications", isDb: true as const,
+        id: item.id,
+        kind: "db" as const,
+        title: item.title,
+        date: item.created_at,
+        route: item.link || "/notifications",
+        isDb: true as const,
       })),
     ];
-    return rows.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 3);
+    return rows
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 3);
   }, [syntheticAlerts, historyQuery.data]);
 
   /* ── Window controls ─────────────────────────────────────────────── */
 
-  const windowAction = async (action: "minimize" | "toggleMaximize" | "close") => {
+  const windowAction = async (
+    action: "minimize" | "toggleMaximize" | "close",
+  ) => {
     try {
       const { getCurrentWindow } = await import("@tauri-apps/api/window");
       const current = getCurrentWindow();
@@ -287,22 +403,71 @@ export function AppShell() {
   /* ── Global context menu ─────────────────────────────────────────── */
 
   const onContextMenu = (event: React.MouseEvent) => {
-    showContextMenu(event, [
-      { id: "refresh", label: t("contextMenu.refresh", "Refresh"), shortcut: "Ctrl+R", icon: Search, variant: "accent", onClick: () => { void queryClient.invalidateQueries(); toast.success(t("contextMenu.refreshed", "Refreshed")); } },
-      { id: "d1", divider: true },
-      { id: "back", label: t("contextMenu.goBack", "Go back"), shortcut: "Alt+←", onClick: () => navigate(-1) },
-      { id: "forward", label: t("contextMenu.goForward", "Go forward"), shortcut: "Alt+→", onClick: () => navigate(1) },
-      { id: "dash", label: t("contextMenu.dashboard", "Dashboard"), icon: LayoutDashboard, onClick: () => navigate("/dashboard") },
-      { id: "d2", divider: true },
-      {
-        id: "theme",
-        label: document.documentElement.classList.contains("dark") ? t("contextMenu.lightTheme", "Light theme") : t("contextMenu.darkTheme", "Dark theme"),
-        icon: document.documentElement.classList.contains("dark") ? Sun : Moon,
-        onClick: () => updatePreferences({ theme: document.documentElement.classList.contains("dark") ? "light" : "dark" }),
-      },
-      { id: "palette", label: t("contextMenu.commandPalette", "Command palette"), shortcut: "Ctrl+K", icon: Sparkles, onClick: () => setPaletteOpen(true) },
-      { id: "fullscreen", label: t("contextMenu.fullscreen", "Fullscreen"), shortcut: "F11", onClick: () => void toggleFullscreen() },
-    ], { title: t("contextMenu.appTitle", "KetabYar") });
+    showContextMenu(
+      event,
+      [
+        {
+          id: "refresh",
+          label: t("contextMenu.refresh", "Refresh"),
+          shortcut: "Ctrl+R",
+          icon: Search,
+          variant: "accent",
+          onClick: () => {
+            void queryClient.invalidateQueries();
+            toast.success(t("contextMenu.refreshed", "Refreshed"));
+          },
+        },
+        { id: "d1", divider: true },
+        {
+          id: "back",
+          label: t("contextMenu.goBack", "Go back"),
+          shortcut: "Alt+←",
+          onClick: () => navigate(-1),
+        },
+        {
+          id: "forward",
+          label: t("contextMenu.goForward", "Go forward"),
+          shortcut: "Alt+→",
+          onClick: () => navigate(1),
+        },
+        {
+          id: "dash",
+          label: t("contextMenu.dashboard", "Dashboard"),
+          icon: LayoutDashboard,
+          onClick: () => navigate("/dashboard"),
+        },
+        { id: "d2", divider: true },
+        {
+          id: "theme",
+          label: document.documentElement.classList.contains("dark")
+            ? t("contextMenu.lightTheme", "Light theme")
+            : t("contextMenu.darkTheme", "Dark theme"),
+          icon: document.documentElement.classList.contains("dark")
+            ? Sun
+            : Moon,
+          onClick: () =>
+            updatePreferences({
+              theme: document.documentElement.classList.contains("dark")
+                ? "light"
+                : "dark",
+            }),
+        },
+        {
+          id: "palette",
+          label: t("contextMenu.commandPalette", "Command palette"),
+          shortcut: "Ctrl+K",
+          icon: Sparkles,
+          onClick: () => setPaletteOpen(true),
+        },
+        {
+          id: "fullscreen",
+          label: t("contextMenu.fullscreen", "Fullscreen"),
+          shortcut: "F11",
+          onClick: () => void toggleFullscreen(),
+        },
+      ],
+      { title: t("contextMenu.appTitle", "KetabYar") },
+    );
   };
 
   const signOut = async () => {
@@ -317,10 +482,31 @@ export function AppShell() {
       {/* Custom OS titlebar */}
       <div className="relative z-50 flex h-8 shrink-0 items-center bg-[#17211f] text-white/85">
         <span data-tauri-drag-region className="absolute inset-0" />
-        <div className="ms-auto flex h-full items-center ltr:me-0 rtl:ml-0" dir="ltr">
-          <button onClick={() => void windowAction("minimize")} aria-label="Minimize" className="flex h-full w-11 items-center justify-center hover:bg-white/10"><Minus size={14} /></button>
-          <button onClick={() => void windowAction("toggleMaximize")} aria-label="Maximize" className="flex h-full w-11 items-center justify-center hover:bg-white/10"><Square size={11} /></button>
-          <button onClick={() => void windowAction("close")} aria-label="Close" className="flex h-full w-11 items-center justify-center hover:bg-red-600"><X size={15} /></button>
+        <div
+          className="ms-auto flex h-full items-center ltr:me-0 rtl:ml-0"
+          dir="ltr"
+        >
+          <button type="button"
+            onClick={() => void windowAction("minimize")}
+            aria-label="Minimize"
+            className="flex h-full w-11 items-center justify-center hover:bg-white/10"
+          >
+            <Minus size={14} />
+          </button>
+          <button type="button"
+            onClick={() => void windowAction("toggleMaximize")}
+            aria-label="Maximize"
+            className="flex h-full w-11 items-center justify-center hover:bg-white/10"
+          >
+            <Square size={11} />
+          </button>
+          <button type="button"
+            onClick={() => void windowAction("close")}
+            aria-label="Close"
+            className="flex h-full w-11 items-center justify-center hover:bg-red-600"
+          >
+            <X size={15} />
+          </button>
         </div>
       </div>
 
@@ -331,14 +517,28 @@ export function AppShell() {
           style={{ width: expanded ? sidebarWidth : 80 }}
         >
           <div className="flex items-center gap-3 px-4 py-5">
-            <img src="/brand/ketabyar-symbol.png" alt="KetabYar" className="h-10 w-10 shrink-0 rounded-xl" />
+            <img
+              src="/brand/ketabyar-symbol.png"
+              alt="KetabYar"
+              className="h-10 w-10 shrink-0 rounded-xl"
+            />
             {expanded ? (
               <div className="min-w-0">
-                <p className="font-display text-lg font-bold leading-tight">کتابیار</p>
-                <p className="truncate text-[11px] text-white/55">{settings.library_short_name || settings.library_name || "KetabYar"}</p>
+                <p className="font-display text-lg font-bold leading-tight">
+                  کتابیار
+                </p>
+                <p className="truncate text-[11px] text-white/55">
+                  {settings.library_short_name ||
+                    settings.library_name ||
+                    "KetabYar"}
+                </p>
               </div>
             ) : null}
-            <button onClick={toggleSidebar} className="ms-auto rounded-lg p-1.5 text-white/60 hover:bg-white/10 hover:text-white" aria-label="Toggle sidebar">
+            <button type="button"
+              onClick={toggleSidebar}
+              className="ms-auto rounded-lg p-1.5 text-white/60 hover:bg-white/10 hover:text-white"
+              aria-label="Toggle sidebar"
+            >
               <Menu size={16} />
             </button>
           </div>
@@ -348,7 +548,11 @@ export function AppShell() {
               <NavLink
                 key={item.route}
                 to={item.route}
-                title={expanded ? undefined : t(item.key, item.key.split(".")[1] ?? "")}
+                title={
+                  expanded
+                    ? undefined
+                    : t(item.key, item.key.split(".")[1] ?? "")
+                }
                 className={({ isActive }) =>
                   cn(
                     "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition",
@@ -360,7 +564,9 @@ export function AppShell() {
                 }
               >
                 <item.icon size={18} className="shrink-0" />
-                {expanded ? <span className="truncate">{t(item.key, "")}</span> : null}
+                {expanded ? (
+                  <span className="truncate">{t(item.key, "")}</span>
+                ) : null}
               </NavLink>
             ))}
           </nav>
@@ -371,14 +577,21 @@ export function AppShell() {
 
           {/* Profile footer */}
           <div className="relative border-t border-white/10 p-3">
-            <button
-              className={cn("flex w-full items-center gap-3 rounded-xl p-2 text-start transition hover:bg-white/8", !expanded && "justify-center")}
+            <button type="button"
+              className={cn(
+                "flex w-full items-center gap-3 rounded-xl p-2 text-start transition hover:bg-white/8",
+                !expanded && "justify-center",
+              )}
               onMouseEnter={() => {
-                if (profileTimer.current) window.clearTimeout(profileTimer.current);
+                if (profileTimer.current)
+                  window.clearTimeout(profileTimer.current);
                 setProfileOpen(true);
               }}
               onMouseLeave={() => {
-                profileTimer.current = window.setTimeout(() => setProfileOpen(false), 220);
+                profileTimer.current = window.setTimeout(
+                  () => setProfileOpen(false),
+                  220,
+                );
               }}
             >
               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-copper text-xs font-bold">
@@ -386,8 +599,12 @@ export function AppShell() {
               </span>
               {expanded ? (
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-semibold">{user?.full_name ?? t("nav.role", "Librarian")}</span>
-                  <span className="block text-[11px] text-white/50">{t("nav.role", "Librarian")}</span>
+                  <span className="block truncate text-sm font-semibold">
+                    {user?.full_name ?? t("nav.role", "Librarian")}
+                  </span>
+                  <span className="block text-[11px] text-white/50">
+                    {t("nav.role", "Librarian")}
+                  </span>
                 </span>
               ) : null}
             </button>
@@ -396,21 +613,60 @@ export function AppShell() {
               <div
                 className="absolute bottom-full z-40 mb-2 w-64 rounded-2xl border border-ink/10 bg-white p-3 text-ink shadow-2xl dark:border-white/10 dark:bg-[#1b2723] dark:text-ivory"
                 style={{ insetInlineEnd: expanded ? "0.75rem" : "0.5rem" }}
-                onMouseEnter={() => profileTimer.current && window.clearTimeout(profileTimer.current)}
+                onMouseEnter={() =>
+                  profileTimer.current &&
+                  window.clearTimeout(profileTimer.current)
+                }
                 onMouseLeave={() => setProfileOpen(false)}
               >
                 <p className="text-sm font-bold">{user?.full_name}</p>
-                <p className="text-xs text-ink/50 dark:text-ivory/50">{t("nav.role", "Librarian")} · {settings.library_short_name || "KetabYar"}</p>
-                <p className="mb-2 mt-3 text-[10px] font-bold uppercase tracking-wider text-copper">{t("profileCard.quickActions", "Quick actions")}</p>
+                <p className="text-xs text-ink/50 dark:text-ivory/50">
+                  {t("nav.role", "Librarian")} ·{" "}
+                  {settings.library_short_name || "KetabYar"}
+                </p>
+                <p className="mb-2 mt-3 text-[10px] font-bold uppercase tracking-wider text-copper">
+                  {t("profileCard.quickActions", "Quick actions")}
+                </p>
                 <div className="grid grid-cols-2 gap-1.5">
-                  <ProfileAction icon={LogOut} label={t("profileCard.signOut", "Sign out")} onClick={() => void signOut()} />
-                  <ProfileAction icon={Settings} label={t("profileCard.settings", "Settings")} onClick={() => { setProfileOpen(false); navigate("/settings"); }} />
                   <ProfileAction
-                    icon={document.documentElement.classList.contains("dark") ? Sun : Moon}
-                    label={t("profileCard.themeLight", "Theme")}
-                    onClick={() => updatePreferences({ theme: document.documentElement.classList.contains("dark") ? "light" : "dark" })}
+                    icon={LogOut}
+                    label={t("profileCard.signOut", "Sign out")}
+                    onClick={() => void signOut()}
                   />
-                  <ProfileAction icon={Sparkles} label={t("profileCard.commandPalette", "Palette")} onClick={() => { setProfileOpen(false); setPaletteOpen(true); }} shortcut="⌘K" />
+                  <ProfileAction
+                    icon={Settings}
+                    label={t("profileCard.settings", "Settings")}
+                    onClick={() => {
+                      setProfileOpen(false);
+                      navigate("/settings");
+                    }}
+                  />
+                  <ProfileAction
+                    icon={
+                      document.documentElement.classList.contains("dark")
+                        ? Sun
+                        : Moon
+                    }
+                    label={t("profileCard.themeLight", "Theme")}
+                    onClick={() =>
+                      updatePreferences({
+                        theme: document.documentElement.classList.contains(
+                          "dark",
+                        )
+                          ? "light"
+                          : "dark",
+                      })
+                    }
+                  />
+                  <ProfileAction
+                    icon={Sparkles}
+                    label={t("profileCard.commandPalette", "Palette")}
+                    onClick={() => {
+                      setProfileOpen(false);
+                      setPaletteOpen(true);
+                    }}
+                    shortcut="⌘K"
+                  />
                 </div>
               </div>
             ) : null}
@@ -432,7 +688,10 @@ export function AppShell() {
           <div className="app-texture" />
           <header className="z-10 flex h-[68px] shrink-0 items-center gap-3 border-b border-ink/8 bg-white/90 px-6 backdrop-blur dark:border-white/8 dark:bg-[#15211d]/90">
             <div className="relative max-w-md flex-1">
-              <Search size={15} className="pointer-events-none absolute inset-y-0 start-3 my-auto text-ink/40 dark:text-ivory/40" />
+              <Search
+                size={15}
+                className="pointer-events-none absolute inset-y-0 start-3 my-auto text-ink/40 dark:text-ivory/40"
+              />
               <input
                 id="global-search"
                 ref={searchRef}
@@ -447,7 +706,7 @@ export function AppShell() {
                 placeholder={t("nav.quickSearch", "Quick search…")}
                 className="field-input ps-9 pe-14"
               />
-              <button
+              <button type="button"
                 onClick={() => setPaletteOpen(true)}
                 className="absolute inset-y-0 end-2 my-auto h-6 rounded-md border border-ink/10 px-1.5 font-mono text-[10px] text-ink/50 dark:border-white/15 dark:text-ivory/50"
               >
@@ -457,7 +716,7 @@ export function AppShell() {
 
             {/* Bell */}
             <div className="relative">
-              <button
+              <button type="button"
                 onClick={() => setBellOpen((v) => !v)}
                 aria-label={t("nav.notifications", "Notifications")}
                 className="relative rounded-full p-2.5 text-ink/60 transition hover:bg-ink/5 hover:text-ink dark:text-ivory/60 dark:hover:bg-white/10 dark:hover:text-ivory"
@@ -472,32 +731,52 @@ export function AppShell() {
 
               {bellOpen ? (
                 <>
-                  <div className="fixed inset-0 z-30" onMouseDown={() => setBellOpen(false)} />
+                  <div
+                    className="fixed inset-0 z-30"
+                    onMouseDown={() => setBellOpen(false)}
+                  />
                   <div className="absolute end-0 top-full z-40 mt-2 w-80 rounded-2xl border border-ink/10 bg-white p-3 shadow-2xl dark:border-white/10 dark:bg-[#1b2723]">
                     <div className="mb-2 flex items-center justify-between px-1">
-                      <p className="text-sm font-bold">{t("nav.notifications", "Notifications")}</p>
-                      {badgeCount > 0 ? <span className="rounded-full bg-red-600/10 px-2 py-0.5 text-[10px] font-bold text-red-600">{t("nav.overdueCount", "{{count}} new", { count: badgeCount })}</span> : null}
+                      <p className="text-sm font-bold">
+                        {t("nav.notifications", "Notifications")}
+                      </p>
+                      {badgeCount > 0 ? (
+                        <span className="rounded-full bg-red-600/10 px-2 py-0.5 text-[10px] font-bold text-red-600">
+                          {t("nav.overdueCount", "{{count}} new", {
+                            count: badgeCount,
+                          })}
+                        </span>
+                      ) : null}
                     </div>
                     {previewRows.length === 0 ? (
-                      <p className="px-1 py-4 text-center text-sm text-ink/50 dark:text-ivory/50">{t("nav.allClear", "You're all caught up")}</p>
+                      <p className="px-1 py-4 text-center text-sm text-ink/50 dark:text-ivory/50">
+                        {t("nav.allClear", "You're all caught up")}
+                      </p>
                     ) : (
                       <ul className="space-y-1">
                         {previewRows.map((row) => (
                           <li key={row.id}>
-                            <button
+                            <button type="button"
                               className="w-full rounded-xl px-2.5 py-2 text-start transition hover:bg-ink/5 dark:hover:bg-white/5"
                               onClick={() => {
                                 setBellOpen(false);
                                 if (row.isDb) {
-                                  markNotificationRead(row.id).catch(console.error);
-                                  void queryClient.invalidateQueries({ queryKey: ["notifications"] });
+                                  markNotificationRead(row.id).catch(
+                                    console.error,
+                                  );
+                                  void queryClient.invalidateQueries({
+                                    queryKey: ["notifications"],
+                                  });
                                 } else {
                                   markSeen([row.id]);
                                 }
                                 navigate(row.route);
                               }}
                             >
-                              <p className="truncate text-[13px] font-semibold">{row.title || t("circulation.selectedMember", "Member")}</p>
+                              <p className="truncate text-[13px] font-semibold">
+                                {row.title ||
+                                  t("circulation.selectedMember", "Member")}
+                              </p>
                               <p className="text-[11px] text-ink/50 dark:text-ivory/50">
                                 {row.isDb
                                   ? row.title
@@ -510,9 +789,12 @@ export function AppShell() {
                         ))}
                       </ul>
                     )}
-                    <button
+                    <button type="button"
                       className="mt-2 w-full rounded-xl border border-ink/10 py-2 text-xs font-semibold text-ink/70 transition hover:bg-ink/5 dark:border-white/10 dark:text-ivory/70 dark:hover:bg-white/5"
-                      onClick={() => { setBellOpen(false); navigate("/notifications"); }}
+                      onClick={() => {
+                        setBellOpen(false);
+                        navigate("/notifications");
+                      }}
                     >
                       {t("notificationsPage.viewAll", "View all notifications")}
                     </button>
@@ -527,7 +809,9 @@ export function AppShell() {
               <span className="flex h-8 w-8 items-center justify-center rounded-full bg-accent/12 text-xs font-bold text-accent dark:text-accent-dark">
                 {initialsOf(user?.full_name)}
               </span>
-              <span className="hidden max-w-40 truncate text-sm font-semibold sm:block">{user?.full_name ?? "کتابدار"}</span>
+              <span className="hidden max-w-40 truncate text-sm font-semibold sm:block">
+                {user?.full_name ?? "کتابدار"}
+              </span>
             </div>
           </header>
 
@@ -540,22 +824,42 @@ export function AppShell() {
   );
 }
 
-function ProfileAction({ icon: Icon, label, onClick, shortcut }: { icon: LucideIcon; label: string; onClick: () => void; shortcut?: string }) {
+function ProfileAction({
+  icon: Icon,
+  label,
+  onClick,
+  shortcut,
+}: {
+  icon: LucideIcon;
+  label: string;
+  onClick: () => void;
+  shortcut?: string;
+}) {
   return (
-    <button
+    <button type="button"
       onClick={onClick}
       className="flex flex-col items-center gap-1 rounded-xl border border-ink/8 px-2 py-2.5 text-[11px] font-semibold text-ink/70 transition hover:border-accent/40 hover:text-accent dark:border-white/10 dark:text-ivory/70 dark:hover:text-accent-dark"
     >
       <Icon size={15} />
       {label}
-      {shortcut ? <span className="font-mono text-[9px] opacity-50">{shortcut}</span> : null}
+      {shortcut ? (
+        <span className="font-mono text-[9px] opacity-50">{shortcut}</span>
+      ) : null}
     </button>
   );
 }
 
 /** Chevron helper for RTL-aware pagination arrows. */
 export function ChevronFlip({ back }: { back?: boolean }) {
-  return document.documentElement.dir === "rtl"
-    ? (back ? <ChevronRight size={15} /> : <ChevronLeft size={15} />)
-    : (back ? <ChevronLeft size={15} /> : <ChevronRight size={15} />);
+  return document.documentElement.dir === "rtl" ? (
+    back ? (
+      <ChevronRight size={15} />
+    ) : (
+      <ChevronLeft size={15} />
+    )
+  ) : back ? (
+    <ChevronLeft size={15} />
+  ) : (
+    <ChevronRight size={15} />
+  );
 }

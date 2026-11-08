@@ -3,4 +3,4 @@
 /**
  * Command error surfaced to the webview — carries the human (Persian) message.
  */
-export type CommandError = { message: string, };
+export type CommandError = { message: string };

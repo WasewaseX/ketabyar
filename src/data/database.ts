@@ -1,5 +1,5 @@
-import { ensureSchema } from "./schema";
 import { sweepReservations } from "./repositories/library";
+import { ensureSchema } from "./schema";
 
 /**
  * Boot sequence for the fully-offline local database:

@@ -24,7 +24,10 @@ import type { PublicUser } from "../types";
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <div dir="rtl" className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#111c19] p-6 text-white">
+    <div
+      dir="rtl"
+      className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#111c19] p-6 text-white"
+    >
       <div className="pointer-events-none absolute -top-56 end-0 h-[500px] w-[500px] rounded-full bg-gradient-to-bl from-[#1b4332]/60 to-copper/20 blur-3xl" />
       <div className="pointer-events-none absolute bottom-0 end-1/4 h-[380px] w-[380px] rounded-full bg-[#104f55]/30 blur-3xl" />
       <div className="pointer-events-none absolute -top-24 start-0 h-[350px] w-[350px] rounded-full bg-copper/20 blur-3xl" />
@@ -78,9 +81,13 @@ export function LoginPage() {
       useLibrarySettingsStore
         .getState()
         .load()
-        .catch((settingsError) => console.error("library settings load failed", settingsError));
+        .catch((settingsError) =>
+          console.error("library settings load failed", settingsError),
+        );
     } catch (loginError) {
-      setError(loginError instanceof Error ? loginError.message : String(loginError));
+      setError(
+        loginError instanceof Error ? loginError.message : String(loginError),
+      );
       pinRef.current = "";
       setPin("");
       inputRef.current?.focus();
@@ -154,10 +161,21 @@ export function LoginPage() {
     <Shell>
       <div className="rounded-2xl bg-[#f9f8f4]/95 p-8 text-[#17211f] shadow-2xl dark:bg-[#1b2723]/95 dark:text-[#f9f8f4]">
         <div className="mb-5 flex flex-col items-center gap-3 text-center">
-          <img src="/brand/ketabyar-symbol.png" alt="KetabYar" className="h-16 w-16 rounded-2xl" />
+          <img
+            src="/brand/ketabyar-symbol.png"
+            alt="KetabYar"
+            className="h-16 w-16 rounded-2xl"
+          />
           <div>
-            <h1 className="font-display text-[22px] font-bold">{t("auth.signInTitle", "ورود کتابدار")}</h1>
-            <p className="mt-1 text-[13px] text-ink/60 dark:text-ivory/60">{t("auth.signInSubtitle", "برای ادامه، پین کتابخانه را وارد کنید")}</p>
+            <h1 className="font-display text-[22px] font-bold">
+              {t("auth.signInTitle", "ورود کتابدار")}
+            </h1>
+            <p className="mt-1 text-[13px] text-ink/60 dark:text-ivory/60">
+              {t(
+                "auth.signInSubtitle",
+                "برای ادامه، پین کتابخانه را وارد کنید",
+              )}
+            </p>
           </div>
         </div>
 
@@ -186,7 +204,9 @@ export function LoginPage() {
           inputMode="numeric"
           value={pin}
           onChange={(event) => {
-            const digits = toAsciiDigits(event.target.value).replace(/\D/g, "").slice(0, 8);
+            const digits = toAsciiDigits(event.target.value)
+              .replace(/\D/g, "")
+              .slice(0, 8);
             pinRef.current = digits;
             setPin(digits);
             setError(null);
@@ -250,7 +270,9 @@ export function ForcedPasswordChangePage({ user }: { user: PublicUser }) {
 
   const submit = async () => {
     if (next.length < 4) {
-      setError(t("settings.account.passwordTooShort", "پین باید حداقل ۴ رقم باشد."));
+      setError(
+        t("settings.account.passwordTooShort", "پین باید حداقل ۴ رقم باشد."),
+      );
       return;
     }
     if (next !== confirm) {
@@ -262,7 +284,11 @@ export function ForcedPasswordChangePage({ user }: { user: PublicUser }) {
       await changeOwnPassword(current, next);
       setUser({ ...user, must_change_password: false });
     } catch (changeError) {
-      setError(changeError instanceof Error ? changeError.message : String(changeError));
+      setError(
+        changeError instanceof Error
+          ? changeError.message
+          : String(changeError),
+      );
     } finally {
       setBusy(false);
     }
@@ -271,22 +297,58 @@ export function ForcedPasswordChangePage({ user }: { user: PublicUser }) {
   return (
     <Shell>
       <div className="rounded-2xl bg-[#f9f8f4]/95 p-8 text-[#17211f] shadow-2xl dark:bg-[#1b2723]/95 dark:text-[#f9f8f4]">
-        <h1 className="font-display text-lg font-bold">{t("auth.forcedChangeTitle", "تغییر پین")}</h1>
+        <h1 className="font-display text-lg font-bold">
+          {t("auth.forcedChangeTitle", "تغییر پین")}
+        </h1>
         <p className="mt-1 text-[13px] text-ink/60 dark:text-ivory/60">
-          {t("auth.forcedChangeSubtitle", "سلام {{name}}، برای ادامه پین جدیدی انتخاب کنید.", { name: user.full_name })}
+          {t(
+            "auth.forcedChangeSubtitle",
+            "سلام {{name}}، برای ادامه پین جدیدی انتخاب کنید.",
+            { name: user.full_name },
+          )}
         </p>
         <div className="mt-5 grid gap-3">
-          <input className="field-input" type="password" inputMode="numeric" placeholder={t("settings.account.currentPassword", "پین فعلی")} value={current} onChange={(event) => setCurrent(event.target.value)} />
-          <input className="field-input" type="password" inputMode="numeric" placeholder={t("settings.account.newPassword", "پین جدید")} value={next} onChange={(event) => setNext(event.target.value)} />
-          <input className="field-input" type="password" inputMode="numeric" placeholder={t("settings.account.confirmPassword", "تکرار پین جدید")} value={confirm} onChange={(event) => setConfirm(event.target.value)} />
+          <input
+            className="field-input"
+            type="password"
+            inputMode="numeric"
+            placeholder={t("settings.account.currentPassword", "پین فعلی")}
+            value={current}
+            onChange={(event) => setCurrent(event.target.value)}
+          />
+          <input
+            className="field-input"
+            type="password"
+            inputMode="numeric"
+            placeholder={t("settings.account.newPassword", "پین جدید")}
+            value={next}
+            onChange={(event) => setNext(event.target.value)}
+          />
+          <input
+            className="field-input"
+            type="password"
+            inputMode="numeric"
+            placeholder={t(
+              "settings.account.confirmPassword",
+              "تکرار پین جدید",
+            )}
+            value={confirm}
+            onChange={(event) => setConfirm(event.target.value)}
+          />
         </div>
-        {error ? <div className="mt-3 rounded-xl border border-red-500/25 bg-red-500/10 px-3 py-2 text-[13px] text-red-700 dark:text-red-400">{error}</div> : null}
-        <button
+        {error ? (
+          <div className="mt-3 rounded-xl border border-red-500/25 bg-red-500/10 px-3 py-2 text-[13px] text-red-700 dark:text-red-400">
+            {error}
+          </div>
+        ) : null}
+        <button type="button"
           onClick={() => void submit()}
           disabled={busy}
           className="mt-5 w-full rounded-xl bg-[#1a4d40] py-2.5 text-sm font-semibold text-white hover:bg-[#153d33] disabled:opacity-60"
         >
-          {busy ? t("settings.account.saving", "…") : t("settings.account.savePassword", "ذخیره پین")}
+          {busy
+            ? t("settings.account.saving", "…")
+            : t("settings.account.savePassword", "ذخیره پین")}
         </button>
       </div>
     </Shell>

@@ -3,4 +3,4 @@
 /**
  * Per-table row counts (factory reset / backup import reports).
  */
-export type DeleteCounts = { counts: { [key in string]?: bigint }, };
+export type DeleteCounts = { counts: { [key in string]?: bigint } };

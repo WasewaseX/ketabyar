@@ -1,5 +1,5 @@
-import { create } from "zustand";
 import { invoke } from "@tauri-apps/api/core";
+import { create } from "zustand";
 import type { Preferences } from "../types";
 
 /**
@@ -32,7 +32,9 @@ function loadPreferences(): Preferences {
   if (typeof localStorage === "undefined") return defaults;
   try {
     const raw = localStorage.getItem(PREFERENCES_KEY);
-    return raw ? { ...defaults, ...(JSON.parse(raw) as Partial<Preferences>) } : defaults;
+    return raw
+      ? { ...defaults, ...(JSON.parse(raw) as Partial<Preferences>) }
+      : defaults;
   } catch {
     return defaults;
   }
@@ -60,7 +62,9 @@ export const useUiStore = create<UiState>((set) => ({
         /* storage unavailable */
       }
       if (values.closeToTray !== undefined) {
-        invoke("set_close_to_tray", { enabled: values.closeToTray }).catch(console.error);
+        invoke("set_close_to_tray", { enabled: values.closeToTray }).catch(
+          console.error,
+        );
       }
       return { preferences };
     }),
