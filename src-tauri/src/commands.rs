@@ -46,7 +46,7 @@ type Cmd<T> = Result<T>;
 
 #[tauri::command]
 pub fn dashboard(state: State<'_, DbState>) -> Cmd<DashboardMetrics> {
-    with_db(&state, |conn| s::dashboard(conn))
+    with_db(&state, s::dashboard)
 }
 
 // ─────────────────────────────── Books & copies ───────────────────────────────
@@ -405,7 +405,7 @@ pub fn reservation_delete(
 
 #[tauri::command]
 pub fn fines_list(state: State<'_, DbState>) -> Cmd<Vec<Json>> {
-    with_db(&state, |conn| s::fines(conn))
+    with_db(&state, s::fines)
 }
 
 #[tauri::command]
@@ -431,7 +431,7 @@ pub fn fine_waive(
 
 #[tauri::command]
 pub fn rooms_list(state: State<'_, DbState>) -> Cmd<Vec<Json>> {
-    with_db(&state, |conn| s::get_rooms(conn))
+    with_db(&state, s::get_rooms)
 }
 
 #[tauri::command]
@@ -467,7 +467,7 @@ pub fn room_delete(state: State<'_, DbState>, room_id: String, actor: Option<Str
 
 #[tauri::command]
 pub fn columns_list(state: State<'_, DbState>) -> Cmd<Vec<Json>> {
-    with_db(&state, |conn| s::get_columns(conn))
+    with_db(&state, s::get_columns)
 }
 
 #[tauri::command]
@@ -495,7 +495,7 @@ pub fn column_delete(
 
 #[tauri::command]
 pub fn shelves_list(state: State<'_, DbState>) -> Cmd<Vec<Json>> {
-    with_db(&state, |conn| s::get_shelves(conn))
+    with_db(&state, s::get_shelves)
 }
 
 #[tauri::command]
@@ -547,7 +547,7 @@ pub fn notification_mark_read(state: State<'_, DbState>, notification_id: String
 
 #[tauri::command]
 pub fn notifications_mark_all(state: State<'_, DbState>) -> Cmd<()> {
-    with_db(&state, |conn| s::mark_all_notifications_read(conn))
+    with_db(&state, s::mark_all_notifications_read)
 }
 
 #[tauri::command]
@@ -559,7 +559,7 @@ pub fn audit_log(state: State<'_, DbState>, limit: i64) -> Cmd<Vec<Json>> {
 
 #[tauri::command]
 pub fn backup_export(state: State<'_, DbState>) -> Cmd<Json> {
-    with_db(&state, |conn| s::export_library_backup(conn))
+    with_db(&state, s::export_library_backup)
 }
 
 #[tauri::command]
@@ -683,7 +683,7 @@ pub fn clear_circulation(state: State<'_, DbState>, actor: Option<String>) -> Cm
 /// True when a PIN has been set on this machine.
 #[tauri::command]
 pub fn pin_has(state: State<'_, DbState>) -> Cmd<bool> {
-    with_db(&state, |conn| a::pin_has(conn))
+    with_db(&state, a::pin_has)
 }
 
 /// Hashes (salted SHA-256) and stores a new 4–8 digit PIN.
@@ -701,5 +701,5 @@ pub fn pin_check(state: State<'_, DbState>, pin: String) -> Cmd<bool> {
 /// First-boot bootstrap: creates the default 6767 PIN when none is set.
 #[tauri::command]
 pub fn pin_bootstrap(state: State<'_, DbState>) -> Cmd<bool> {
-    with_db(&state, |conn| a::bootstrap_pin_if_needed(conn))
+    with_db(&state, a::bootstrap_pin_if_needed)
 }
