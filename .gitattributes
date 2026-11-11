@@ -1,0 +1,22 @@
+# Normalize line endings: the working tree is always LF on every platform
+# (the editorconfig and the Biome format gate both require it; Windows
+# runners otherwise check out CRLF and fail the format check).
+* text=auto eol=lf
+
+# Explicit binaries — never normalize.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.icns binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.eot binary
+*.zip binary
+*.exe binary
+*.dll binary
+*.msi binary
+*.db binary

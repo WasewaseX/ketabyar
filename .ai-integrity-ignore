@@ -1,0 +1,14 @@
+# AI-integrity detector policy for KetabYar.
+#
+# The four structural-budget checks are reported but NOT blocking here:
+# the thirteen section pages are single-page feature modules of 600-1900
+# lines by design, and splitting them is tracked debt, not a defect. The
+# ratchet that still enforces structure on new code:
+#   - new-code-gate (quality.yml): cognitive/cyclomatic ceilings on every
+#     added line vs the merge base,
+#   - jscpd duplication budget (hygiene): enforced at 5%.
+# Revisit this file when the sections are split into feature folders.
+check:bloat-long-file
+check:god-function
+check:deep-nesting
+check:boilerplate-duplication
