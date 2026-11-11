@@ -61,9 +61,17 @@ fn validate_pin(pin: &str) -> Result<()> {
 
 /// True when a PIN has been set (non-empty `pin_hash` on the settings row).
 pub fn pin_has(conn: &Connection) -> Result<bool> {
-    let row = maybe_one(conn, "SELECT pin_hash FROM library_settings WHERE id = 1", &[])?;
+    let row = maybe_one(
+        conn,
+        "SELECT pin_hash FROM library_settings WHERE id = 1",
+        &[],
+    )?;
     Ok(row
-        .and_then(|v| v.get("pin_hash").and_then(|x| x.as_str()).map(|s| !s.is_empty()))
+        .and_then(|v| {
+            v.get("pin_hash")
+                .and_then(|x| x.as_str())
+                .map(|s| !s.is_empty())
+        })
         .unwrap_or(false))
 }
 
@@ -154,8 +162,16 @@ mod tests {
         )
         .unwrap()
         .unwrap();
-        let hash = row.get("pin_hash").and_then(|x| x.as_str()).unwrap().to_string();
-        let salt = row.get("pin_salt").and_then(|x| x.as_str()).unwrap().to_string();
+        let hash = row
+            .get("pin_hash")
+            .and_then(|x| x.as_str())
+            .unwrap()
+            .to_string();
+        let salt = row
+            .get("pin_salt")
+            .and_then(|x| x.as_str())
+            .unwrap()
+            .to_string();
         assert_eq!(hash.len(), 64);
         assert_eq!(salt.len(), 32);
         assert_eq!(sha256_hex(&format!("{salt}135790")), hash);

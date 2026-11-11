@@ -11,6 +11,30 @@ indent_size = 2
 [*.py]
 indent_size = 4
 
+[*.rs]
+# rustfmt (CI gate) owns Rust layout; embedded SQL string-literal alignment
+# is intentional and not always a multiple of the indent width.
+indent_style = space
+indent_size = unset
+
+# SQL-bearing repository modules: embedded SQL continuation lines are
+# aligned for readability, not to a fixed column grid.
+[src/data/repositories/*.ts]
+indent_style = space
+indent_size = unset
+
+[src/data/schemaSql.ts]
+indent_style = space
+indent_size = unset
+
+# ts-rs generates these bindings (cargo test regenerates them) and emits a
+# trailing space in its struct output; never hand-edited.
+[src-tauri/core/bindings/generated/**]
+trim_trailing_whitespace = false
+
+[src/types/generated/**]
+trim_trailing_whitespace = false
+
 [*.go]
 indent_style = tab
 indent_size = unset

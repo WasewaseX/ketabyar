@@ -114,6 +114,7 @@ export function CopyEditModal({
           <p className="text-sm text-ink/60 dark:text-ivory/60">{copy.title}</p>
         ) : null}
 
+        {/* biome-ignore lint/a11y/noLabelWithoutControl: implicit label — the Input is a direct child */}
         <label>
           <span>{t("catalog.details.copyBarcode", "Barcode")}</span>
           <Input
@@ -124,6 +125,7 @@ export function CopyEditModal({
           />
         </label>
 
+        {/* biome-ignore lint/a11y/noLabelWithoutControl: implicit label — the Input is a direct child */}
         <label>
           <span>{t("catalog.details.copyAccession", "Accession number")}</span>
           <Input

@@ -130,8 +130,11 @@ export function SearchableSelect<T>({
       </button>
 
       {open ? (
-        <div
-          className="fixed inset-0 z-[800]"
+        <button
+          type="button"
+          tabIndex={-1}
+          aria-label={t("common.close", "Close")}
+          className="fixed inset-0 cursor-default"
           onMouseDown={() => setOpen(false)}
         />
       ) : null}
@@ -151,11 +154,11 @@ export function SearchableSelect<T>({
                 {t("common.noResults", "No results")}
               </li>
             ) : (
-              filtered.map((option, index) => {
+              filtered.map((option) => {
                 const optionValue = String(option[valueKey]);
                 const isSelected = optionValue === value;
                 return (
-                  <li key={index}>
+                  <li key={optionValue}>
                     <button
                       type="button"
                       onClick={() => {

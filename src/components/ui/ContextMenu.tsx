@@ -177,7 +177,8 @@ export function ContextMenuProvider({ children }: { children: ReactNode }) {
                     className="mx-2 my-1.5 h-px bg-ink/8 dark:bg-white/8"
                   />
                 ) : (
-                  <button type="button"
+                  <button
+                    type="button"
                     key={item.id ?? index}
                     disabled={item.disabled}
                     onClick={() => {

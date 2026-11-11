@@ -50,8 +50,7 @@ function extractArray(name) {
   // extract backtick template literals (no ${} interpolation inside DDL)
   const items = [];
   const re = /`([^`]*)`/g;
-  let m;
-  while ((m = re.exec(body)) !== null) items.push(m[1]);
+  for (const match of body.matchAll(re)) items.push(match[1]);
   return items;
 }
 

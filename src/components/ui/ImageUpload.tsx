@@ -1,5 +1,5 @@
 import { Crop, Trash2, Upload, ZoomIn } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { cn } from "../../utils/cn";
@@ -64,6 +64,15 @@ export function ImageUpload({
   const [cropping, setCropping] = useState(false);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
+
+  useEffect(() => {
+    if (!cropping) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setCropping(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [cropping]);
   const dragRef = useRef<{
     startX: number;
     startY: number;
@@ -168,6 +177,7 @@ export function ImageUpload({
 
   return (
     <div className="flex flex-col gap-2">
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: drag-and-drop target; the visible file-picker button below is the keyboard path */}
       <div
         className={cn(
           "relative overflow-hidden border border-ink/12 bg-ivory dark:border-white/12 dark:bg-ink",
@@ -244,17 +254,18 @@ export function ImageUpload({
       />
 
       {cropping && original ? (
+        // biome-ignore lint/a11y/noStaticElementInteractions: the container doubles as the click-outside dismiss; keyboard path is the Escape effect in the component body
         <div
           className="fixed inset-0 z-[950] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
-          onMouseDown={() => setCropping(false)}
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setCropping(false);
+          }}
         >
-          <div
-            className="w-[360px] rounded-2xl border border-ink/10 bg-white p-4 shadow-2xl dark:border-white/10 dark:bg-[#1b2723]"
-            onMouseDown={(event) => event.stopPropagation()}
-          >
+          <div className="w-[360px] rounded-2xl border border-ink/10 bg-white p-4 shadow-2xl dark:border-white/10 dark:bg-[#1b2723]">
             <h3 className="mb-3 font-display text-sm font-bold">
               Crop &amp; Position
             </h3>
+            {/* biome-ignore lint/a11y/noStaticElementInteractions: drag-and-wheel crop positioning is mouse-essential; Escape closes the crop overlay */}
             <div
               className="relative mx-auto overflow-hidden rounded-xl bg-ink/10 dark:bg-white/5"
               style={{

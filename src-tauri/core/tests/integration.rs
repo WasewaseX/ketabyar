@@ -189,14 +189,28 @@ fn member_saved_by_persian_digit_student_id_is_normalised_and_searchable() {
 
     // Editing the student ID works and normalises Persian digits too.
     let id = member["id"].as_str().unwrap().to_string();
-    m::update_member(&conn, DEFAULT_ACTOR, &id, &json!({ "member_number": "۴۰۳۹۹۸۸۷" })).unwrap();
+    m::update_member(
+        &conn,
+        DEFAULT_ACTOR,
+        &id,
+        &json!({ "member_number": "۴۰۳۹۹۸۸۷" }),
+    )
+    .unwrap();
     let updated = &m::members(&conn, "").unwrap()[0];
     assert_eq!(updated["member_number"], json!("40399887"));
 
     // Editing onto another member's ID is rejected, not silently retried.
     m::save_member(&conn, DEFAULT_ACTOR, &member_json("111222333", "staff")).unwrap();
-    let edit_clash = m::update_member(&conn, DEFAULT_ACTOR, &id, &json!({ "member_number": "111222333" }));
-    assert!(edit_clash.is_err(), "duplicate student ID edit must be rejected");
+    let edit_clash = m::update_member(
+        &conn,
+        DEFAULT_ACTOR,
+        &id,
+        &json!({ "member_number": "111222333" }),
+    );
+    assert!(
+        edit_clash.is_err(),
+        "duplicate student ID edit must be rejected"
+    );
 }
 
 #[test]
@@ -749,25 +763,56 @@ fn batch_checkout_is_all_or_nothing() {
     taken_input["accession"] = json!("ACC-AT2");
     b::save_book(&conn, DEFAULT_ACTOR, &taken_input).unwrap();
 
-    let free_copy_id = b::copies(&conn, "").unwrap()
-        .iter().find(|c| c["barcode"] == "BAR-AT1").unwrap()["id"]
-        .as_str().unwrap().to_string();
-    let taken_copy_id = b::copies(&conn, "").unwrap()
-        .iter().find(|c| c["barcode"] == "BAR-AT2").unwrap()["id"]
-        .as_str().unwrap().to_string();
+    let free_copy_id = b::copies(&conn, "")
+        .unwrap()
+        .iter()
+        .find(|c| c["barcode"] == "BAR-AT1")
+        .unwrap()["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let taken_copy_id = b::copies(&conn, "")
+        .unwrap()
+        .iter()
+        .find(|c| c["barcode"] == "BAR-AT2")
+        .unwrap()["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
 
     // The second copy goes to another member, so the batch MUST fail on it.
     let other = m::save_member(&conn, DEFAULT_ACTOR, &member_json("610301", "student")).unwrap();
-    c::checkout(&conn, DEFAULT_ACTOR, other["id"].as_str().unwrap(), &[taken_copy_id.clone()], 3.0, "external").unwrap();
+    c::checkout(
+        &conn,
+        DEFAULT_ACTOR,
+        other["id"].as_str().unwrap(),
+        &[taken_copy_id.clone()],
+        3.0,
+        "external",
+    )
+    .unwrap();
 
-    let err = c::checkout(&conn, DEFAULT_ACTOR, &member_id, &[free_copy_id.clone(), taken_copy_id.clone()], 3.0, "external").unwrap_err();
+    let err = c::checkout(
+        &conn,
+        DEFAULT_ACTOR,
+        &member_id,
+        &[free_copy_id.clone(), taken_copy_id.clone()],
+        3.0,
+        "external",
+    )
+    .unwrap_err();
     assert!(err.message.contains("در دسترس نیست"));
 
     // THE ATOMICITY CONTRACT: not a single loan for the batch member may exist.
-    assert!(c::get_loans_for_member(&conn, &member_id).unwrap().is_empty());
+    assert!(c::get_loans_for_member(&conn, &member_id)
+        .unwrap()
+        .is_empty());
     // And the free copy must still be available, not issued-then-forgotten.
-    let free_copy = b::copies(&conn, "").unwrap()
-        .into_iter().find(|c| c["id"] == json!(free_copy_id)).unwrap();
+    let free_copy = b::copies(&conn, "")
+        .unwrap()
+        .into_iter()
+        .find(|c| c["id"] == json!(free_copy_id))
+        .unwrap();
     assert_eq!(free_copy["status"], "available");
 }
 

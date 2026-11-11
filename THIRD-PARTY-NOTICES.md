@@ -25,7 +25,6 @@ substitute for the authoritative license texts.
 | jspdf, jspdf-autotable | MIT |
 | jszip | MIT / GPL-3.0 dual (MIT option used) |
 | papaparse | MIT |
-| exceljs | MIT |
 | @zxing/browser | Apache-2.0 |
 | clsx, tailwind-merge, class-variance-authority | MIT / Apache-2.0 |
 | vazirmatn (font) | SIL OFL 1.1 |

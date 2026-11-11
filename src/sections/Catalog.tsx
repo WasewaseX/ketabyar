@@ -419,7 +419,8 @@ export function CatalogPage() {
             count: visibleBooks.length,
           })}
           action={
-            <button type="button"
+            <button
+              type="button"
               onClick={() => {
                 setEditingBook(null);
                 setEditorOpen(true);
@@ -503,7 +504,8 @@ export function CatalogPage() {
 
         <div className="mb-4 flex flex-wrap gap-1.5">
           {SAVED_VIEWS.map((key) => (
-            <button type="button"
+            <button
+              type="button"
               key={key}
               onClick={() => {
                 setView(key);
@@ -604,7 +606,20 @@ export function CatalogPage() {
                     return (
                       <tr
                         key={book.id}
-                        onClick={() => {
+                        tabIndex={0}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            setSelectedBook(book);
+                            setSidebarTab("details");
+                          }
+                        }}
+                        onClick={(event) => {
+                          if (
+                            (event.target as HTMLElement).closest(
+                              "input, button, a, label",
+                            )
+                          )
+                            return;
                           setSelectedBook(book);
                           setSidebarTab("details");
                         }}
@@ -689,10 +704,7 @@ export function CatalogPage() {
                         }
                         className="cursor-pointer transition hover:bg-ink/[0.03] dark:hover:bg-white/[0.04]"
                       >
-                        <td
-                          className="border-b border-ink/6 px-3 py-3 dark:border-white/6"
-                          onClick={(event) => event.stopPropagation()}
-                        >
+                        <td className="border-b border-ink/6 px-3 py-3 dark:border-white/6">
                           <input
                             type="checkbox"
                             checked={selectedIds.has(book.id)}
@@ -779,7 +791,8 @@ export function CatalogPage() {
                 )}
               </span>
               <div className="flex items-center gap-2">
-                <button type="button"
+                <button
+                  type="button"
                   disabled={currentPage <= 1}
                   onClick={() => setPage(currentPage - 1)}
                   className="rounded-lg border border-ink/10 px-2 py-1 disabled:opacity-40 dark:border-white/10"
@@ -789,7 +802,8 @@ export function CatalogPage() {
                 <span className="tabular-nums">
                   {currentPage} / {totalPages}
                 </span>
-                <button type="button"
+                <button
+                  type="button"
                   disabled={currentPage >= totalPages}
                   onClick={() => setPage(currentPage + 1)}
                   className="rounded-lg border border-ink/10 px-2 py-1 disabled:opacity-40 dark:border-white/10"
@@ -810,7 +824,8 @@ export function CatalogPage() {
               count: selectedIds.size,
             })}
           </span>
-          <button type="button"
+          <button
+            type="button"
             className="rounded-lg px-2 py-1 hover:bg-white/10"
             onClick={() =>
               setSelectedIds(new Set(visibleBooks.map((book) => book.id)))
@@ -818,13 +833,15 @@ export function CatalogPage() {
           >
             {t("catalog.bulk.selectAll", "Select all")}
           </button>
-          <button type="button"
+          <button
+            type="button"
             className="rounded-lg px-2 py-1 hover:bg-white/10"
             onClick={() => setSelectedIds(new Set())}
           >
             {t("catalog.bulk.deselectAll", "Deselect all")}
           </button>
-          <button type="button"
+          <button
+            type="button"
             className="rounded-lg bg-red-600 px-3 py-1.5 font-semibold hover:bg-red-700"
             onClick={() => {
               if (
@@ -998,7 +1015,8 @@ function BookSidebar({
             />
           )}
         </div>
-        <button type="button"
+        <button
+          type="button"
           onClick={onClose}
           aria-label={t("catalog.details.back", "Back")}
           className="absolute end-3 top-3 rounded-full bg-white/85 p-1.5 text-ink/70 hover:bg-white dark:bg-black/40 dark:text-ivory/70"
@@ -1033,13 +1051,15 @@ function BookSidebar({
           </div>
         ) : null}
         <div className="mt-3 flex gap-2">
-          <button type="button"
+          <button
+            type="button"
             onClick={onEdit}
             className="flex flex-1 items-center justify-center gap-1.5 rounded-[var(--radius-control)] bg-ink/5 py-2 text-xs font-bold transition hover:bg-ink/10 dark:bg-white/8 dark:hover:bg-white/15"
           >
             <Pencil size={13} /> {t("catalog.details.edit", "Edit")}
           </button>
-          <button type="button"
+          <button
+            type="button"
             onClick={onArchive}
             className="flex flex-1 items-center justify-center gap-1.5 rounded-[var(--radius-control)] bg-red-600/10 py-2 text-xs font-bold text-red-600 transition hover:bg-red-600/20"
           >
@@ -1050,7 +1070,8 @@ function BookSidebar({
 
       <div className="flex border-b border-ink/8 text-[13px] font-semibold dark:border-white/8">
         {(["details", "copies"] as const).map((key) => (
-          <button type="button"
+          <button
+            type="button"
             key={key}
             onClick={() => setTab(key)}
             className={cn(
@@ -1132,7 +1153,8 @@ function BookSidebar({
           </>
         ) : (
           <>
-            <button type="button"
+            <button
+              type="button"
               onClick={() => setAddCopyOpen(true)}
               className="mb-3 flex w-full items-center justify-center gap-2 rounded-[var(--radius-control)] border border-dashed border-ink/15 py-2.5 text-xs font-bold text-ink/60 transition hover:border-accent/40 hover:text-accent dark:border-white/15 dark:text-ivory/60 dark:hover:text-accent-dark"
             >
@@ -1167,14 +1189,16 @@ function BookSidebar({
                         : ""}
                     </p>
                     <div className="mt-2 flex gap-1.5">
-                      <button type="button"
+                      <button
+                        type="button"
                         onClick={() => onEditCopy(copy)}
                         className="rounded-lg bg-ink/5 p-1.5 hover:bg-ink/10 dark:bg-white/8 dark:hover:bg-white/15"
                         aria-label={t("catalog.details.edit", "Edit")}
                       >
                         <Pencil size={12} />
                       </button>
-                      <button type="button"
+                      <button
+                        type="button"
                         onClick={() => {
                           if (
                             window.confirm(

@@ -12,7 +12,7 @@
   --color-ink: #17211f;
   --color-copper: #c06b3e;
   /* Runtime-overridable: AppShell + index.html write --color-accent(-dark)
-     from the operator's accent preference; utilities reference the vars. */
+      from the operator's accent preference; utilities reference the vars. */
   --color-accent: #1a4d40;
   --color-accent-dark: #1b9277;
   --font-display: "Manrope", ui-sans-serif, system-ui, sans-serif;
@@ -24,7 +24,11 @@
 
 :root {
   --font-size-base: 15px;
+  /* Native controls (selects, date pickers, scrollbars on Windows) render
+      in the matching theme — a desktop app ships these, not web fonts. */
+  color-scheme: light;
 }
+html.dark { color-scheme: dark; }
 
 * { box-sizing: border-box; }
 
@@ -32,10 +36,14 @@ html {
   font-family: "Manrope", sans-serif;
   background: #faf8f3;
   font-size: var(--font-size-base);
+  scroll-behavior: smooth;
 }
 html.dark { background: #101a17; }
 html[dir="rtl"] {
   font-family: "Vazirmatn", "IBM Plex Sans Arabic", "Manrope", sans-serif;
+  /* Vazirmatn is metrically designed for ~1.65–1.7; the Latin default 1.5
+      crowds Persian ascenders/descenders. */
+  line-height: 1.65;
 }
 html[dir="rtl"] .font-display {
   font-family: "Vazirmatn", "IBM Plex Sans Arabic", "Manrope", ui-sans-serif, sans-serif;
@@ -50,6 +58,9 @@ body {
 
 button, input, select, textarea { font: inherit; }
 button { cursor: pointer; }
+button:disabled, input:disabled, select:disabled, textarea:disabled {
+  cursor: not-allowed;
+}
 
 button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, [tabindex]:focus-visible {
   outline: 2px solid var(--color-copper);

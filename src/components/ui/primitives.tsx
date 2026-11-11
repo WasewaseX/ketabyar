@@ -316,15 +316,17 @@ export function Modal({
   if (!isOpen) return null;
 
   return createPortal(
+    // biome-ignore lint/a11y/noStaticElementInteractions: the scroll/position container doubles as the click-outside dismiss; keyboard path is the Escape handler above
     <div
       className="fixed inset-0 z-[900] flex items-start justify-center overflow-y-auto bg-black/60 p-4 pt-[8vh] backdrop-blur-sm"
-      onMouseDown={onClose}
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
     >
       <div
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        onMouseDown={(event) => event.stopPropagation()}
         className={cn(
           "w-full overflow-hidden rounded-[var(--radius-card)] border border-ink/10 bg-white shadow-2xl dark:border-white/10 dark:bg-[#1b2723]",
           MODAL_SIZES[size],
@@ -333,7 +335,8 @@ export function Modal({
       >
         <header className="flex items-center justify-between border-b border-ink/8 px-5 py-3.5 dark:border-white/8">
           <h2 className="font-display text-base font-bold">{title}</h2>
-          <button type="button"
+          <button
+            type="button"
             onClick={onClose}
             aria-label={t("common.closeDialog", "Close dialog")}
             className="rounded-full p-1.5 text-ink/50 hover:bg-ink/5 hover:text-ink dark:text-ivory/50 dark:hover:bg-white/10 dark:hover:text-ivory"

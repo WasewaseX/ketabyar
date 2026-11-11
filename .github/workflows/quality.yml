@@ -1,0 +1,59 @@
+name: Quality gates (master-ci)
+
+# master-ci (WasewaseX/master-ci v2.1.0) — the reusable all-stack pipeline:
+# hygiene (actionlint, zizmor, yamllint, editorconfig, shellcheck, jscpd),
+# full-history gitleaks, AI-integrity heuristics, Semgrep/Trivy/OSV security,
+# Node/TS lint (Biome + tsc + depcheck) and tests, docs lint, PR dependency
+# review, OSSF Scorecard, new-code dimension ceilings and the ci-success
+# aggregate. Path-aware: jobs skip when nothing relevant changed.
+#
+# KetabYar-specific gates that master-ci cannot express live in ci.yml:
+# the i18n completeness gate, the two edition builds with their
+# bundle-marker contract, and the nested Cargo workspace (src-tauri/)
+# rustfmt + clippy + cargo-deny (master-ci's rust job analyzes root
+# manifests only, so run_rust is disabled here and the equivalent gates
+# run in ci.yml against src-tauri).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  master:
+    uses: WasewaseX/master-ci/.github/workflows/master-ci.yml@51bd5ab8f0c33dab268c94b9a8260531562aded5 # v2.1.0
+    with:
+      # strict: OSV + Trivy HIGH/CRITICAL enforced, duplication and
+      # complexity budgets enforced, AI-integrity blocking caps 4/20.
+      profile: strict
+      # Foreign caller: pin the helper repo + ref so scripts and configs
+      # always match this workflow version (doctor.py contract).
+      template_repo: WasewaseX/master-ci
+      template_ref: v2.1.0
+      # Python: KetabYar's only .py files are one-off i18n tooling
+      # (scripts/build_fa.py + fa_part*.py), not a maintained Python
+      # project — the Python stack gates would be noise. Revisit if a
+      # real Python component ever lands.
+      run_python: false
+      # Rust: nested workspace (src-tauri/) — fmt/clippy/cargo-deny run
+      # in ci.yml where the Windows runner already builds the app crate.
+      run_rust: false
+      # Every added line must meet today's bar: new-code gate diffs
+      # against the merge base of main.
+      diff_base: origin/main
+    permissions:
+      contents: read
+      security-events: write
+      pull-requests: write
+      id-token: write # OSSF Scorecard publishing only
+
+  codeql:
+    uses: WasewaseX/master-ci/.github/workflows/codeql.yml@51bd5ab8f0c33dab268c94b9a8260531562aded5 # v2.1.0
+    with:
+      languages: javascript-typescript
+    permissions:
+      contents: read
+      security-events: write

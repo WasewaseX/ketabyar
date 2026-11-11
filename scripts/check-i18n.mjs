@@ -36,7 +36,7 @@ console.log(
   `used literal keys: ${used.size}, fa.json keys: ${Object.keys(flat).length}`,
 );
 if (missing.length > 0) {
-  console.error(`MISSING ${missing.length}:\n` + missing.join("\n"));
+  console.error(`MISSING ${missing.length}:\n${missing.join("\n")}`);
   process.exit(1);
 }
 console.log("ALL KEYS PRESENT ✔");

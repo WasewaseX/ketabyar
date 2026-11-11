@@ -83,9 +83,7 @@ export async function deleteCopy(copyId: string): Promise<void> {
   await invoke("copy_delete", { copyId, ...withActor() });
 }
 
-export async function copies(
-  query = "",
-): Promise<
+export async function copies(query = ""): Promise<
   (Copy & {
     title: string;
     item_type?: string;

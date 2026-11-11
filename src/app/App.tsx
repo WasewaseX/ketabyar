@@ -109,14 +109,16 @@ function Failure({ error, reset }: { error?: unknown; reset?: () => void }) {
           </pre>
         ) : null}
         <div className="mt-5 flex gap-2">
-          <button type="button"
+          <button
+            type="button"
             onClick={() => (reset ? reset() : window.location.reload())}
             className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#1a4d40] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#153d33]"
           >
             <RotateCcw size={15} /> تلاش دوباره
           </button>
           {error ? (
-            <button type="button"
+            <button
+              type="button"
               onClick={() => {
                 void navigator.clipboard.writeText(String(error));
                 setCopied(true);
@@ -161,7 +163,9 @@ function TrayListener() {
     })();
     return () => {
       cancelled = true;
-      cleanups.forEach((fn) => fn());
+      cleanups.forEach((fn) => {
+        fn();
+      });
     };
   }, [navigate, setPaletteOpen]);
 

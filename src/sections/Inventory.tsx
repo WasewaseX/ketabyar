@@ -149,6 +149,12 @@ export function InventoryPage() {
   const [scanResults, setScanResults] = useState<ScanResult[]>([]);
   const scannerRef = useRef<HTMLInputElement | null>(null);
 
+  // Scan-mode screen: the scanner input owns the keyboard on entry (the
+  // autoFocus attribute is intentionally avoided — see Biome a11y).
+  useEffect(() => {
+    if (!scanPaused) scannerRef.current?.focus();
+  }, [scanPaused]);
+
   const allCopies = copiesQuery.data ?? [];
   const allShelves = shelvesQuery.data ?? [];
   const allRooms = roomsQuery.data ?? [];
@@ -406,7 +412,8 @@ export function InventoryPage() {
             "Add the first room to start mapping your shelves.",
           )}
           action={
-            <button type="button"
+            <button
+              type="button"
               onClick={() => setManageRoomsOpen(true)}
               className="rounded-[var(--radius-control)] bg-accent px-4 py-2 text-sm font-semibold text-white dark:bg-accent-dark"
             >
@@ -435,7 +442,8 @@ export function InventoryPage() {
           )}
           action={
             <div className="flex gap-2">
-              <button type="button"
+              <button
+                type="button"
                 onClick={refreshAll}
                 className="rounded-[var(--radius-control)] bg-ink/5 p-2 text-ink/60 hover:bg-ink/10 dark:bg-white/5 dark:text-ivory/60 dark:hover:bg-white/10"
                 aria-label="Refresh"
@@ -445,7 +453,8 @@ export function InventoryPage() {
                   className={cn(copiesQuery.isFetching && "animate-spin")}
                 />
               </button>
-              <button type="button"
+              <button
+                type="button"
                 onClick={() => setNewColumnOpen(true)}
                 disabled={!roomId}
                 className="inline-flex items-center gap-2 rounded-[var(--radius-control)] bg-accent px-3.5 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50 dark:bg-accent-dark"
@@ -513,7 +522,8 @@ export function InventoryPage() {
             ))}
           </select>
           <div className="ms-auto flex items-center gap-2">
-            <button type="button"
+            <button
+              type="button"
               onClick={() => setGridView(true)}
               className={cn(
                 "rounded-full px-3 py-1.5 text-xs font-bold",
@@ -524,7 +534,8 @@ export function InventoryPage() {
             >
               {t("inventory.gridView", "Map")}
             </button>
-            <button type="button"
+            <button
+              type="button"
               onClick={() => setGridView(false)}
               className={cn(
                 "rounded-full px-3 py-1.5 text-xs font-bold",
@@ -536,7 +547,8 @@ export function InventoryPage() {
               {t("inventory.listView", "List")}
             </button>
             {gridView ? (
-              <button type="button"
+              <button
+                type="button"
                 onClick={() => setRowOrderDesc((value) => !value)}
                 className="rounded-full bg-ink/5 px-3 py-1.5 text-xs font-bold text-ink/60 dark:bg-white/5 dark:text-ivory/60"
               >
@@ -572,7 +584,8 @@ export function InventoryPage() {
                     >
                       {String(column.number).padStart(2, "0")}
                       {allEmpty ? (
-                        <button type="button"
+                        <button
+                          type="button"
                           onClick={() => {
                             if (
                               window.confirm(
@@ -614,7 +627,8 @@ export function InventoryPage() {
                     const shelf = shelfAt(letter, column.id);
                     if (!shelf) {
                       return (
-                        <button type="button"
+                        <button
+                          type="button"
                           key={column.id}
                           onClick={() =>
                             shelfCreate.mutate({
@@ -666,7 +680,8 @@ export function InventoryPage() {
                   );
                   if (!floorShelf) {
                     return (
-                      <button type="button"
+                      <button
+                        type="button"
                         key={column.id}
                         onClick={() =>
                           shelfCreate.mutate({
@@ -760,7 +775,19 @@ export function InventoryPage() {
                   {listRows.map((copy) => (
                     <tr
                       key={copy.id}
-                      onClick={() => setEditCopy(copy)}
+                      tabIndex={0}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") setEditCopy(copy);
+                      }}
+                      onClick={(event) => {
+                        if (
+                          (event.target as HTMLElement).closest(
+                            "input, button, a, label",
+                          )
+                        )
+                          return;
+                        setEditCopy(copy);
+                      }}
                       onContextMenu={(event) =>
                         showContextMenu(event, [
                           ...(copy.status !== "available"
@@ -842,10 +869,7 @@ export function InventoryPage() {
                       }
                       className="cursor-pointer transition hover:bg-ink/[0.03] dark:hover:bg-white/[0.04]"
                     >
-                      <td
-                        className="border-b border-ink/6 px-3 py-3 dark:border-white/6"
-                        onClick={(event) => event.stopPropagation()}
-                      >
+                      <td className="border-b border-ink/6 px-3 py-3 dark:border-white/6">
                         <input
                           type="checkbox"
                           checked={selectedIds.has(copy.id)}
@@ -911,7 +935,8 @@ export function InventoryPage() {
                 )}
               </span>
               <div className="flex items-center gap-2">
-                <button type="button"
+                <button
+                  type="button"
                   disabled={currentPage <= 1}
                   onClick={() => setPage(currentPage - 1)}
                   className="rounded-lg border border-ink/10 px-2 py-1 disabled:opacity-40 dark:border-white/10"
@@ -921,7 +946,8 @@ export function InventoryPage() {
                 <span className="tabular-nums">
                   {currentPage} / {totalPages}
                 </span>
-                <button type="button"
+                <button
+                  type="button"
                   disabled={currentPage >= totalPages}
                   onClick={() => setPage(currentPage + 1)}
                   className="rounded-lg border border-ink/10 px-2 py-1 disabled:opacity-40 dark:border-white/10"
@@ -939,7 +965,8 @@ export function InventoryPage() {
         <div className="rounded-[var(--radius-card)] border border-ink/8 bg-white p-4 shadow-card dark:border-white/8 dark:bg-[#1b2723]">
           <div className="mb-2 flex items-center justify-between">
             <p className="text-sm font-bold">{t("inventory.rooms", "Rooms")}</p>
-            <button type="button"
+            <button
+              type="button"
               onClick={() => setManageRoomsOpen(true)}
               className="rounded-lg bg-ink/5 p-1.5 hover:bg-ink/10 dark:bg-white/8 dark:hover:bg-white/15"
               aria-label={t("inventory.manageRooms", "Manage rooms")}
@@ -950,7 +977,8 @@ export function InventoryPage() {
           <ul className="space-y-1">
             {allRooms.map((room: Room) => (
               <li key={room.id}>
-                <button type="button"
+                <button
+                  type="button"
                   onClick={() => {
                     setRoomId(room.id);
                     setSelectedShelfId(null);
@@ -976,7 +1004,8 @@ export function InventoryPage() {
                 <ScanLine size={15} />{" "}
                 {t("inventory.scanningInProgress", "Scanning in progress")}
               </p>
-              <button type="button"
+              <button
+                type="button"
                 onClick={() => setScanPaused((value) => !value)}
                 className="rounded-lg bg-copper/15 px-2.5 py-1 text-[11px] font-bold text-copper"
               >
@@ -997,7 +1026,6 @@ export function InventoryPage() {
             </div>
             <input
               ref={scannerRef}
-              autoFocus={!scanPaused}
               disabled={scanPaused}
               className="field-input font-mono"
               placeholder={t(
@@ -1050,7 +1078,8 @@ export function InventoryPage() {
               ))}
             </ul>
             <div className="mt-3 flex gap-2">
-              <button type="button"
+              <button
+                type="button"
                 onClick={() => {
                   if (
                     window.confirm(
@@ -1068,7 +1097,8 @@ export function InventoryPage() {
               >
                 {t("common.cancel", "Cancel")}
               </button>
-              <button type="button"
+              <button
+                type="button"
                 onClick={() => void finishScan()}
                 className="flex-1 rounded-xl bg-copper py-2 text-xs font-bold text-white"
               >
@@ -1089,14 +1119,16 @@ export function InventoryPage() {
                 {selectedShelf.room}
               </p>
               <div className="flex gap-1">
-                <button type="button"
+                <button
+                  type="button"
                   onClick={() => setEditShelfOpen(selectedShelf)}
                   className="rounded-lg bg-ink/5 p-1.5 hover:bg-ink/10 dark:bg-white/8 dark:hover:bg-white/15"
                   aria-label="Edit"
                 >
                   <Pencil size={12} />
                 </button>
-                <button type="button"
+                <button
+                  type="button"
                   onClick={() => beginScan(selectedShelf.code)}
                   className="rounded-lg bg-copper/15 p-1.5 text-copper"
                   aria-label="Scan"
@@ -1140,7 +1172,8 @@ export function InventoryPage() {
               <ul className="mb-3 max-h-44 space-y-1.5 overflow-y-auto">
                 {selectedShelf.copies.map((copy) => (
                   <li key={copy.id}>
-                    <button type="button"
+                    <button
+                      type="button"
                       onClick={() => setEditCopy(copy)}
                       className="w-full rounded-xl px-2 py-1.5 text-start hover:bg-ink/5 dark:hover:bg-white/5"
                     >
@@ -1155,7 +1188,8 @@ export function InventoryPage() {
                 ))}
               </ul>
             )}
-            <button type="button"
+            <button
+              type="button"
               onClick={() => setBrowseOpen(selectedShelf)}
               className="w-full rounded-xl bg-accent py-2 text-xs font-bold text-white dark:bg-accent-dark"
             >
@@ -1175,7 +1209,8 @@ export function InventoryPage() {
                 "Click a shelf cell to see its items, edit it, or run a scan session.",
               )}
             </p>
-            <button type="button"
+            <button
+              type="button"
               onClick={() => beginScan("")}
               className="mt-3 w-full rounded-xl border border-dashed border-copper/40 py-2 text-xs font-bold text-copper"
             >
@@ -1222,13 +1257,15 @@ export function InventoryPage() {
               count: selectedIds.size,
             })}
           </span>
-          <button type="button"
+          <button
+            type="button"
             className="rounded-lg px-2 py-1 hover:bg-white/10"
             onClick={() => setSelectedIds(new Set())}
           >
             {t("inventory.deselectAll", "Deselect all")}
           </button>
-          <button type="button"
+          <button
+            type="button"
             className="rounded-lg bg-red-600 px-3 py-1.5 font-semibold hover:bg-red-700"
             onClick={async () => {
               if (
@@ -1283,7 +1320,8 @@ export function InventoryPage() {
     );
     const tone = hasMissing ? "alert" : hasWorn ? "warn" : "good";
     return (
-      <button type="button"
+      <button
+        type="button"
         onClick={onSelect}
         title={
           floor
@@ -1377,7 +1415,8 @@ export function InventoryPage() {
                     (event.target as HTMLInputElement).value = room.name;
                 }}
               />
-              <button type="button"
+              <button
+                type="button"
                 onClick={() => {
                   if (
                     window.confirm(
@@ -1405,7 +1444,8 @@ export function InventoryPage() {
             value={name}
             onChange={(event) => setName(event.target.value)}
           />
-          <button type="button"
+          <button
+            type="button"
             onClick={() => roomCreate.mutate()}
             disabled={!name.trim() || roomCreate.isPending}
             className="rounded-[var(--radius-control)] bg-accent px-4 py-2 text-sm font-semibold text-white disabled:opacity-50 dark:bg-accent-dark"
@@ -1457,7 +1497,8 @@ export function InventoryPage() {
         </p>
         <div className="mb-4 flex flex-wrap gap-1.5">
           {codes.map((code) => (
-            <button type="button"
+            <button
+              type="button"
               key={code}
               onClick={() => {
                 const next = new Set(picked);
@@ -1476,7 +1517,8 @@ export function InventoryPage() {
             </button>
           ))}
         </div>
-        <button type="button"
+        <button
+          type="button"
           onClick={() => {
             if (picked.size === 0) {
               toast.warning(
@@ -1556,7 +1598,8 @@ export function InventoryPage() {
               onChange={(event) => setNotes(event.target.value)}
             />
           </label>
-          <button type="button"
+          <button
+            type="button"
             onClick={() => save.mutate()}
             disabled={save.isPending}
             className="rounded-xl bg-accent py-2.5 text-sm font-bold text-white disabled:opacity-50 dark:bg-accent-dark"
@@ -1707,7 +1750,8 @@ export function InventoryPage() {
                     </p>
                   </div>
                   {onTarget ? (
-                    <button type="button"
+                    <button
+                      type="button"
                       onClick={() =>
                         move.mutate({ copyId: copy.id, shelfId: null })
                       }
@@ -1716,7 +1760,8 @@ export function InventoryPage() {
                       {t("inventory.remove", "Remove")}
                     </button>
                   ) : (
-                    <button type="button"
+                    <button
+                      type="button"
                       onClick={() =>
                         move.mutate({ copyId: copy.id, shelfId: target.id })
                       }

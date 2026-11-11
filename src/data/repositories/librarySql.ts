@@ -492,9 +492,7 @@ export async function getCopiesForBook(bookId: string): Promise<Copy[]> {
   );
 }
 
-export async function copies(
-  query = "",
-): Promise<
+export async function copies(query = ""): Promise<
   (Copy & {
     title: string;
     item_type?: string;

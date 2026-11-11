@@ -52,7 +52,8 @@ export function FilterPill({
   onClick: () => void;
 }) {
   return (
-    <button type="button"
+    <button
+      type="button"
       onClick={onClick}
       className={cn(
         "inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition",

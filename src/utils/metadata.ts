@@ -87,7 +87,10 @@ const TAG_BUCKETS: { test: RegExp; tags: string[] }[] = [
 function generateFallbackTags(category: string): string {
   const tags = new Set<string>([category.toLowerCase()].filter(Boolean));
   for (const bucket of TAG_BUCKETS) {
-    if (bucket.test.test(category)) bucket.tags.forEach((tag) => tags.add(tag));
+    if (bucket.test.test(category))
+      bucket.tags.forEach((tag) => {
+        tags.add(tag);
+      });
   }
   return Array.from(tags).join(", ");
 }

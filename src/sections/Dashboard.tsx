@@ -74,7 +74,8 @@ function Panel({
           ) : null}
         </div>
         {viewAll && onNavigate ? (
-          <button type="button"
+          <button
+            type="button"
             onClick={onNavigate}
             className="flex shrink-0 items-center gap-1 text-xs font-bold text-accent hover:underline dark:text-accent-dark"
           >
@@ -205,6 +206,7 @@ export function DashboardPage() {
   ];
 
   return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: the contextmenu event also fires from the keyboard menu key on this region
     <div
       onContextMenu={(event) =>
         showContextMenu(
@@ -373,7 +375,8 @@ export function DashboardPage() {
             <ul className="flex-1 space-y-2 overflow-y-auto">
               {(data?.recentLoans ?? []).slice(0, 5).map((loan) => (
                 <li key={loan.id}>
-                  <button type="button"
+                  <button
+                    type="button"
                     className="flex w-full items-center gap-2.5 rounded-xl p-1.5 text-start hover:bg-ink/5 dark:hover:bg-white/5"
                     onClick={() => navigate("/loans")}
                   >
@@ -413,7 +416,8 @@ export function DashboardPage() {
             <ul className="flex-1 space-y-2 overflow-y-auto">
               {(data?.overdueLoans ?? []).slice(0, 5).map((loan) => (
                 <li key={loan.id}>
-                  <button type="button"
+                  <button
+                    type="button"
                     className="flex w-full items-center gap-2.5 rounded-xl p-1.5 text-start hover:bg-ink/5 dark:hover:bg-white/5"
                     onClick={() => navigate("/loans")}
                   >
@@ -459,7 +463,8 @@ export function DashboardPage() {
             <ul className="flex-1 space-y-2 overflow-y-auto">
               {readyList.map((item) => (
                 <li key={item.id}>
-                  <button type="button"
+                  <button
+                    type="button"
                     className="flex w-full items-center gap-2.5 rounded-xl p-1.5 text-start hover:bg-ink/5 dark:hover:bg-white/5"
                     onClick={() => navigate("/reservations")}
                   >
@@ -621,7 +626,8 @@ function ActionCard({
   onClick: () => void;
 }) {
   return (
-    <button type="button"
+    <button
+      type="button"
       onClick={onClick}
       className="flex flex-col items-start gap-1.5 rounded-xl border border-ink/8 p-3 text-start transition hover:border-accent/40 hover:bg-accent/5 dark:border-white/8 dark:hover:border-accent-dark/40 dark:hover:bg-accent-dark/5"
     >

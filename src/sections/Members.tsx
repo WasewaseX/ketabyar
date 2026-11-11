@@ -307,7 +307,8 @@ export function MembersPage() {
             { count: filtered.length },
           )}
           action={
-            <button type="button"
+            <button
+              type="button"
               onClick={() => setAddOpen(true)}
               className="inline-flex items-center gap-2 rounded-[var(--radius-control)] bg-accent px-3.5 py-2 text-sm font-semibold text-white transition hover:opacity-90 dark:bg-accent-dark"
             >
@@ -361,7 +362,8 @@ export function MembersPage() {
               {t("members.sortByJoined", "By join date")}
             </option>
           </select>
-          <button type="button"
+          <button
+            type="button"
             onClick={() => setSortDir((dir) => (dir === 1 ? -1 : 1))}
             className="rounded-[var(--radius-control)] bg-ink/5 px-3 py-2 text-xs font-bold text-ink/60 dark:bg-white/5 dark:text-ivory/60"
           >
@@ -371,7 +373,8 @@ export function MembersPage() {
 
         <div className="mb-4 flex gap-1.5">
           {(["all", "active", "suspended"] as const).map((key) => (
-            <button type="button"
+            <button
+              type="button"
               key={key}
               onClick={() => {
                 setStatusView(key);
@@ -404,9 +407,31 @@ export function MembersPage() {
           <>
             <div className="grid grid-cols-2 gap-3 md:grid-cols-3 2xl:grid-cols-4">
               {pageMembers.map((member) => (
+                // biome-ignore lint/a11y/useSemanticElements: the card hosts a nested checkbox — a native button would be invalid HTML; keyboard path below
                 <div
                   key={member.id}
-                  onClick={() => {
+                  role="button"
+                  tabIndex={0}
+                  aria-label={member.full_name}
+                  onKeyDown={(event) => {
+                    if (
+                      (event.target as HTMLElement).closest(
+                        "input, button, a, label",
+                      )
+                    )
+                      return;
+                    if (event.key === "Enter" || event.key === " ") {
+                      setSelected(member);
+                      setSidebarTab("profile");
+                    }
+                  }}
+                  onClick={(event) => {
+                    if (
+                      (event.target as HTMLElement).closest(
+                        "input, button, a, label",
+                      )
+                    )
+                      return;
                     setSelected(member);
                     setSidebarTab("profile");
                   }}
@@ -569,7 +594,8 @@ export function MembersPage() {
                 )}
               </span>
               <div className="flex items-center gap-2">
-                <button type="button"
+                <button
+                  type="button"
                   disabled={currentPage <= 1}
                   onClick={() => setPage(currentPage - 1)}
                   className="rounded-lg border border-ink/10 px-2 py-1 disabled:opacity-40 dark:border-white/10"
@@ -579,7 +605,8 @@ export function MembersPage() {
                 <span className="tabular-nums">
                   {currentPage} / {totalPages}
                 </span>
-                <button type="button"
+                <button
+                  type="button"
                   disabled={currentPage >= totalPages}
                   onClick={() => setPage(currentPage + 1)}
                   className="rounded-lg border border-ink/10 px-2 py-1 disabled:opacity-40 dark:border-white/10"
@@ -621,7 +648,8 @@ export function MembersPage() {
 
           <div className="flex border-b border-ink/8 text-[13px] font-semibold dark:border-white/8">
             {(["profile", "loans", "holds"] as const).map((key) => (
-              <button type="button"
+              <button
+                type="button"
                 key={key}
                 onClick={() => setSidebarTab(key)}
                 className={cn(
@@ -700,13 +728,15 @@ export function MembersPage() {
                   </div>
                 </dl>
                 <div className="mt-4 grid grid-cols-2 gap-2">
-                  <button type="button"
+                  <button
+                    type="button"
                     onClick={() => setIdCardOpen(true)}
                     className="rounded-xl bg-ink/5 py-2 text-xs font-bold hover:bg-ink/10 dark:bg-white/8 dark:hover:bg-white/15"
                   >
                     {t("members.viewIdCard", "View ID card")}
                   </button>
-                  <button type="button"
+                  <button
+                    type="button"
                     onClick={() => setEditOpen(true)}
                     className="flex items-center justify-center gap-1.5 rounded-xl bg-accent py-2 text-xs font-bold text-white dark:bg-accent-dark"
                   >
@@ -772,7 +802,8 @@ export function MembersPage() {
                                 : ""}
                             </p>
                             <div className="mt-2 flex gap-1.5">
-                              <button type="button"
+                              <button
+                                type="button"
                                 onClick={() => void doRenew(loan)}
                                 disabled={
                                   loan.renewed_count >= settings.renew_limit
@@ -790,7 +821,8 @@ export function MembersPage() {
                                 {t("circulation.renew", "Renew")} (
                                 {loan.renewed_count}/{settings.renew_limit})
                               </button>
-                              <button type="button"
+                              <button
+                                type="button"
                                 onClick={() => void doReturn(loan)}
                                 className="flex-1 rounded-lg bg-accent py-1.5 text-[11px] font-bold text-white dark:bg-accent-dark"
                               >
@@ -835,7 +867,8 @@ export function MembersPage() {
                         {reservation.status}
                       </p>
                     </div>
-                    <button type="button"
+                    <button
+                      type="button"
                       onClick={() => void doCancelHold(reservation)}
                       className="rounded-lg bg-ink/5 px-2.5 py-1.5 text-[11px] font-bold hover:bg-ink/10 dark:bg-white/8 dark:hover:bg-white/15"
                     >
@@ -857,13 +890,15 @@ export function MembersPage() {
               count: selectedIds.size,
             })}
           </span>
-          <button type="button"
+          <button
+            type="button"
             className="rounded-lg px-2 py-1 hover:bg-white/10"
             onClick={() => setSelectedIds(new Set())}
           >
             {t("catalog.bulk.deselectAll", "Deselect all")}
           </button>
-          <button type="button"
+          <button
+            type="button"
             className="rounded-lg bg-red-600 px-3 py-1.5 font-semibold hover:bg-red-700"
             onClick={() => {
               if (

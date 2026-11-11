@@ -3,6 +3,21 @@
     "indentStyle": "space",
     "indentWidth": 2
   },
+  "linter": {
+    "rules": {
+      "style": {
+        // react-query queryFns guarded by `enabled: !!x` keep the idiomatic
+        // non-null assertion inside the callback; ratchet down later.
+        "noNonNullAssertion": "warn"
+      },
+      "suspicious": {
+        // Static-layout lists (fixed SVG parts, thead headers, PIN dots,
+        // chart color cells) key by index legitimately; dynamic data lists
+        // must key by value — fixed at the one offender, keep visible here.
+        "noArrayIndexKey": "warn"
+      }
+    }
+  },
   "files": {
     "includes": [
       "**/*.js",
@@ -18,16 +33,27 @@
       "!**/build",
       "!**/coverage",
       "!**/_ci",
+      "!**/target",
+      // ts-rs output (cargo test regenerates; never hand-edited)
+      "!**/src-tauri/core/bindings",
       "!**/composer.json",
       "!**/composer.lock"
     ]
   },
   "overrides": [
     {
-      "includes": ["**/*.test.ts", "**/*.test.tsx", "**/*.spec.ts", "**/*.spec.tsx"],
+      "includes": [
+        "**/*.test.ts",
+        "**/*.test.tsx",
+        "**/*.spec.ts",
+        "**/*.spec.tsx"
+      ],
       "linter": {
         "rules": {
-          "style": { "noNonNullAssertion": "off" }
+          "style": { "noNonNullAssertion": "off" },
+          // probe components calling useQuery inside a test harness are
+          // exactly what this rule's heuristic misreads
+          "correctness": { "noComponentHookFactories": "off" }
         }
       }
     },

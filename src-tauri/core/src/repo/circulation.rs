@@ -43,7 +43,9 @@ pub fn checkout(
     limit: f64,
     scope: &str,
 ) -> Result<()> {
-    super::in_transaction(conn, |conn| checkout_tx(conn, actor, member_id, copy_ids, limit, scope))
+    super::in_transaction(conn, |conn| {
+        checkout_tx(conn, actor, member_id, copy_ids, limit, scope)
+    })
 }
 
 fn checkout_tx(
@@ -439,7 +441,9 @@ pub fn decline_reservation(
 /// Atomic fulfilment: freeing the held copy, issuing the loan, marking the
 /// reservation fulfilled and the audit row commit together or not at all.
 pub fn fulfil_reservation(conn: &Connection, actor: &str, reservation_id: &str) -> Result<Json> {
-    super::in_transaction(conn, |conn| fulfil_reservation_tx(conn, actor, reservation_id))
+    super::in_transaction(conn, |conn| {
+        fulfil_reservation_tx(conn, actor, reservation_id)
+    })
 }
 
 fn fulfil_reservation_tx(conn: &Connection, actor: &str, reservation_id: &str) -> Result<Json> {

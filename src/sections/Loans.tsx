@@ -153,19 +153,22 @@ function FinesPanel({ onManage }: { onManage: (fine: FineRow) => void }) {
               <span className="font-bold text-amber-700 dark:text-amber-400">
                 {formatDisplayCurrency(fine.amount)}
               </span>
-              <button type="button"
+              <button
+                type="button"
                 onClick={() => void pay(fine)}
                 className="rounded-lg bg-accent px-2.5 py-1 text-[11px] font-bold text-white dark:bg-accent-dark"
               >
                 {t("loans.fines.pay", "Mark paid")}
               </button>
-              <button type="button"
+              <button
+                type="button"
                 onClick={() => setWaiving(fine)}
                 className="rounded-lg bg-ink/6 px-2.5 py-1 text-[11px] font-bold hover:bg-ink/12 dark:bg-white/10 dark:hover:bg-white/20"
               >
                 {t("loans.fines.waive", "Waive")}
               </button>
-              <button type="button"
+              <button
+                type="button"
                 onClick={() => onManage(fine)}
                 className="rounded-lg p-1 text-ink/45 hover:text-ink dark:text-ivory/45 dark:hover:text-ivory"
                 aria-label={t("loans.viewDetails", "View")}
@@ -177,7 +180,8 @@ function FinesPanel({ onManage }: { onManage: (fine: FineRow) => void }) {
         ))}
       </ul>
       {openFines.length > 3 ? (
-        <button type="button"
+        <button
+          type="button"
           onClick={() => setShowAll((value) => !value)}
           className="mt-2 text-xs font-bold text-amber-700 dark:text-amber-400"
         >
@@ -211,13 +215,15 @@ function FinesPanel({ onManage }: { onManage: (fine: FineRow) => void }) {
             onChange={(event) => setWaiveReason(event.target.value)}
           />
           <div className="mt-4 flex justify-end gap-2">
-            <button type="button"
+            <button
+              type="button"
               onClick={() => setWaiving(null)}
               className="rounded-xl px-4 py-2 text-sm font-semibold text-ink/60 hover:bg-ink/5 dark:text-ivory/60"
             >
               {t("common.cancel", "Cancel")}
             </button>
-            <button type="button"
+            <button
+              type="button"
               onClick={() => void waive()}
               className="rounded-xl bg-amber-600 px-4 py-2 text-sm font-bold text-white"
             >
@@ -494,7 +500,20 @@ export function LoansPage() {
             {visible.map(({ loan, state }) => (
               <tr
                 key={loan.id}
-                onClick={() => {
+                tabIndex={0}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    setDetails(loan);
+                    setDueDraft(loan.due_at.slice(0, 10));
+                  }
+                }}
+                onClick={(event) => {
+                  if (
+                    (event.target as HTMLElement).closest(
+                      "input, button, a, label",
+                    )
+                  )
+                    return;
                   setDetails(loan);
                   setDueDraft(loan.due_at.slice(0, 10));
                 }}
@@ -561,10 +580,7 @@ export function LoansPage() {
                 className="cursor-pointer transition hover:bg-ink/[0.03] dark:hover:bg-white/[0.04]"
               >
                 <td className="border-b border-ink/6 px-4 py-3 dark:border-white/6">
-                  <div
-                    className="flex items-center gap-3"
-                    onClick={(event) => event.stopPropagation()}
-                  >
+                  <div className="flex items-center gap-3">
                     <input
                       type="checkbox"
                       checked={selectedIds.has(loan.id)}
@@ -656,20 +672,19 @@ export function LoansPage() {
                     </p>
                   ) : null}
                 </td>
-                <td
-                  className="border-b border-ink/6 px-4 py-3 dark:border-white/6"
-                  onClick={(event) => event.stopPropagation()}
-                >
+                <td className="border-b border-ink/6 px-4 py-3 dark:border-white/6">
                   {state !== "returned" ? (
                     <div className="flex gap-1">
-                      <button type="button"
+                      <button
+                        type="button"
                         onClick={() => void doReturn([loan])}
                         className="rounded-lg bg-ink/5 p-1.5 hover:bg-ink/10 dark:bg-white/8 dark:hover:bg-white/15"
                         title={t("loans.returnItem", "Return item")}
                       >
                         <RotateCcw size={13} />
                       </button>
-                      <button type="button"
+                      <button
+                        type="button"
                         onClick={() => void renewOne(loan)}
                         disabled={loan.renewed_count >= settings.renew_limit}
                         title={
@@ -698,13 +713,15 @@ export function LoansPage() {
                   count: selectedIds.size,
                 })}
               </span>
-              <button type="button"
+              <button
+                type="button"
                 className="rounded-lg px-2 py-1 hover:bg-white/10"
                 onClick={() => setSelectedIds(new Set())}
               >
                 {t("catalog.bulk.deselectAll", "Deselect all")}
               </button>
-              <button type="button"
+              <button
+                type="button"
                 className="rounded-lg bg-accent px-3 py-1.5 font-semibold dark:bg-accent-dark"
                 onClick={() => {
                   if (
@@ -727,7 +744,8 @@ export function LoansPage() {
                   count: selectedIds.size,
                 })}
               </button>
-              <button type="button"
+              <button
+                type="button"
                 className="rounded-lg bg-copper px-3 py-1.5 font-semibold"
                 onClick={() => {
                   if (
@@ -862,7 +880,8 @@ export function LoansPage() {
                       onChange={(event) => setDueDraft(event.target.value)}
                     />
                   </label>
-                  <button type="button"
+                  <button
+                    type="button"
                     onClick={async () => {
                       try {
                         await updateLoanDueDate(
@@ -908,14 +927,16 @@ export function LoansPage() {
 
             {!details.returned_at ? (
               <div className="flex justify-end gap-2 md:col-span-2">
-                <button type="button"
+                <button
+                  type="button"
                   onClick={() => void renewOne(details)}
                   disabled={details.renewed_count >= settings.renew_limit}
                   className="rounded-xl bg-copper px-4 py-2 text-sm font-bold text-white disabled:opacity-40"
                 >
                   {t("loans.renewLoan", "Renew loan")}
                 </button>
-                <button type="button"
+                <button
+                  type="button"
                   onClick={() => void doReturn([details])}
                   className="rounded-xl bg-accent px-4 py-2 text-sm font-bold text-white dark:bg-accent-dark"
                 >

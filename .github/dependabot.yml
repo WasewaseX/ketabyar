@@ -1,0 +1,25 @@
+version: 2
+updates:
+  # Keep every action reference (all SHA-pinned) current — Dependabot opens
+  # the update PRs, the quality gates verify each bump before merge.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      actions:
+        patterns:
+          - '*'
+  # npm: KetabYar's application dependencies (package-lock.json is committed,
+  # so updates are reproducible npm ci installs).
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      dev-deps:
+        dependency-type: development

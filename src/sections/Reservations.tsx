@@ -176,7 +176,8 @@ export function ReservationsPage() {
         title={t("reservations.title", "Reservations")}
         detail={t("reservations.subtitle", "The hold shelf and its queue.")}
         action={
-          <button type="button"
+          <button
+            type="button"
             onClick={() => setWizardOpen(true)}
             className="inline-flex items-center gap-2 rounded-[var(--radius-control)] bg-accent px-3.5 py-2 text-sm font-semibold text-white transition hover:opacity-90 dark:bg-accent-dark"
           >
@@ -314,7 +315,22 @@ export function ReservationsPage() {
               {visible.map((reservation) => (
                 <tr
                   key={reservation.id}
-                  onClick={() => {
+                  tabIndex={0}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      setDetails(reservation);
+                      setExpiryDraft(
+                        reservation.expires_at?.slice(0, 10) ?? "",
+                      );
+                    }
+                  }}
+                  onClick={(event) => {
+                    if (
+                      (event.target as HTMLElement).closest(
+                        "input, button, a, label",
+                      )
+                    )
+                      return;
                     setDetails(reservation);
                     setExpiryDraft(reservation.expires_at?.slice(0, 10) ?? "");
                   }}
@@ -418,7 +434,7 @@ export function ReservationsPage() {
                                 "Ban reason (required)",
                               ),
                             );
-                            if (reason && reason.trim())
+                            if (reason?.trim())
                               void act(
                                 () =>
                                   banMember(
@@ -493,10 +509,7 @@ export function ReservationsPage() {
                   }
                   className="cursor-pointer transition hover:bg-ink/[0.03] dark:hover:bg-white/[0.04]"
                 >
-                  <td
-                    className="border-b border-ink/6 px-3 py-3 dark:border-white/6"
-                    onClick={(event) => event.stopPropagation()}
-                  >
+                  <td className="border-b border-ink/6 px-3 py-3 dark:border-white/6">
                     <input
                       type="checkbox"
                       checked={selectedIds.has(reservation.id)}
@@ -583,14 +596,12 @@ export function ReservationsPage() {
                   <td className="border-b border-ink/6 px-4 py-3 dark:border-white/6">
                     {statusChip(reservation.status)}
                   </td>
-                  <td
-                    className="border-b border-ink/6 px-4 py-3 dark:border-white/6"
-                    onClick={(event) => event.stopPropagation()}
-                  >
+                  <td className="border-b border-ink/6 px-4 py-3 dark:border-white/6">
                     <div className="flex flex-wrap gap-1">
                       {reservation.status === "pending" ? (
                         <>
-                          <button type="button"
+                          <button
+                            type="button"
                             onClick={() =>
                               void act(
                                 () => acceptReservation(reservation.id),
@@ -602,7 +613,8 @@ export function ReservationsPage() {
                           >
                             <Check size={13} />
                           </button>
-                          <button type="button"
+                          <button
+                            type="button"
                             onClick={() =>
                               void act(
                                 () => declineReservation(reservation.id),
@@ -619,7 +631,8 @@ export function ReservationsPage() {
                       {reservation.status === "ready" ||
                       reservation.status === "queued" ? (
                         <>
-                          <button type="button"
+                          <button
+                            type="button"
                             onClick={() =>
                               void act(
                                 () => extendReservation(reservation.id, 7),
@@ -631,7 +644,8 @@ export function ReservationsPage() {
                           >
                             <CalendarClock size={13} />
                           </button>
-                          <button type="button"
+                          <button
+                            type="button"
                             onClick={() => {
                               if (
                                 window.confirm(
@@ -653,7 +667,8 @@ export function ReservationsPage() {
                           </button>
                         </>
                       ) : null}
-                      <button type="button"
+                      <button
+                        type="button"
                         onClick={() => {
                           if (
                             window.confirm(
@@ -693,13 +708,15 @@ export function ReservationsPage() {
               count: selectedIds.size,
             })}
           </span>
-          <button type="button"
+          <button
+            type="button"
             className="rounded-lg px-2 py-1 hover:bg-white/10"
             onClick={() => setSelectedIds(new Set())}
           >
             {t("catalog.bulk.deselectAll", "Deselect all")}
           </button>
-          <button type="button"
+          <button
+            type="button"
             className="rounded-lg bg-accent px-3 py-1.5 font-semibold dark:bg-accent-dark"
             onClick={() => {
               if (
@@ -732,7 +749,8 @@ export function ReservationsPage() {
           >
             {t("reservations.accept", "Accept")}
           </button>
-          <button type="button"
+          <button
+            type="button"
             className="rounded-lg bg-copper px-3 py-1.5 font-semibold"
             onClick={() => {
               if (
@@ -762,7 +780,8 @@ export function ReservationsPage() {
           >
             {t("reservations.extendHold", "Extend +7d")}
           </button>
-          <button type="button"
+          <button
+            type="button"
             className="rounded-lg bg-white/15 px-3 py-1.5 font-semibold"
             onClick={() => {
               if (
@@ -792,7 +811,8 @@ export function ReservationsPage() {
           >
             {t("reservations.cancelSelected", "Cancel selected")}
           </button>
-          <button type="button"
+          <button
+            type="button"
             className="rounded-lg bg-red-600 px-3 py-1.5 font-semibold hover:bg-red-700"
             onClick={() => {
               if (
@@ -924,7 +944,8 @@ export function ReservationsPage() {
                       onChange={(event) => setExpiryDraft(event.target.value)}
                     />
                   </label>
-                  <button type="button"
+                  <button
+                    type="button"
                     onClick={() =>
                       void act(
                         () =>
@@ -949,7 +970,8 @@ export function ReservationsPage() {
             <div className="flex flex-wrap justify-end gap-2">
               {details.status === "pending" ? (
                 <>
-                  <button type="button"
+                  <button
+                    type="button"
                     onClick={() => {
                       void act(
                         () => acceptReservation(details.id),
@@ -961,7 +983,8 @@ export function ReservationsPage() {
                   >
                     {t("reservations.accept", "Accept")}
                   </button>
-                  <button type="button"
+                  <button
+                    type="button"
                     onClick={() => {
                       void act(
                         () => declineReservation(details.id),
@@ -976,7 +999,8 @@ export function ReservationsPage() {
                 </>
               ) : null}
               {details.status === "ready" ? (
-                <button type="button"
+                <button
+                  type="button"
                   onClick={() => {
                     void act(
                       () => fulfilReservation(details.id),
@@ -991,7 +1015,8 @@ export function ReservationsPage() {
               ) : null}
               {details.status === "ready" || details.status === "queued" ? (
                 <>
-                  <button type="button"
+                  <button
+                    type="button"
                     onClick={() =>
                       void act(
                         () => extendReservation(details.id, 7),
@@ -1002,7 +1027,8 @@ export function ReservationsPage() {
                   >
                     {t("reservations.extendHold", "Extend hold")}
                   </button>
-                  <button type="button"
+                  <button
+                    type="button"
                     onClick={() => {
                       void act(
                         () => cancelReservation(details.id),
@@ -1244,7 +1270,8 @@ function Wizard({ onClose }: { onClose: () => void }) {
         <div>
           <div className="mb-3 flex gap-1.5">
             {(["registered", "visitor"] as const).map((mode) => (
-              <button type="button"
+              <button
+                type="button"
                 key={mode}
                 onClick={() => {
                   setMemberMode(mode);
@@ -1321,7 +1348,8 @@ function Wizard({ onClose }: { onClose: () => void }) {
                 ) : (
                   memberOptions.map((member: Member) => (
                     <li key={member.id}>
-                      <button type="button"
+                      <button
+                        type="button"
                         onClick={() => setMemberId(member.id)}
                         className={cn(
                           "flex w-full items-center gap-3 rounded-xl border p-2.5 text-start transition",
@@ -1499,7 +1527,8 @@ function Wizard({ onClose }: { onClose: () => void }) {
             ) : (
               itemOptions.map((book: Book) => (
                 <li key={book.id}>
-                  <button type="button"
+                  <button
+                    type="button"
                     onClick={() => {
                       setBookId(book.id);
                       setCopyChoice("");
@@ -1575,7 +1604,8 @@ function Wizard({ onClose }: { onClose: () => void }) {
               )}
             </p>
           ) : null}
-          <button type="button"
+          <button
+            type="button"
             onClick={() => setCopyChoice("")}
             className={cn(
               "mb-2 flex w-full items-center gap-3 rounded-xl border p-3 text-start transition",
@@ -1613,7 +1643,8 @@ function Wizard({ onClose }: { onClose: () => void }) {
             ) : (
               copies.map((copy: Copy) => (
                 <li key={copy.id}>
-                  <button type="button"
+                  <button
+                    type="button"
                     onClick={() => setCopyChoice(copy.id)}
                     className={cn(
                       "flex w-full items-center gap-3 rounded-xl border p-2.5 text-start transition",
@@ -1657,7 +1688,8 @@ function Wizard({ onClose }: { onClose: () => void }) {
       {step === 3 ? (
         <div>
           <div className="mb-4 grid gap-3 md:grid-cols-2">
-            <button type="button"
+            <button
+              type="button"
               onClick={() => setScope("internal")}
               disabled={externalBlocked && false}
               className={cn(
@@ -1681,7 +1713,8 @@ function Wizard({ onClose }: { onClose: () => void }) {
                 )}
               </p>
             </button>
-            <button type="button"
+            <button
+              type="button"
               onClick={() => {
                 if (!externalBlocked) setScope("external");
               }}
@@ -1773,7 +1806,8 @@ function Wizard({ onClose }: { onClose: () => void }) {
       ) : null}
 
       <div className="mt-5 flex justify-between border-t border-ink/8 pt-4 dark:border-white/8">
-        <button type="button"
+        <button
+          type="button"
           onClick={() => (step === 0 ? onClose() : setStep(step - 1))}
           className="rounded-[var(--radius-control)] px-4 py-2 text-sm font-semibold text-ink/60 hover:bg-ink/5 dark:text-ivory/60 dark:hover:bg-white/5"
         >
@@ -1782,7 +1816,8 @@ function Wizard({ onClose }: { onClose: () => void }) {
             : t("reservations.addModal.back", "Back")}
         </button>
         {step < 3 ? (
-          <button type="button"
+          <button
+            type="button"
             onClick={() => setStep(step + 1)}
             disabled={!canNext}
             className="rounded-[var(--radius-control)] bg-accent px-5 py-2 text-sm font-semibold text-white disabled:opacity-50 dark:bg-accent-dark"
@@ -1790,7 +1825,8 @@ function Wizard({ onClose }: { onClose: () => void }) {
             {t("reservations.addModal.next", "Next")}
           </button>
         ) : (
-          <button type="button"
+          <button
+            type="button"
             onClick={() => void submit()}
             disabled={submitting}
             className="rounded-[var(--radius-control)] bg-accent px-5 py-2 text-sm font-semibold text-white disabled:opacity-50 dark:bg-accent-dark"

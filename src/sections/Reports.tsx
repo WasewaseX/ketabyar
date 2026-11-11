@@ -163,7 +163,7 @@ export function ReportsPage() {
   const overdueOpen = openLoans.filter((loan) => daysLate(loan.due_at) > 0);
   const overdueRate =
     openLoans.length > 0
-      ? ((overdueOpen.length / openLoans.length) * 100).toFixed(1) + "%"
+      ? `${((overdueOpen.length / openLoans.length) * 100).toFixed(1)}%`
       : "0.0%";
 
   const trendData = useMemo(() => {
@@ -194,7 +194,7 @@ export function ReportsPage() {
       .reduce((sum, point) => sum + point.circulation, 0);
     if (first === 0) return second > 0 ? "+100%" : null;
     const delta = Math.round(((second - first) / first) * 100);
-    return (delta >= 0 ? "+" : "") + delta + "%";
+    return `${delta >= 0 ? "+" : ""}${delta}%`;
   }, [trendData]);
 
   const rhythm = dashQuery.data?.circulationRhythm ?? [];
@@ -436,6 +436,7 @@ export function ReportsPage() {
   const loading = dashQuery.isLoading || loansQuery.isLoading;
 
   return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: the contextmenu event also fires from the keyboard menu key on this region
     <div
       onContextMenu={(event) =>
         showContextMenu(
@@ -484,14 +485,16 @@ export function ReportsPage() {
         )}
         action={
           <>
-            <button type="button"
+            <button
+              type="button"
               onClick={exportZip}
               className="inline-flex items-center gap-2 rounded-[var(--radius-control)] bg-ink/5 px-3.5 py-2 text-sm font-semibold transition hover:bg-ink/10 dark:bg-white/5 dark:hover:bg-white/10"
             >
               <Download size={15} />
               {t("reports.exportCsvZip", "Export CSVs (ZIP)")}
             </button>
-            <button type="button"
+            <button
+              type="button"
               onClick={() => void exportPdf()}
               disabled={pdfExporting}
               className="inline-flex items-center gap-2 rounded-[var(--radius-control)] bg-accent px-3.5 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50 dark:bg-accent-dark"
@@ -506,7 +509,8 @@ export function ReportsPage() {
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap gap-1.5">
           {(Object.keys(TAB_CHARTS) as TabId[]).map((tab) => (
-            <button type="button"
+            <button
+              type="button"
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={cn(

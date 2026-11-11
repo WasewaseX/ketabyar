@@ -141,7 +141,7 @@ function LicensesDoc() {
         <li>Tauri and its official plugins (MIT / Apache-2.0)</li>
         <li>Vite, Tailwind CSS, TypeScript — MIT / Apache-2.0</li>
         <li>Recharts, lucide-react (ISC), cmdk, sonner, date-fns, Zod — MIT</li>
-        <li>jsPDF, jsPDF-AutoTable, JSZip, PapaParse, ExcelJS — MIT</li>
+        <li>jsPDF, jsPDF-AutoTable, JSZip, PapaParse — MIT</li>
         <li>Vazirmatn, IBM Plex Sans Arabic, Manrope fonts — SIL OFL 1.1</li>
       </ul>
       <P>
@@ -168,7 +168,8 @@ export function LegalPage() {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <button type="button"
+      <button
+        type="button"
         onClick={() => navigate(-1)}
         className="mb-5 inline-flex items-center gap-2 text-sm font-semibold text-ink/60 transition hover:text-ink dark:text-ivory/60 dark:hover:text-ivory"
       >
@@ -178,7 +179,8 @@ export function LegalPage() {
 
       <div className="mb-5 flex gap-2">
         {TABS.map((tab) => (
-          <button type="button"
+          <button
+            type="button"
             key={tab.id}
             onClick={() => navigate(`/legal/${tab.id}`)}
             className={cn(

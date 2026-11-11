@@ -6,8 +6,17 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
+  # KetabYar-specific verification: the i18n completeness gate, the TS↔Rust
+  # edition builds with their bundle-marker contract, and the app-crate Rust
+  # gates. The nested Cargo workspace (src-tauri/) is checked here because
+  # master-ci's rust job analyzes root manifests only.
   check:
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -15,19 +24,21 @@ jobs:
           - platform: windows-latest
     runs-on: ${{ matrix.settings.platform }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
           cache: npm
 
       - name: Install Rust stable
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+        with:
+          components: clippy,rustfmt
 
       - name: Rust cache
-        uses: swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
           workspaces: src-tauri
 
@@ -36,6 +47,9 @@ jobs:
 
       - name: i18n completeness (t() keys vs fa.json)
         run: npm run check:i18n
+
+      - name: Lint (Biome, pinned)
+        run: npm run lint
 
       - name: Typecheck
         run: npm run typecheck
@@ -49,11 +63,21 @@ jobs:
       - name: Build frontend — Rust edition
         run: npm run build:rust
 
+      - name: Check formatting (rustfmt)
+        run: cargo fmt --all -- --check
+        working-directory: src-tauri
+
+      - name: Lint (clippy)
+        run: cargo clippy --workspace --all-targets -- -D warnings
+        working-directory: src-tauri
+
       - name: Cargo check (app crate incl. ketabyar-core)
         run: cargo check
         working-directory: src-tauri
 
   core-tests:
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -61,13 +85,13 @@ jobs:
           - platform: ubuntu-latest
     runs-on: ${{ matrix.settings.platform }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Install Rust stable
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
 
       - name: Rust cache
-        uses: swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
           workspaces: src-tauri/core
 

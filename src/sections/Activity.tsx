@@ -217,7 +217,7 @@ export function ActivityPage() {
       });
       const stamp = new Date().toISOString().slice(0, 10);
       exportBlobWithToast(
-        new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }),
+        new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8" }),
         `ketabyar_audit_logs_${stamp}.csv`,
         t("activity.alerts.exportSuccess", "Exported {{count}} log rows", {
           count: filtered.length,
@@ -253,7 +253,8 @@ export function ActivityPage() {
           "Everything the desk has done, newest first.",
         )}
         action={
-          <button type="button"
+          <button
+            type="button"
             onClick={exportCsv}
             className="inline-flex items-center gap-2 rounded-[var(--radius-control)] bg-ink/5 px-3.5 py-2 text-sm font-semibold transition hover:bg-ink/10 dark:bg-white/5 dark:hover:bg-white/10"
           >
@@ -314,7 +315,8 @@ export function ActivityPage() {
           }}
         />
         {dateFilter ? (
-          <button type="button"
+          <button
+            type="button"
             onClick={() => setDateFilter("")}
             className="rounded-lg bg-red-600/10 px-2.5 py-1.5 text-xs font-bold text-red-600"
           >
@@ -479,7 +481,8 @@ export function ActivityPage() {
                   </p>
                 </Cell>
                 <Cell>
-                  <button type="button"
+                  <button
+                    type="button"
                     aria-label={t("activity.inspect", "Inspect")}
                     onClick={(event) => {
                       event.stopPropagation();
@@ -503,7 +506,8 @@ export function ActivityPage() {
               })}
             </span>
             <div className="flex items-center gap-2">
-              <button type="button"
+              <button
+                type="button"
                 disabled={currentPage <= 1}
                 onClick={() => setPage(currentPage - 1)}
                 className="rounded-lg border border-ink/10 px-2 py-1 disabled:opacity-40 dark:border-white/10"
@@ -513,7 +517,8 @@ export function ActivityPage() {
               <span className="tabular-nums">
                 {currentPage} / {totalPages}
               </span>
-              <button type="button"
+              <button
+                type="button"
                 disabled={currentPage >= totalPages}
                 onClick={() => setPage(currentPage + 1)}
                 className="rounded-lg border border-ink/10 px-2 py-1 disabled:opacity-40 dark:border-white/10"

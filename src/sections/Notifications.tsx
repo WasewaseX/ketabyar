@@ -227,7 +227,8 @@ export function NotificationsPage() {
         )}
         action={
           unreadCount > 0 ? (
-            <button type="button"
+            <button
+              type="button"
               onClick={() => void markAll()}
               className="inline-flex items-center gap-2 rounded-[var(--radius-control)] bg-ink/5 px-3.5 py-2 text-sm font-semibold transition hover:bg-ink/10 dark:bg-white/5 dark:hover:bg-white/10"
             >

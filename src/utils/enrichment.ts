@@ -46,7 +46,7 @@ export async function enrichBook(
     book.isbn13 ||
     book.isbn10 ||
     [book.title, book.author].filter(Boolean).join(" ");
-  let meta;
+  let meta: Awaited<ReturnType<typeof fetchBookMetadata>> | undefined;
   try {
     meta = await fetchBookMetadata(query);
   } catch {

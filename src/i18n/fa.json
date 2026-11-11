@@ -58,6 +58,7 @@
     "activity": "فعالیت‌ها",
     "settings": "تنظیمات",
     "quickSearch": "جست‌وجوی کتاب، نویسنده، شابک…",
+    "sidebarResize": "تغییر عرض نوار کناری",
     "notifications": "اعلان‌های کتابخانه",
     "overdueCount": "{{count}} مورد معوق",
     "allClear": "همه‌چیز مرتب است! مورد معوقی وجود ندارد.",

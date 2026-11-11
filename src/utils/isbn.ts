@@ -57,7 +57,7 @@ export function isValidIsbn(value: string): boolean {
 export function toIsbn13(value: string): string | null {
   const raw = normalizeIsbn(value);
   if (raw.length !== 10 || !isValidIsbn10(raw)) return null;
-  const body = "978" + raw.slice(0, 9);
+  const body = `978${raw.slice(0, 9)}`;
   return body + isbn13Checksum(body);
 }
 

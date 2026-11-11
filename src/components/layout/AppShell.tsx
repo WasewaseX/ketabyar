@@ -486,21 +486,24 @@ export function AppShell() {
           className="ms-auto flex h-full items-center ltr:me-0 rtl:ml-0"
           dir="ltr"
         >
-          <button type="button"
+          <button
+            type="button"
             onClick={() => void windowAction("minimize")}
             aria-label="Minimize"
             className="flex h-full w-11 items-center justify-center hover:bg-white/10"
           >
             <Minus size={14} />
           </button>
-          <button type="button"
+          <button
+            type="button"
             onClick={() => void windowAction("toggleMaximize")}
             aria-label="Maximize"
             className="flex h-full w-11 items-center justify-center hover:bg-white/10"
           >
             <Square size={11} />
           </button>
-          <button type="button"
+          <button
+            type="button"
             onClick={() => void windowAction("close")}
             aria-label="Close"
             className="flex h-full w-11 items-center justify-center hover:bg-red-600"
@@ -510,6 +513,7 @@ export function AppShell() {
         </div>
       </div>
 
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: the contextmenu event also fires from the keyboard menu key on this region */}
       <div className="flex min-h-0 flex-1" onContextMenu={onContextMenu}>
         {/* Sidebar */}
         <aside
@@ -534,7 +538,8 @@ export function AppShell() {
                 </p>
               </div>
             ) : null}
-            <button type="button"
+            <button
+              type="button"
               onClick={toggleSidebar}
               className="ms-auto rounded-lg p-1.5 text-white/60 hover:bg-white/10 hover:text-white"
               aria-label="Toggle sidebar"
@@ -577,7 +582,8 @@ export function AppShell() {
 
           {/* Profile footer */}
           <div className="relative border-t border-white/10 p-3">
-            <button type="button"
+            <button
+              type="button"
               className={cn(
                 "flex w-full items-center gap-3 rounded-xl p-2 text-start transition hover:bg-white/8",
                 !expanded && "justify-center",
@@ -610,6 +616,7 @@ export function AppShell() {
             </button>
 
             {profileOpen ? (
+              // biome-ignore lint/a11y/noStaticElementInteractions: hover-managed popover; the toggle button above is the keyboard path and Escape closes it
               <div
                 className="absolute bottom-full z-40 mb-2 w-64 rounded-2xl border border-ink/10 bg-white p-3 text-ink shadow-2xl dark:border-white/10 dark:bg-[#1b2723] dark:text-ivory"
                 style={{ insetInlineEnd: expanded ? "0.75rem" : "0.5rem" }}
@@ -674,11 +681,30 @@ export function AppShell() {
 
           {/* Resize handle (only while expanded) */}
           {expanded ? (
-            <div
-              role="separator"
+            <hr
               aria-orientation="vertical"
-              className="absolute inset-y-0 start-0 z-30 w-1.5 cursor-col-resize bg-copper/0 transition hover:bg-copper/60"
+              aria-label={t("nav.sidebarResize", "Sidebar width")}
+              aria-valuemin={200}
+              aria-valuemax={480}
+              aria-valuenow={sidebarWidth}
+              tabIndex={0}
+              className="absolute inset-y-0 start-0 z-30 w-1.5 cursor-col-resize bg-copper/0 transition hover:bg-copper/60 focus-visible:bg-copper focus-visible:outline-none"
               onMouseDown={() => (resizing.current = true)}
+              onKeyDown={(event) => {
+                // RTL sidebar hugs the right edge: ArrowLeft widens.
+                if (event.key !== "ArrowLeft" && event.key !== "ArrowRight")
+                  return;
+                event.preventDefault();
+                const next = Math.max(
+                  200,
+                  Math.min(
+                    480,
+                    sidebarWidth + (event.key === "ArrowLeft" ? 16 : -16),
+                  ),
+                );
+                setSidebarWidth(next);
+                localStorage.setItem(SIDEBAR_WIDTH_KEY, String(next));
+              }}
             />
           ) : null}
         </aside>
@@ -706,7 +732,8 @@ export function AppShell() {
                 placeholder={t("nav.quickSearch", "Quick search…")}
                 className="field-input ps-9 pe-14"
               />
-              <button type="button"
+              <button
+                type="button"
                 onClick={() => setPaletteOpen(true)}
                 className="absolute inset-y-0 end-2 my-auto h-6 rounded-md border border-ink/10 px-1.5 font-mono text-[10px] text-ink/50 dark:border-white/15 dark:text-ivory/50"
               >
@@ -716,7 +743,8 @@ export function AppShell() {
 
             {/* Bell */}
             <div className="relative">
-              <button type="button"
+              <button
+                type="button"
                 onClick={() => setBellOpen((v) => !v)}
                 aria-label={t("nav.notifications", "Notifications")}
                 className="relative rounded-full p-2.5 text-ink/60 transition hover:bg-ink/5 hover:text-ink dark:text-ivory/60 dark:hover:bg-white/10 dark:hover:text-ivory"
@@ -731,8 +759,11 @@ export function AppShell() {
 
               {bellOpen ? (
                 <>
-                  <div
-                    className="fixed inset-0 z-30"
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    aria-label={t("common.close", "Close")}
+                    className="fixed inset-0 z-30 cursor-default"
                     onMouseDown={() => setBellOpen(false)}
                   />
                   <div className="absolute end-0 top-full z-40 mt-2 w-80 rounded-2xl border border-ink/10 bg-white p-3 shadow-2xl dark:border-white/10 dark:bg-[#1b2723]">
@@ -756,7 +787,8 @@ export function AppShell() {
                       <ul className="space-y-1">
                         {previewRows.map((row) => (
                           <li key={row.id}>
-                            <button type="button"
+                            <button
+                              type="button"
                               className="w-full rounded-xl px-2.5 py-2 text-start transition hover:bg-ink/5 dark:hover:bg-white/5"
                               onClick={() => {
                                 setBellOpen(false);
@@ -789,7 +821,8 @@ export function AppShell() {
                         ))}
                       </ul>
                     )}
-                    <button type="button"
+                    <button
+                      type="button"
                       className="mt-2 w-full rounded-xl border border-ink/10 py-2 text-xs font-semibold text-ink/70 transition hover:bg-ink/5 dark:border-white/10 dark:text-ivory/70 dark:hover:bg-white/5"
                       onClick={() => {
                         setBellOpen(false);
@@ -836,7 +869,8 @@ function ProfileAction({
   shortcut?: string;
 }) {
   return (
-    <button type="button"
+    <button
+      type="button"
       onClick={onClick}
       className="flex flex-col items-center gap-1 rounded-xl border border-ink/8 px-2 py-2.5 text-[11px] font-semibold text-ink/70 transition hover:border-accent/40 hover:text-accent dark:border-white/10 dark:text-ivory/70 dark:hover:text-accent-dark"
     >

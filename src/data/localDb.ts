@@ -18,6 +18,7 @@ export async function getDb(): Promise<Database> {
 
 /** Runs a SELECT and returns typed rows. Defaults to `any[]` for loosely-typed log rows. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
+// biome-ignore lint/suspicious/noExplicitAny: documented loose default for log rows
 export async function select<T = any>(
   sql: string,
   params: unknown[] = [],

@@ -153,7 +153,8 @@ export function OnboardingPage() {
             </div>
           </div>
 
-          <button type="button"
+          <button
+            type="button"
             onClick={() => void complete()}
             disabled={busy || !libraryName.trim()}
             className="mt-7 flex w-full items-center justify-center gap-2 rounded-xl bg-accent py-3 text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-50 dark:bg-accent-dark"

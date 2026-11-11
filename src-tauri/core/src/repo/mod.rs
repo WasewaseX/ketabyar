@@ -23,7 +23,10 @@ pub const DEFAULT_ACTOR: &str = "ketabdar";
 /// returns, reservation fulfilment, backup import, factory reset) become
 /// all-or-nothing — a mid-batch failure can no longer leave half-applied
 /// state behind (v1.2.5 atomicity audit; pinned by integration tests).
-pub fn in_transaction<T>(conn: &Connection, work: impl FnOnce(&Connection) -> Result<T>) -> Result<T> {
+pub fn in_transaction<T>(
+    conn: &Connection,
+    work: impl FnOnce(&Connection) -> Result<T>,
+) -> Result<T> {
     let tx = conn.unchecked_transaction()?;
     let result = work(&tx);
     match result {

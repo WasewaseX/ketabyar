@@ -19,9 +19,7 @@ export function buildCsv(
   columns: string[],
   rows: (string | number)[][],
 ): string {
-  return (
-    "﻿" + [columns, ...rows].map((row) => row.map(csvField).join(",")).join("\n")
-  );
+  return `\uFEFF${[columns, ...rows].map((row) => row.map(csvField).join(",")).join("\n")}`;
 }
 
 function triggerDownload(blob: Blob, filename: string) {

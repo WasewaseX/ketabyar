@@ -12,6 +12,7 @@
  * mutation functions from the repository dispatcher to actually fire.
  */
 import "@testing-library/jest-dom/vitest";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   cleanup,
   fireEvent,
@@ -19,7 +20,6 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -63,15 +63,15 @@ vi.mock("../data/repositories/library", () => ({
 }));
 
 import "../i18n";
+import { ContextMenuProvider } from "../components/ui/ContextMenu";
 import {
   createShelf,
   deleteColumn,
+  copies as fetchCopies,
   getColumns,
   getRooms,
   getShelves,
-  copies as fetchCopies,
 } from "../data/repositories/library";
-import { ContextMenuProvider } from "../components/ui/ContextMenu";
 import { InventoryPage } from "./Inventory";
 
 const ROOM = { id: "room-1", name: "سالن اصلی", notes: null };
@@ -99,8 +99,12 @@ describe("inventory circulation buttons (hooks-after-return regression)", () => 
     vi.mocked(getColumns).mockResolvedValue([COLUMN] as never);
     vi.mocked(getShelves).mockResolvedValue([] as never);
     vi.mocked(fetchCopies).mockResolvedValue([] as never);
-    vi.mocked(deleteColumn).mockReset().mockResolvedValue({} as never);
-    vi.mocked(createShelf).mockReset().mockResolvedValue({} as never);
+    vi.mocked(deleteColumn)
+      .mockReset()
+      .mockResolvedValue({} as never);
+    vi.mocked(createShelf)
+      .mockReset()
+      .mockResolvedValue({} as never);
     window.confirm = () => true;
   });
 

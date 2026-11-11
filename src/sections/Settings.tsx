@@ -172,6 +172,7 @@ function Field({
   hint?: string;
 }) {
   return (
+    // biome-ignore lint/a11y/noLabelWithoutControl: implicit label — the control is rendered as a direct child
     <label className="block">
       <span className="mb-1.5 block text-[13px] font-semibold">{label}</span>
       {children}
@@ -252,7 +253,8 @@ function Stepper({
         ) : null}
       </div>
       <div className="flex items-center gap-1">
-        <button type="button"
+        <button
+          type="button"
           onClick={() => onChange(Math.max(min, value - 1))}
           className="h-8 w-8 rounded-lg bg-ink/6 font-bold hover:bg-ink/12 dark:bg-white/10 dark:hover:bg-white/20"
         >
@@ -261,7 +263,8 @@ function Stepper({
         <span className="w-10 text-center font-display text-sm font-bold tabular-nums">
           {value}
         </span>
-        <button type="button"
+        <button
+          type="button"
           onClick={() => onChange(Math.min(max, value + 1))}
           className="h-8 w-8 rounded-lg bg-ink/6 font-bold hover:bg-ink/12 dark:bg-white/10 dark:hover:bg-white/20"
         >
@@ -339,7 +342,8 @@ export function SettingsPage() {
                 <ul className="space-y-0.5">
                   {tabs.map((entry) => (
                     <li key={entry.id}>
-                      <button type="button"
+                      <button
+                        type="button"
                         onClick={() => setTab(entry.id)}
                         className={cn(
                           "flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-start text-[13px] font-medium transition",
@@ -494,7 +498,8 @@ function GeneralTab() {
             {pinMessage}
           </p>
         ) : null}
-        <button type="button"
+        <button
+          type="button"
           onClick={() => void changePin()}
           className="mt-3 inline-flex items-center gap-2 rounded-[var(--radius-control)] bg-accent px-4 py-2 text-sm font-semibold text-white dark:bg-accent-dark"
         >
@@ -720,7 +725,8 @@ function AppearanceTab() {
               },
             ] as const
           ).map((option) => (
-            <button type="button"
+            <button
+              type="button"
               key={option.value}
               onClick={() => updatePreferences({ theme: option.value })}
               className={cn(
@@ -740,7 +746,8 @@ function AppearanceTab() {
       <Card title={t("settings.appearance.accentTitle", "Accent colour")}>
         <div className="flex flex-wrap items-center gap-3">
           {ACCENT_PRESETS.map((preset) => (
-            <button type="button"
+            <button
+              type="button"
               key={preset.value}
               title={t(preset.labelKey, preset.value)}
               onClick={() => {
@@ -786,7 +793,8 @@ function AppearanceTab() {
               },
             ] as const
           ).map((option) => (
-            <button type="button"
+            <button
+              type="button"
               key={option.value}
               onClick={() => updatePreferences({ fontSize: option.value })}
               className={cn(
@@ -1106,14 +1114,16 @@ function BackupTab() {
         )}
       >
         <div className="flex flex-wrap gap-2">
-          <button type="button"
+          <button
+            type="button"
             onClick={() => void exportBackup()}
             className="inline-flex items-center gap-2 rounded-[var(--radius-control)] bg-accent px-4 py-2 text-sm font-semibold text-white dark:bg-accent-dark"
           >
             <Download size={15} />{" "}
             {t("settings.backup.fullExportBtn", "Export backup")}
           </button>
-          <button type="button"
+          <button
+            type="button"
             onClick={() => void restoreBackup()}
             className="inline-flex items-center gap-2 rounded-[var(--radius-control)] bg-ink/6 px-4 py-2 text-sm font-semibold hover:bg-ink/12 dark:bg-white/10 dark:hover:bg-white/20"
           >
@@ -1215,7 +1225,8 @@ function ImportJsonButton({
     }
   };
   return (
-    <button type="button"
+    <button
+      type="button"
       onClick={() => void handle()}
       className="inline-flex items-center gap-2 rounded-[var(--radius-control)] bg-ink/6 px-4 py-2 text-sm font-semibold hover:bg-ink/12 dark:bg-white/10 dark:hover:bg-white/20"
     >
@@ -1326,7 +1337,8 @@ function DatabaseTab() {
         )}
       >
         {!dangerVisible ? (
-          <button type="button"
+          <button
+            type="button"
             onClick={() => setDangerVisible(true)}
             className="inline-flex items-center gap-2 rounded-[var(--radius-control)] bg-red-600/10 px-4 py-2 text-sm font-bold text-red-600"
           >
@@ -1335,7 +1347,8 @@ function DatabaseTab() {
           </button>
         ) : (
           <div className="space-y-2">
-            <button type="button"
+            <button
+              type="button"
               onClick={() => void clearLoans()}
               className="inline-flex w-full items-center justify-between rounded-xl border border-amber-500/40 bg-amber-500/5 px-4 py-3 text-start hover:bg-amber-500/10"
             >
@@ -1344,7 +1357,8 @@ function DatabaseTab() {
               </span>
               <Trash2 size={15} className="text-amber-600" />
             </button>
-            <button type="button"
+            <button
+              type="button"
               onClick={() => void factoryReset()}
               className="inline-flex w-full items-center justify-between rounded-xl border border-red-600/40 bg-red-600/5 px-4 py-3 text-start hover:bg-red-600/10"
             >
@@ -1504,7 +1518,8 @@ function IntegrationsTab() {
                     updatePreferences({ groqApiKey: event.target.value.trim() })
                   }
                 />
-                <button type="button"
+                <button
+                  type="button"
                   onClick={() => setKeyVisible((value) => !value)}
                   className="absolute inset-y-0 end-3 my-auto text-ink/45"
                   aria-label={t(
@@ -1515,7 +1530,8 @@ function IntegrationsTab() {
                   {keyVisible ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
               </div>
-              <button type="button"
+              <button
+                type="button"
                 onClick={() => void testGroq()}
                 className="rounded-[var(--radius-control)] bg-ink/6 px-4 text-sm font-bold hover:bg-ink/12 dark:bg-white/10 dark:hover:bg-white/20"
               >
@@ -1594,7 +1610,8 @@ function IntegrationsTab() {
         )}
       >
         <div className="flex flex-wrap items-center gap-2">
-          <button type="button"
+          <button
+            type="button"
             onClick={() => void bulkEnrich()}
             disabled={enriching}
             className="inline-flex items-center gap-2 rounded-[var(--radius-control)] bg-accent px-4 py-2 text-sm font-semibold text-white disabled:opacity-50 dark:bg-accent-dark"
@@ -1605,7 +1622,8 @@ function IntegrationsTab() {
               : t("settings.integrations.enrichStart", "Start bulk enrichment")}
           </button>
           {enriching ? (
-            <button type="button"
+            <button
+              type="button"
               onClick={() => (cancelRef.current = true)}
               className="rounded-[var(--radius-control)] bg-red-600/10 px-4 py-2 text-sm font-bold text-red-600"
             >
@@ -1677,7 +1695,8 @@ function UsersTab() {
                   </p>
                 </div>
               </div>
-              <button type="button"
+              <button
+                type="button"
                 onClick={() => setResetOpen(true)}
                 className="rounded-lg bg-ink/6 px-3 py-1.5 text-xs font-bold hover:bg-ink/12 dark:bg-white/10 dark:hover:bg-white/20"
               >
@@ -1712,7 +1731,8 @@ function UsersTab() {
             "Everyone signing in with the old PIN will need the new one.",
           )}
         </p>
-        <button type="button"
+        <button
+          type="button"
           onClick={async () => {
             try {
               if (!/^\d{4,8}$/.test(newPin))
@@ -1835,7 +1855,8 @@ function DesktopTab() {
       </Card>
 
       <Card title={t("settings.desktop.storageTitle", "Storage")}>
-        <button type="button"
+        <button
+          type="button"
           onClick={() => void openDataFolder()}
           className="inline-flex items-center gap-2 rounded-[var(--radius-control)] bg-ink/6 px-4 py-2 text-sm font-semibold hover:bg-ink/12 dark:bg-white/10 dark:hover:bg-white/20"
         >
@@ -1940,7 +1961,8 @@ function AboutTab({
         </ul>
         <div className="flex flex-wrap gap-2">
           {(["terms", "privacy", "licenses"] as const).map((doc) => (
-            <button type="button"
+            <button
+              type="button"
               key={doc}
               onClick={() => onNavigateLegal(doc)}
               className="rounded-[var(--radius-control)] bg-ink/6 px-4 py-2 text-sm font-semibold hover:bg-ink/12 dark:bg-white/10 dark:hover:bg-white/20"

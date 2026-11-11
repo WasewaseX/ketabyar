@@ -341,7 +341,8 @@ export function ForcedPasswordChangePage({ user }: { user: PublicUser }) {
             {error}
           </div>
         ) : null}
-        <button type="button"
+        <button
+          type="button"
           onClick={() => void submit()}
           disabled={busy}
           className="mt-5 w-full rounded-xl bg-[#1a4d40] py-2.5 text-sm font-semibold text-white hover:bg-[#153d33] disabled:opacity-60"

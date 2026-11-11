@@ -9,9 +9,74 @@ to [Semantic Versioning](https://semver.org/).
 > KetabYar is a clean-room rewrite licensed under **MIT**. See
 > [NOTICE.md](NOTICE.md) for the full history.
 
+## [1.2.6] — 2026-11-11
+
+### Summary
+
+Installed the full master-ci quality-gate suite (strict profile) alongside the
+app-specific CI, and hardened the GUI's keyboard accessibility. One real
+UI bug class was caught by the new lints and fixed; every mouse-only
+affordance now has a keyboard path.
+
+### Added — quality gates
+
+- **master-ci (WasewaseX/master-ci v2.1.0, strict profile)** as a reusable
+  workflow: hygiene (actionlint, zizmor, yamllint, editorconfig, shellcheck,
+  jscpd duplication ≤5%), full-history gitleaks, AI-integrity heuristics,
+  Semgrep/Trivy/OSV security with HIGH/CRITICAL enforced, Node/TS Biome +
+  tsc + depcheck + vitest, docs lint, PR dependency review, OSSF Scorecard,
+  new-code dimension ceilings against the merge base, and the ci-success
+  aggregate. CodeQL (security-extended) on javascript-typescript.
+- **Nested-workspace Rust gates in ci.yml** (master-ci analyzes root
+  manifests only): rustfmt `--check`, clippy `-D warnings` on the whole
+  workspace, and cargo-deny (advisories, licenses, sources) with a
+  baseline `deny.toml`.
+- **Every GitHub Action is pinned by commit SHA** across all workflows
+  (zizmor hash-pin policy, committed as `.github/zizmor.yml`); Dependabot
+  keeps the pins and npm dependencies current (weekly, 7-day cooldown).
+- `npm run lint` = Biome (pinned 2.6.6) as the project lint script; the
+  lint gate now runs in CI next to typecheck and tests.
+
+### Fixed
+
+- **Dead useMutation hooks in Inventory (found by the new noUnreachable
+  lint, in the previous commit).** `columnDelete`, `copyDelete` and
+  `shelfCreate` were declared after the page's unconditional return and
+  never initialized — deleting a bookcase column, adding a shelf or
+  archiving a copy threw a ReferenceError on click. Pinned by
+  `inventoryHooks.test.tsx`.
+- **Keyboard activation opened the row behind checkboxes.** Pressing
+  Space on a row's checkbox (or a cell action button) bubbled the synthetic
+  click to the row's onClick, toggling the checkbox AND opening the
+  details/edit view. Rows now ignore clicks whose origin is an interactive
+  element.
+- **Dependency hygiene:** removed `exceljs` (declared but never imported;
+  its transitive `uuid` carried the only npm advisories) and bumped the
+  dev-only vitest mocker — `npm audit` and osv-scanner now report zero
+  vulnerabilities.
+- rustfmt normalized the whole `src-tauri` workspace (now enforced by CI).
+
+### Improved — accessibility & GUI polish
+
+- Every mouse-only affordance gained a keyboard path: catalog/inventory/
+  loans/reservation rows and member cards are focusable and open on Enter
+  (origin-guarded so checkboxes and cell buttons stay exclusive); the
+  sidebar resize handle is a fully keyboard-operable splitter
+  (ArrowLeft/ArrowRight, ARIA valuemin/max/now); the command palette and
+  the image-crop overlay close on Escape; notification and dropdown
+  overlays are real focus-invisible dismiss buttons.
+- Biome a11y gate passes with zero errors; the remaining warnings are
+  documented in `biome.jsonc` (static-layout index keys, guarded
+  non-null assertions).
+- Native `color-scheme: light/dark` — themed scrollbars, selects and date
+  pickers on Windows; Persian body line-height set to 1.65 for Vazirmatn's
+  metrics; disabled controls get a not-allowed cursor; smooth in-page
+  scrolling (with the existing prefers-reduced-motion guard).
+
 ## [1.2.5] — 2026-10-25
 
 ### Summary
+
 Six-area source audit (requested as a review distinguishing confirmed defects
 from suspicious code and test gaps): authentication parity, circulation
 atomicity, backup restoration, schema parity, UI staleness, and release
@@ -19,7 +84,9 @@ configuration. Two areas produced confirmed defects — both fixed and pinned
 by new integration tests on BOTH engines. The other four verified clean.
 
 ### Fixed — confirmed defects
+
 - **Circulation mutations were not atomic (both engines).** Batch checkout,
+
   batch returns, reservation fulfilment, the expiry sweep, backup import and
   factory reset performed multi-statement sequences with no transaction: a
   failure halfway through left half-applied state (e.g. copies 1–2 of a
@@ -33,24 +100,34 @@ by new integration tests on BOTH engines. The other four verified clean.
   contract is pinned by new integration tests on both sides: a batch whose
   second copy is on loan must leave ZERO loans for the batch member; a
   backup whose later row violates a foreign key must import NOTHING.
+
 - **Loans section used targeted cache invalidation** (`fines`/`loans`/
+
   `dashboard`) while the rest of the app invalidates everything — reports
   and sidebar counts could go stale after paying a fine. Now blanket,
   matching the app-wide convention.
 
 ### Verified clean (audit results, no change needed)
+
 - **Auth parity (TS ↔ Rust):** identical validation (`/^\d{4,8}$/`, same
+
   Persian errors), 16-byte hex salt, SHA-256(salt+pin), constant-time
   compare, identical bootstrap and session flag; both editions trim input.
   Pinned by existing Rust round-trip and UI gate tests.
+
 - **Backup restoration:** both engines export/import the same 15 tables
+
   (junction tables included; audit_logs/notifications/library_settings
   deliberately excluded), identical FK-safe table order, upsert-merge that
   tolerates partial files — and with 1.2.5, a failed import is atomic.
+
 - **Schema parity:** all 18 tables byte-compared between
+
   `src-tauri/core/src/schema.rs` and `src/data/schemaSql.ts` — zero column
   differences.
+
 - **Release configuration:** Tauri capabilities are scoped defaults only
+
   (no broad fs/shell); CSP whitelists only the four metadata endpoints;
   package-lock committed and `npm ci`-clean. Note: `src-tauri/Cargo.lock`
   is deliberately gitignored (CI resolves crates per build) — acceptable
@@ -59,6 +136,7 @@ by new integration tests on BOTH engines. The other four verified clean.
 ## [1.2.4] — 2026-10-24
 
 ### Summary
+
 Follow-up to the 1.2.3 login-deadlock root cause: a full sweep of the codebase
 for the **same class of bug** — silent, invisible failures — plus hardening of
 the login submit machinery itself. "Nothing loads" can no longer happen
@@ -66,7 +144,9 @@ quietly anywhere in the app: every remaining silent-failure path now surfaces
 a visible error, and every fix is pinned by a UI-level regression test.
 
 ### Fixed
+
 - **Failed queries rendered a silently empty library.** All 30 `useQuery`
+
   call sites checked `isLoading` only — a failed query (disk error, locked
   database, engine hiccup) produced a confidently empty dashboard, catalog,
   members list, etc. with zero feedback: the same "nothing loads" experience
@@ -75,25 +155,33 @@ a visible error, and every fix is pinned by a UI-level regression test.
   surfaces any failure as an error toast (fired on the idle→error transition,
   so a persistent error does not spam on refocus). Return contract is
   identical to tanstack's `useQuery` — verified by tests.
+
 - **The PIN field sabotaged long PINs.** Auto-submit fired at exactly 4
+
   digits, so anyone with a 5–8-digit PIN got a partial PIN submitted (which
   can only fail), a wrong-PIN error flash, and their field wiped mid-typing —
   then their next keystrokes re-triggered auto-submit with tail digits.
   Auto-submit now waits for a short 550 ms idle window; Enter still submits
   immediately.
+
 - **Login submit races.** Three stacked defects: a same-tick double submit
+
   was possible (Enter + auto-submit both passing the lagging `busy` state
   check); stale render closures could resurrect cleared digits into the next
   attempt after a failed login; and the keyboard listener re-registered every
   render. All handlers now read a `pinRef` mirror, a `submitLock` ref guards
   re-entry, and the listener registers once.
+
 - **Onboarding could trap the user with zero feedback.** `complete()` had
+
   `try/finally` with no `catch`: a failed settings read or save left the user
   stuck on the first-run screen — clicks did nothing visible. The error is
   now toasted and the screen stays retryable.
 
 ### Added
+
 - New regression tests (46 total, up from 39): a 6-digit PIN must be
+
   submitted **once and in full**; backspacing below 4 digits must cancel the
   pending auto-submit; a failed query must toast its error (and a successful
   one must stay silent); a failed onboarding save must show the error and
@@ -102,7 +190,9 @@ a visible error, and every fix is pinned by a UI-level regression test.
 ## [1.2.3] — 2026-10-23
 
 ### Fixed
+
 - **THE login deadlock — "nothing happens after typing the pin" — root-caused
+
   and fixed.** Reported since 1.1.1, survived four releases because previous
   fixes addressed symptoms (keyboard handlers, keypads) while the real bug sat
   one level above the login form: `Boot` in `App.tsx` read the session with
@@ -115,13 +205,17 @@ a visible error, and every fix is pinned by a UI-level regression test.
   conditional return** (Rules of Hooks), so the moment login succeeds the
   router mounts. Logout now returns to the login screen by the same
   mechanism.
+
 - A failed `library_settings` load can no longer mask a successful login
+
   (it used to throw inside the login `try`, clearing the PIN and showing an
   error even though the session had been created) — the load is now
   non-fatal at both call sites; the settings store carries defaults.
 
 ### Added
+
 - **`appGate.test.tsx` — the first UI-level regression tests**, mounting the
+
   real `App` (Providers + Boot + gate + LoginPage) in jsdom with the data
   layer mocked at the dispatcher boundary: boot → type 6-7-6-7 → the app
   must reach Onboarding; wrong PIN → error shown, stays on login; settings
@@ -133,32 +227,44 @@ a visible error, and every fix is pinned by a UI-level regression test.
 ## [1.2.2] — 2026-10-22
 
 ### Changed
+
 - **The Rust edition's webview is now 100% SQL-free.** Until now the
+
   `KetabYarRust_*` installers still ran two pieces through the webview SQL
   plugin: the PIN gate (`auth.ts` — hashing/verification via WebCrypto) and
   the schema bootstrap DDL (`schema.ts`). Both moved behind the build-time
   dispatcher pattern used by the repository layer:
+
   - **Native auth** — new `ketabyar-core` module `repo::auth` (exact port of
+
     the TS gate: salted SHA-256 in `library_settings`, identical Persian
     error strings, constant-time hash comparison) behind four Tauri commands
     (`pin_has`, `pin_set`, `pin_check`, `pin_bootstrap`). The hash scheme is
     byte-identical, so a database written by either edition validates in the
     other. The webview keeps only the localStorage session flag.
+
   - **Native schema** — the Rust frontend's `ensureSchema` is now a no-op;
+
     `ketabyar-core` already applies the byte-identical DDL natively when the
     Tauri setup hook opens the database, before any webview code runs.
+
 - `auth.ts` and `schema.ts` became build-time dispatchers (`authSql.ts` /
+
   `authRust.ts`, `schemaSql.ts` / `schemaRust.ts`) mirroring
   `repositories/library.ts`; the `impl: typeof SQL` compiler contract now
   also covers authentication. The TypeScript edition's behaviour is
   unchanged.
+
 - Verified on both production bundles: the Rust bundle contains **zero** SQL
+
   strings (no `INSERT INTO`, no DDL, no `sqlite:` connection string) and no
   WebCrypto PIN hashing, while the TS bundle keeps them and contains none of
   the native commands.
 
 ### Added
+
 - Rust unit tests for the full PIN lifecycle (bootstrap idempotence,
+
   validation rejections, round-trip against the TS hash scheme, empty-state
   verification) mirroring the TS-side auth surface contract test (35 vitest
   tests total).
@@ -166,7 +272,9 @@ a visible error, and every fix is pinned by a UI-level regression test.
 ## [1.2.1] — 2026-10-22
 
 ### Added
+
 - **Behavioural test-suite for the TypeScript engine** (`librarySql.test.ts`):
+
   the real repository code runs against an in-memory SQLite (Node's built-in
   `node:sqlite`) with `tauri-plugin-sql` mocked at the boundary — the exact
   SQL the `KetabYar_*` installers execute. 19 tests mirror the Rust core's
@@ -175,24 +283,34 @@ a visible error, and every fix is pinned by a UI-level regression test.
   same API surface as the SQL module and that the dispatcher folds to a
   single engine per build. `vitest.config.ts` now defines
   `__KETABYAR_BACKEND__` exactly like the production build.
+
 - **CONTRIBUTING.md** — development setup, the two-engine rules (compiler
+
   contract + mirrored test-suites), Persian/RTL and i18n conventions, schema
   parity, testing guidance, release process.
 
 ### Fixed
+
 - **Saving a book with an author crashed the TypeScript edition**
+
   (`NOT NULL constraint failed: authors.normalized_name`). The author
   upsert omitted the required `normalized_name` column that the Rust engine
   fills; both engines now behave identically.
+
 - **Fulfilling a ready hold crashed the TypeScript edition** ("این نسخه
+
   اکنون قابل امانت نیست"): the held copy sits in `reserved` status and the
   TS `fulfilReservation` never re-freed it before checkout — the Rust engine
   has carried this fix since upstream migration 0020. TS now matches.
+
 - **Visitors could take books home in the TypeScript edition.** The Rust
+
   engine refuses external (take-home) loans for `visitor` members; the TS
   engine silently allowed them. The gate is now enforced in both editions
   with the same Persian message.
+
 - **Over-limit external checkouts could partially succeed in the TypeScript
+
   edition.** Rust rejects a whole batch that would exceed the loan limit
   before issuing anything (all-or-nothing); TS issued copies one by one and
   failed mid-batch, leaving a partial checkout. TS now performs the same
@@ -201,14 +319,18 @@ a visible error, and every fix is pinned by a UI-level regression test.
 ## [1.2.0] — 2026-10-22
 
 ### Added
+
 - **Members are now registered by their student ID (کد دانشجویی).** The
+
   registration form no longer pre-fills a random membership number — the
   librarian types the university-issued code, which becomes the member's
   unique identifier across search, loans, holds, ID cards and reports.
   Codes are validated (3–24 characters) and shown exactly as stored.
 
 ### Fixed
+
 - **Each installer now ships exactly one data engine.** The repository
+
   dispatcher selected its engine through a runtime ternary over
   `import.meta.env.VITE_KETABYAR_BACKEND`, which bundlers cannot
   constant-fold — so **every installer of every previous version carried
@@ -221,26 +343,36 @@ a visible error, and every fix is pinned by a UI-level regression test.
   Rust edition the same size?" question: the shared shell — Tauri runtime,
   WebView2 loader, UI assets, icons — dominates the installer size; the
   engines themselves differ by only ~26 KB of JavaScript.)
+
 - **Persian-keyboard digits are now first-class in student IDs and member
+
   search.** Typing ۴۰۲۱۲۳۴۵ previously stored locale-specific digits that
   never matched a later ASCII search (or vice versa). Both engines now
   normalise Persian (۰-۹) and Arabic-Indic (٠-٩) digits to ASCII at input,
   at save time, and inside member search — in the TypeScript repository and
   in `ketabyar-core` alike, with unit and integration tests on each side.
+
 - **The Rust edition no longer silently renumbers duplicate student IDs.**
+
   `save_member` retried any `member_number` UNIQUE violation with a random
   number, so registering an already-taken student ID could quietly save the
   member under a wrong code. An explicit duplicate now fails with a clear
   error (random retry remains only for auto-generated visitor codes).
+
 - **Editing a member's student ID works in the Rust edition.** The native
+
   `update_member` silently ignored `member_number` changes (the TypeScript
   edition applied them); the patch now includes the cleaned, uniqueness-
   checked code, so both editions behave identically.
+
 - Member ID cards, lists and loan details display the raw stored code —
+
   the cosmetic «MB-» prefix is gone since codes are now meaningful IDs.
 
 ### Changed
+
 - Visitor quick-registration from the Reservations wizard keeps its
+
   operator-free «VIS-» auto code; students and staff are registered by
   their typed ID. Persian i18n strings (form label, search placeholder,
   copy toasts, duplicate alerts) updated from «شمارهٔ عضویت» to
@@ -249,7 +381,9 @@ a visible error, and every fix is pinned by a UI-level regression test.
 ## [1.1.2] — 2026-10-21
 
 ### Fixed
+
 - **The Rust edition now actually runs the Rust engine.** A packaging bug in
+
   `build:rust` (`cross-env VITE_KETABYAR_BACKEND=rust tsc && vite build`)
   passed the backend flag to the TypeScript compiler only — the Vite build
   ran without it, so every "KetabYarRust" installer published in **1.0.3 and
@@ -258,7 +392,9 @@ a visible error, and every fix is pinned by a UI-level regression test.
   to the frontend build; the shipped Rust bundle contains the native
   `ketabyar-core` commands and tree-shakes the webview SQL engine. Verified
   by marker inspection of both production bundles.
+
 - **Login could appear dead on physical keyboards.** The PIN field is
+
   visually hidden and was never auto-focused, so typing ۶۷۶۷ before clicking
   the page did nothing. The login screen now focuses the field on mount and
   handles digits/Backspace/Enter at window level, with Persian (۶) and
@@ -266,12 +402,16 @@ a visible error, and every fix is pinned by a UI-level regression test.
   behaviour is unchanged.
 
 ### Changed
+
 - Reports aggregates (9 GROUP BY queries) and the "clear loans" action moved
+
   from ad-hoc SQL into the repository layer (`reportBreakdowns`,
   `clearCirculation`) so both editions execute them through their own engine;
   two new `ketabyar-core` commands back the Rust edition. Sections no longer
   import the SQL layer directly.
+
 - Settings → About now shows the active **data engine** (TypeScript webview
+
   SQL vs native ketabyar-core), so the edition is verifiable in-app.
 
 > ⚠️ Correction to earlier entries: the "Rust Edition" installers attached to
@@ -282,51 +422,79 @@ a visible error, and every fix is pinned by a UI-level regression test.
 ## [1.1.1] — 2026-10-21
 
 ### Changed
+
 - Version number moved above the legacy **1.1.0** release so every user —
+
   including those who installed 1.1.0 — sees a proper forward upgrade path in
   Windows «Apps & features». 1.1.1 contains exactly the clean-room 1.0.3
   codebase plus project governance files.
+
 - Added `CHANGELOG.md` (this file) and `SECURITY.md` (private vulnerability
+
   reporting policy).
+
 - README now carries CI / release / license badges and points to the 1.1.1
+
   installers.
 
 ### Fixed
+
 - `NOTICE.md` wording made airtight: the noncommercial carve-out now explicitly
+
   names **1.1.0** alongside ≤ 1.0.2, avoiding any ambiguity caused by 1.1.0
   shipping with a higher number but an older codebase.
 
 ## [1.0.3] — 2026-10-21
 
 ### Added
+
 - **Clean-room rewrite of the entire application layer**, released under MIT:
+
   React UI (13 sections), original design system (ivory/ink/copper + 6 accent
   themes, light/dark, RTL), single-source Persian dictionary (843 keys checked
   by a CI script), original inline-SVG artwork and logo.
+
 - **Two interchangeable data engines behind one identical 52-function API**:
   - *TS Edition* — SQL in the webview via `tauri-plugin-sql`
+
     (`KetabYar_*-setup.exe` / `.msi`).
+
   - *Rust Edition* — native **`ketabyar-core`** engine (rusqlite) behind Tauri
+
     commands with ts-rs generated bindings (`KetabYarRust_*-setup.exe`).
     A build-time `typeof SQL` compiler contract keeps the two adapters
     structurally identical.
+
 - Real ISBN-13/ISBN-10 checksum validation with hyphenation and bidirectional
+
   conversion (replacing format-only checking).
+
 - Synthetic notification alerting engine (overdue / due-soon / ready) with a
+
   persistent seen-marker store.
+
 - Grace-aware fine charging (daily rate, grace period, cap, one charge per
+
   loan) and automatic reservation-queue promotion on copy return.
+
 - Full backup / restore across all 15 tables with conflict-safe upserts, and a
+
   double-confirmed factory reset.
+
 - Persian PDF report export (embedded Vazirmatn, Jalali dates), CSV/ZIP report
+
   bundles, membership cards, loan receipts, shelf-inspection scan sessions.
 
 ### Removed
+
 - Every Warraq-derived file, asset, font module, translation and screenshot;
+
   Supabase machinery and the unused upstream Rust commands.
 
 ### Security
+
 - Tauri capability set minimised to what the app actually uses; CSP restricted
+
   to the two optional catalog services (Google Books, Open Library) and the
   optional Groq enrichment endpoint.
 
@@ -339,13 +507,17 @@ a visible error, and every fix is pinned by a UI-level regression test.
 ## [1.0.2] — 2026-10-20 (noncommercial era)
 
 ### Changed
+
 - Library now boots **empty** — all demo data removed; default PIN changed to
+
   **6767**; full KetabYar branding pass.
 
 ## [1.0.1] — 2026-10-20 (noncommercial era)
 
 ### Fixed
+
 - Boot failure on fresh installs: `plugin:sql|execute` was not allowed by the
+
   Tauri ACL, so schema creation was rejected.
 
 ## [1.0.0] — 2026-10-20 (noncommercial era)
