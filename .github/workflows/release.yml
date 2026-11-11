@@ -49,6 +49,7 @@ jobs:
       - name: Ensure the release exists (both matrix jobs race on it)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash # Windows default is pwsh — this script is bash
         run: |
           TAG="v$(node -p "require('./package.json').version")"
           echo "Release tag: $TAG"
