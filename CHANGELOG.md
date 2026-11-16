@@ -9,6 +9,69 @@ to [Semantic Versioning](https://semver.org/).
 > KetabYar is a clean-room rewrite licensed under **MIT**. See
 > [NOTICE.md](NOTICE.md) for the full history.
 
+## [1.2.7] — 2026-11-16
+
+### Summary
+
+Closed out every claim of the external AI-slop / security scan (all 8 reported
+"shell-injection" sites triaged — none were real injection, but the naming that
+triggered them is gone and the external-data paths are hardened), brought the
+custom titlebar's window buttons back to life (a real, long-standing overlay
+bug), added the two missing window permissions, and corrected the wrong /
+duplicate icons.
+
+### Fixed — window controls & permissions
+
+- **Dead titlebar buttons**: the `data-tauri-drag-region` span covered the
+  whole titlebar (`absolute inset-0`) and, as a positioned element, painted
+  **above** the static buttons container — every minimize / maximize / close
+  click landed on the drag layer. The buttons container is now positioned, so
+  it stacks back on top and receives clicks again.
+- **Fullscreen silently failing**: F11 and the context-menu Fullscreen call
+  `setFullscreen`, but `core:window:allow-set-fullscreen` was missing from the
+  capability list — the call was rejected and only the browser fallback
+  (gesture-only) remained. Permission added; `core:window:allow-hide` added
+  for close-to-tray's `hide()` for the same reason.
+- The maximize button now swaps to a restore glyph (two overlapping squares)
+  while the window is maximized, tracked live via the window resize event.
+
+### Fixed — icons
+
+- Activity used the same clipboard glyph as Reports (both sidebar and command
+  palette); Activity now uses the History icon.
+- The context-menu **Refresh** action showed a magnifier icon; it now uses
+  RefreshCw, matching the refresh buttons elsewhere in the app.
+
+### Fixed — scanner findings (AI-slop / security / a11y)
+
+- `security/shell-injection` ×8 on `librarySql.ts`: false positives on the SQL
+  helper that happened to be named `exec` (all sites had parameterized values
+  and code-controlled table names). The helper is renamed `sqlExec`, and —
+  defense-in-depth for genuinely external data — backup-import column keys and
+  library-settings keys are validated against a strict identifier pattern
+  before they ever reach SQL text.
+- React correctness: deep-link modals (Members "add member", Reservations
+  wizard) are now derived from the URL instead of `setState` inside an effect,
+  which also fixes the palette firing mid-page; `CopyEditModal` resets its row
+  select in the change handler instead of an effect; filter memos depend on a
+  stable empty-array constant instead of a fresh `[]` per render; the renewal
+  receipt's "printed on" timestamp is captured when the receipt is created (no
+  `new Date()` during render); `react-hook-form` render-time `watch()` calls
+  replaced with the subscription-based `useWatch`.
+- Accessibility: the click-outside overlays (command palette, image-crop
+  backdrop) attach document-level listeners instead of handlers on static
+  elements; the crop stage is now a real keyboard-operable button (arrow keys
+  nudge the crop, `+`/`-` zoom, Escape still closes); the searchable
+  dropdown's filter input is focused through an effect instead of the
+  `autoFocus` attribute.
+
+### Validation
+
+Biome 0 errors (the 11 pre-existing documented advisories unchanged), `tsc`
+clean, i18n keys present, vitest **49/49**, both edition builds green with the
+mirror-inverse bundle markers intact (TS edition: SQL present / no Rust
+invokes; Rust edition: 4 invoke pins / no SQL).
+
 ## [1.2.6] — 2026-11-11
 
 ### Summary

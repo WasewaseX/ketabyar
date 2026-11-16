@@ -8,6 +8,7 @@ import {
   Cog,
   Database,
   Globe,
+  History,
   LayoutDashboard,
   Plus,
   Search,
@@ -42,8 +43,19 @@ export function CommandPalette() {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") setPaletteOpen(false);
     };
+    // Click-outside: any mousedown outside the panel closes the palette.
+    const onMouseDown = (event: MouseEvent) => {
+      const target = event.target;
+      if (target instanceof Element && target.closest("[data-palette-panel]"))
+        return;
+      setPaletteOpen(false);
+    };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    document.addEventListener("mousedown", onMouseDown);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.removeEventListener("mousedown", onMouseDown);
+    };
   }, [paletteOpen, setPaletteOpen]);
 
   if (!paletteOpen) return null;
@@ -85,7 +97,7 @@ export function CommandPalette() {
     },
     {
       route: "/activity",
-      icon: ClipboardList,
+      icon: History,
       label: t("nav.activity", "Activity"),
     },
     {
@@ -124,14 +136,9 @@ export function CommandPalette() {
   ];
 
   return createPortal(
-    // biome-ignore lint/a11y/noStaticElementInteractions: the container doubles as the click-outside dismiss; keyboard path is the Escape handler above
-    <div
-      className="fixed inset-0 z-[950] bg-ink/60 pt-[18vh] backdrop-blur-sm dark:bg-black/75"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) close();
-      }}
-    >
+    <div className="fixed inset-0 z-[950] bg-ink/60 pt-[18vh] backdrop-blur-sm dark:bg-black/75">
       <div
+        data-palette-panel
         className={cn(
           "mx-auto w-full max-w-xl overflow-hidden rounded-2xl border border-ink/10 bg-white shadow-2xl dark:border-white/10 dark:bg-[#1b2723]",
           "rtl",

@@ -22,7 +22,7 @@ import {
   generateRandomMemberNumber,
   normalizeDigits,
 } from "../../utils/isbn";
-import { exec, maybeOne, nowIso, one, select, uid } from "../localDb";
+import { maybeOne, nowIso, one, select, sqlExec, uid } from "../localDb";
 
 /**
  * KetabYar's data services — every screen talks to the database exclusively
@@ -47,7 +47,7 @@ async function audit(
   entityId: string,
   after: unknown,
 ) {
-  await exec(
+  await sqlExec(
     `INSERT INTO audit_logs (id, actor, action, entity_type, entity_id, after_json, created_at) VALUES (?,?,?,?,?,?,?)`,
     [
       uid(),
@@ -76,12 +76,15 @@ async function upsertByName(
   const id = uid();
   // authors carries a NOT NULL UNIQUE normalized_name (parity with ketabyar-core).
   if (table === "authors") {
-    await exec(
+    await sqlExec(
       `INSERT INTO ${table} (id, name, normalized_name) VALUES (?, ?, ?)`,
       [id, trimmed, trimmed.toLowerCase()],
     );
   } else {
-    await exec(`INSERT INTO ${table} (id, name) VALUES (?, ?)`, [id, trimmed]);
+    await sqlExec(`INSERT INTO ${table} (id, name) VALUES (?, ?)`, [
+      id,
+      trimmed,
+    ]);
   }
   return id;
 }
@@ -94,7 +97,7 @@ async function notify(
   entityType: string,
   entityId: string,
 ) {
-  await exec(
+  await sqlExec(
     `INSERT INTO notifications (id, type, title, body, link, entity_type, entity_id, is_read, created_at) VALUES (?,?,?,?,?,?,?,0,?)`,
     [uid(), type, title, body, link, entityType, entityId, timestamp()],
   );
@@ -152,11 +155,11 @@ async function advanceReservationQueue(
   const reservedUntil = new Date(
     Date.now() + rules.reservation_hold_days * DAY_MS,
   ).toISOString();
-  await exec(
+  await sqlExec(
     `UPDATE reservations SET status = 'ready', copy_id = ?, reserved_at = ?, expires_at = ? WHERE id = ?`,
     [freeCopy.id, timestamp(), reservedUntil, nextInLine.id],
   );
-  await exec(`UPDATE copies SET status = 'reserved' WHERE id = ?`, [
+  await sqlExec(`UPDATE copies SET status = 'reserved' WHERE id = ?`, [
     freeCopy.id,
   ]);
   const book = await maybeOne<{ title: string }>(
@@ -333,7 +336,7 @@ export async function saveBook(input: SaveBookInput): Promise<void> {
     ? await upsertByName("categories", input.category)
     : "";
 
-  await exec(
+  await sqlExec(
     `INSERT INTO books (id, item_type, title, subtitle, arabic_title, description, language, publication_year,
        isbn10, isbn13, call_number, dewey_code, publisher_id, category_id, tags, cover_path, cover_url, metadata, source, created_at, updated_at)
      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, 'manual', ?, ?)`,
@@ -364,7 +367,7 @@ export async function saveBook(input: SaveBookInput): Promise<void> {
   if (input.author) {
     const authorId = await upsertByName("authors", input.author);
     if (authorId)
-      await exec(
+      await sqlExec(
         `INSERT OR IGNORE INTO book_authors (book_id, author_id) VALUES (?, ?)`,
         [bookId, authorId],
       );
@@ -376,7 +379,7 @@ export async function saveBook(input: SaveBookInput): Promise<void> {
       .filter(Boolean)) {
       const tagId = await upsertByName("tags", tag);
       if (tagId)
-        await exec(
+        await sqlExec(
           `INSERT OR IGNORE INTO book_tags (book_id, tag_id) VALUES (?, ?)`,
           [bookId, tagId],
         );
@@ -389,7 +392,7 @@ export async function saveBook(input: SaveBookInput): Promise<void> {
     let barcode = cleanBarcode(input.barcode ?? "");
     if (!accession) accession = `ACC-${uid().slice(0, 8).toUpperCase()}`;
     if (!barcode) barcode = `BAR-${accession}`;
-    await exec(
+    await sqlExec(
       `INSERT INTO copies (id, book_id, accession_number, barcode, condition, status, created_at, updated_at)
        VALUES (?,?,?,?, 'good', 'available', ?, ?)`,
       [uid(), bookId, accession, barcode, timestamp(), timestamp()],
@@ -441,11 +444,11 @@ export async function updateBook(
     );
 
   if (input.author !== undefined) {
-    await exec(`DELETE FROM book_authors WHERE book_id = ?`, [bookId]);
+    await sqlExec(`DELETE FROM book_authors WHERE book_id = ?`, [bookId]);
     if (input.author) {
       const authorId = await upsertByName("authors", input.author);
       if (authorId)
-        await exec(
+        await sqlExec(
           `INSERT INTO book_authors (book_id, author_id, author_order) VALUES (?, ?, 0)`,
           [bookId, authorId],
         );
@@ -455,7 +458,10 @@ export async function updateBook(
   if (columns.length > 0) {
     columns.push(`updated_at = ?`);
     params.push(timestamp(), bookId);
-    await exec(`UPDATE books SET ${columns.join(", ")} WHERE id = ?`, params);
+    await sqlExec(
+      `UPDATE books SET ${columns.join(", ")} WHERE id = ?`,
+      params,
+    );
   }
   await audit("update", "book", bookId, input);
 }
@@ -471,12 +477,11 @@ export async function deleteBook(bookId: string): Promise<void> {
       "این عنوان نسخهٔ امانت‌داده‌شده دارد؛ ابتدا بازگشت آن را ثبت کنید.",
     );
   }
-  await exec(`UPDATE books SET archived_at = ?, updated_at = ? WHERE id = ?`, [
-    timestamp(),
-    timestamp(),
-    bookId,
-  ]);
-  await exec(
+  await sqlExec(
+    `UPDATE books SET archived_at = ?, updated_at = ? WHERE id = ?`,
+    [timestamp(), timestamp(), bookId],
+  );
+  await sqlExec(
     `UPDATE copies SET status = 'archived', updated_at = ? WHERE book_id = ? AND status != 'archived'`,
     [timestamp(), bookId],
   );
@@ -538,7 +543,7 @@ export async function addCopy(
   );
   if (barcodeClash) throw new Error("این بارکد قبلاً ثبت شده است.");
 
-  await exec(
+  await sqlExec(
     `INSERT INTO copies (id, book_id, accession_number, barcode, shelf_id, condition, status, created_at, updated_at)
      VALUES (?,?,?,?,?,?,'available',?,?)`,
     [
@@ -591,7 +596,10 @@ export async function updateCopy(
   if (columns.length > 0) {
     columns.push(`updated_at = ?`);
     params.push(timestamp(), copyId);
-    await exec(`UPDATE copies SET ${columns.join(", ")} WHERE id = ?`, params);
+    await sqlExec(
+      `UPDATE copies SET ${columns.join(", ")} WHERE id = ?`,
+      params,
+    );
     await audit("update_copy", "copy", copyId, updates);
   }
 }
@@ -603,7 +611,7 @@ export async function deleteCopy(copyId: string): Promise<void> {
   );
   if (openLoan)
     throw new Error("این نسخه امانت است؛ ابتدا بازگشت آن را ثبت کنید.");
-  await exec(
+  await sqlExec(
     `UPDATE copies SET status = 'archived', updated_at = ? WHERE id = ?`,
     [timestamp(), copyId],
   );
@@ -643,7 +651,7 @@ export async function saveMember(
     [number],
   );
   if (clash) throw new Error("این کد دانشجویی قبلاً ثبت شده است.");
-  await exec(
+  await sqlExec(
     `INSERT INTO members (id, member_number, full_name, email, phone, department, role, status, avatar_path, joined_at, created_at, updated_at)
      VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
     [
@@ -704,7 +712,10 @@ export async function updateMember(
   if (columns.length > 0) {
     columns.push(`updated_at = ?`);
     params.push(timestamp(), memberId);
-    await exec(`UPDATE members SET ${columns.join(", ")} WHERE id = ?`, params);
+    await sqlExec(
+      `UPDATE members SET ${columns.join(", ")} WHERE id = ?`,
+      params,
+    );
     await audit("update_member", "member", memberId, updates);
   }
 }
@@ -716,11 +727,11 @@ export async function deleteMember(memberId: string): Promise<void> {
   );
   if ((openLoans?.n ?? 0) > 0)
     throw new Error("این عضو امانت باز دارد؛ ابتدا بازگشت‌ها را ثبت کنید.");
-  await exec(
+  await sqlExec(
     `UPDATE reservations SET status = 'cancelled', decided_at = ?, decision_reason = 'member archived' WHERE member_id = ? AND status IN ('pending','queued','ready')`,
     [timestamp(), memberId],
   );
-  await exec(
+  await sqlExec(
     `UPDATE members SET status = 'archived', archived_at = ?, updated_at = ? WHERE id = ?`,
     [timestamp(), timestamp(), memberId],
   );
@@ -734,9 +745,9 @@ export async function hardDeleteMember(memberId: string): Promise<void> {
   );
   if ((anyLoan?.n ?? 0) > 0)
     throw new Error("تاریخچهٔ امانت این عضو موجود است؛ حذف کامل ممکن نیست.");
-  await exec(`DELETE FROM reservations WHERE member_id = ?`, [memberId]);
-  await exec(`DELETE FROM fines WHERE member_id = ?`, [memberId]);
-  await exec(`DELETE FROM members WHERE id = ?`, [memberId]);
+  await sqlExec(`DELETE FROM reservations WHERE member_id = ?`, [memberId]);
+  await sqlExec(`DELETE FROM fines WHERE member_id = ?`, [memberId]);
+  await sqlExec(`DELETE FROM members WHERE id = ?`, [memberId]);
   await audit("delete_member_permanent", "member", memberId, null);
 }
 
@@ -744,7 +755,7 @@ export async function banMember(
   memberId: string,
   reason: string,
 ): Promise<void> {
-  await exec(
+  await sqlExec(
     `UPDATE members SET reservation_banned = 1, ban_reason = ?, banned_at = ?, updated_at = ? WHERE id = ?`,
     [reason, timestamp(), timestamp(), memberId],
   );
@@ -752,7 +763,7 @@ export async function banMember(
 }
 
 export async function unbanMember(memberId: string): Promise<void> {
-  await exec(
+  await sqlExec(
     `UPDATE members SET reservation_banned = 0, ban_reason = NULL, banned_at = NULL, updated_at = ? WHERE id = ?`,
     [timestamp(), memberId],
   );
@@ -834,7 +845,7 @@ async function checkoutOne(
     scope === "internal" ? rules.reservation_internal_days : rules.loan_days;
   const dueAt = new Date(Date.now() + days * DAY_MS).toISOString();
 
-  await exec(
+  await sqlExec(
     `INSERT INTO loans (id, copy_id, member_id, scope, borrowed_at, due_at, renewed_count, issued_by, condition_out)
      VALUES (?,?,?,?,?,?,0,?,?)`,
     [
@@ -848,7 +859,7 @@ async function checkoutOne(
       copy.condition,
     ],
   );
-  await exec(
+  await sqlExec(
     `UPDATE copies SET status = 'on-loan', updated_at = ? WHERE id = ?`,
     [timestamp(), copyId],
   );
@@ -914,7 +925,7 @@ export async function checkout(
     scope === "internal" ? rules.reservation_internal_days : rules.loan_days;
   const dueAt = new Date(Date.now() + days * DAY_MS).toISOString();
   for (const copyId of copyIds) {
-    await exec(
+    await sqlExec(
       `INSERT INTO loans (id, copy_id, member_id, scope, borrowed_at, due_at, renewed_count, issued_by, condition_out)
        VALUES (?,?,?,?,?,?,0,?,?)`,
       [
@@ -928,7 +939,7 @@ export async function checkout(
         conditions.get(copyId) ?? null,
       ],
     );
-    await exec(
+    await sqlExec(
       `UPDATE copies SET status = 'on-loan', updated_at = ? WHERE id = ?`,
       [timestamp(), copyId],
     );
@@ -961,7 +972,7 @@ async function chargeOverdueFine(
     [loanId],
   );
   if (!loan) return;
-  await exec(
+  await sqlExec(
     `INSERT INTO fines (id, loan_id, member_id, amount, reason, status, created_at, updated_at)
      VALUES (?,?,?,?,?, 'open', ?, ?)`,
     [
@@ -988,11 +999,11 @@ export async function returnCopies(copyIds: string[]): Promise<void> {
       `SELECT condition FROM copies WHERE id = ?`,
       [copyId],
     );
-    await exec(
+    await sqlExec(
       `UPDATE loans SET returned_at = ?, received_by = ?, condition_in = ? WHERE id = ?`,
       [timestamp(), currentActor(), copy?.condition ?? null, loan.id],
     );
-    await exec(
+    await sqlExec(
       `UPDATE copies SET status = 'available', updated_at = ? WHERE id = ?`,
       [timestamp(), copyId],
     );
@@ -1030,7 +1041,7 @@ export async function renewLoan(loanId: string): Promise<void> {
       ? rules.reservation_internal_days
       : rules.loan_days;
   const nextDue = new Date(base + days * DAY_MS).toISOString();
-  await exec(
+  await sqlExec(
     `UPDATE loans SET due_at = ?, renewed_count = renewed_count + 1 WHERE id = ?`,
     [nextDue, loanId],
   );
@@ -1041,7 +1052,7 @@ export async function updateLoanDueDate(
   loanId: string,
   dueAt: string,
 ): Promise<void> {
-  await exec(`UPDATE loans SET due_at = ? WHERE id = ?`, [dueAt, loanId]);
+  await sqlExec(`UPDATE loans SET due_at = ? WHERE id = ?`, [dueAt, loanId]);
   await audit("update", "loan", loanId, { due_at: dueAt });
 }
 
@@ -1059,7 +1070,7 @@ export async function sweepReservations(): Promise<void> {
     [timestamp()],
   );
   for (const hold of expired) {
-    await exec(`UPDATE reservations SET status = 'expired' WHERE id = ?`, [
+    await sqlExec(`UPDATE reservations SET status = 'expired' WHERE id = ?`, [
       hold.id,
     ]);
     if (hold.copy_id) {
@@ -1068,7 +1079,7 @@ export async function sweepReservations(): Promise<void> {
         [hold.copy_id, hold.id],
       );
       if (!stillWanted) {
-        await exec(
+        await sqlExec(
           `UPDATE copies SET status = 'available', updated_at = ? WHERE id = ? AND status = 'reserved'`,
           [timestamp(), hold.copy_id],
         );
@@ -1105,7 +1116,7 @@ export async function addReservation(
     [bookId],
   );
   const id = uid();
-  await exec(
+  await sqlExec(
     `INSERT INTO reservations (id, book_id, member_id, scope, status, position, requested_at, expires_at)
      VALUES (?,?,?,?, 'pending', ?, ?, ?)`,
     [id, bookId, memberId, scope, (tail?.max ?? 0) + 1, timestamp(), expiresAt],
@@ -1148,7 +1159,7 @@ export async function acceptReservation(
     const reservedUntil = new Date(
       Date.now() + rules.reservation_hold_days * DAY_MS,
     ).toISOString();
-    await exec(
+    await sqlExec(
       `UPDATE reservations SET status = 'ready', copy_id = ?, reserved_at = ?, expires_at = ?, decided_by = ?, decided_at = ?, decision_reason = ? WHERE id = ?`,
       [
         freeCopy.id,
@@ -1160,7 +1171,7 @@ export async function acceptReservation(
         reservationId,
       ],
     );
-    await exec(
+    await sqlExec(
       `UPDATE copies SET status = 'reserved', updated_at = ? WHERE id = ?`,
       [timestamp(), freeCopy.id],
     );
@@ -1185,7 +1196,7 @@ export async function acceptReservation(
       `SELECT COALESCE(MAX(position), 0) AS max FROM reservations WHERE book_id = ? AND status = 'queued'`,
       [hold.book_id],
     );
-    await exec(
+    await sqlExec(
       `UPDATE reservations SET status = 'queued', position = ?, decided_by = ?, decided_at = ?, decision_reason = ? WHERE id = ?`,
       [
         (queued?.max ?? 0) + 1,
@@ -1216,12 +1227,12 @@ export async function declineReservation(
   ]);
   if (!["pending", "queued", "ready"].includes(hold.status))
     throw new Error("این درخواست قابل رد نیست.");
-  await exec(
+  await sqlExec(
     `UPDATE reservations SET status = 'declined', decided_by = ?, decided_at = ?, decision_reason = ? WHERE id = ?`,
     [currentActor(), timestamp(), reason, reservationId],
   );
   if (hold.copy_id) {
-    await exec(
+    await sqlExec(
       `UPDATE copies SET status = 'available', updated_at = ? WHERE id = ? AND status = 'reserved'`,
       [timestamp(), hold.copy_id],
     );
@@ -1250,12 +1261,12 @@ export async function fulfilReservation(reservationId: string): Promise<Loan> {
     throw new Error("این رزرو آمادهٔ تحویل نیست.");
   // The held copy sits in 'reserved' status — free it first so checkoutOne
   // passes (parity with ketabyar-core / upstream migration 0020).
-  await exec(
+  await sqlExec(
     `UPDATE copies SET status = 'available', updated_at = ? WHERE id = ? AND status = 'reserved'`,
     [timestamp(), hold.copy_id],
   );
   await checkoutOne(hold.member_id, hold.copy_id, hold.scope, rules);
-  await exec(
+  await sqlExec(
     `UPDATE reservations SET status = 'fulfilled', fulfilled_at = ? WHERE id = ?`,
     [timestamp(), reservationId],
   );
@@ -1283,7 +1294,7 @@ export async function extendReservation(
   const base = hold.expires_at
     ? Math.max(new Date(hold.expires_at).getTime(), Date.now())
     : Date.now();
-  await exec(`UPDATE reservations SET expires_at = ? WHERE id = ?`, [
+  await sqlExec(`UPDATE reservations SET expires_at = ? WHERE id = ?`, [
     new Date(base + days * DAY_MS).toISOString(),
     reservationId,
   ]);
@@ -1295,13 +1306,13 @@ export async function updateReservation(
   patch: { expiresAt?: string | null; scope?: ReservationScope },
 ): Promise<void> {
   if (patch.expiresAt !== undefined) {
-    await exec(`UPDATE reservations SET expires_at = ? WHERE id = ?`, [
+    await sqlExec(`UPDATE reservations SET expires_at = ? WHERE id = ?`, [
       patch.expiresAt,
       reservationId,
     ]);
   }
   if (patch.scope !== undefined) {
-    await exec(`UPDATE reservations SET scope = ? WHERE id = ?`, [
+    await sqlExec(`UPDATE reservations SET scope = ? WHERE id = ?`, [
       patch.scope,
       reservationId,
     ]);
@@ -1320,12 +1331,12 @@ export async function cancelReservation(reservationId: string): Promise<void> {
   ]);
   if (!["pending", "queued", "ready"].includes(hold.status))
     throw new Error("این رزرو قابل لغو نیست.");
-  await exec(
+  await sqlExec(
     `UPDATE reservations SET status = 'cancelled', decided_at = ? WHERE id = ?`,
     [timestamp(), reservationId],
   );
   if (hold.copy_id) {
-    await exec(
+    await sqlExec(
       `UPDATE copies SET status = 'available', updated_at = ? WHERE id = ? AND status = 'reserved'`,
       [timestamp(), hold.copy_id],
     );
@@ -1341,9 +1352,9 @@ export async function deleteReservation(reservationId: string): Promise<void> {
     [reservationId],
   );
   if (!hold) return;
-  await exec(`DELETE FROM reservations WHERE id = ?`, [reservationId]);
+  await sqlExec(`DELETE FROM reservations WHERE id = ?`, [reservationId]);
   if (hold.copy_id) {
-    await exec(
+    await sqlExec(
       `UPDATE copies SET status = 'available', updated_at = ? WHERE id = ? AND status = 'reserved'`,
       [timestamp(), hold.copy_id],
     );
@@ -1386,7 +1397,7 @@ export async function fines(): Promise<FineRow[]> {
 }
 
 export async function payFine(fineId: string): Promise<void> {
-  await exec(
+  await sqlExec(
     `UPDATE fines SET status = 'paid', paid_at = ?, updated_at = ? WHERE id = ?`,
     [timestamp(), timestamp(), fineId],
   );
@@ -1394,7 +1405,7 @@ export async function payFine(fineId: string): Promise<void> {
 }
 
 export async function waiveFine(fineId: string, reason: string): Promise<void> {
-  await exec(
+  await sqlExec(
     `UPDATE fines SET status = 'waived', waived_reason = ?, updated_at = ? WHERE id = ?`,
     [reason, timestamp(), fineId],
   );
@@ -1412,7 +1423,7 @@ export async function createRoom(
   notes: string | null = null,
 ): Promise<Room> {
   const id = uid();
-  await exec(
+  await sqlExec(
     `INSERT INTO rooms (id, name, notes, created_at, updated_at) VALUES (?,?,?,?,?)`,
     [id, name.trim(), notes, timestamp(), timestamp()],
   );
@@ -1424,7 +1435,7 @@ export async function renameRoom(
   roomId: string,
   newName: string,
 ): Promise<void> {
-  await exec(`UPDATE rooms SET name = ?, updated_at = ? WHERE id = ?`, [
+  await sqlExec(`UPDATE rooms SET name = ?, updated_at = ? WHERE id = ?`, [
     newName.trim(),
     timestamp(),
     roomId,
@@ -1442,7 +1453,7 @@ export async function deleteRoom(roomId: string): Promise<void> {
   );
   if ((occupied?.n ?? 0) > 0)
     throw new Error("این اتاق نسخهٔ روی قفسه دارد؛ ابتدا جابه‌جا کنید.");
-  await exec(`DELETE FROM rooms WHERE id = ?`, [roomId]);
+  await sqlExec(`DELETE FROM rooms WHERE id = ?`, [roomId]);
   await audit("delete_room", "room", roomId, null);
 }
 
@@ -1462,16 +1473,16 @@ export async function createColumn(
     [roomId],
   );
   const id = uid();
-  await exec(
+  await sqlExec(
     `INSERT INTO columns (id, room_id, number, created_at, updated_at) VALUES (?,?,?,?,?)`,
     [id, roomId, (tail?.max ?? 0) + 1, timestamp(), timestamp()],
   );
-  await exec(
+  await sqlExec(
     `INSERT INTO shelves (id, column_id, shelf_type, code, capacity, created_at, updated_at) VALUES (?,?,?,?,?,?,?)`,
     [uid(), id, "floor", "S", 120, timestamp(), timestamp()],
   );
   for (const code of top) {
-    await exec(
+    await sqlExec(
       `INSERT INTO shelves (id, column_id, shelf_type, code, capacity, created_at, updated_at) VALUES (?,?,?,?,?,?,?)`,
       [uid(), id, "top", code, 40, timestamp(), timestamp()],
     );
@@ -1487,7 +1498,7 @@ export async function deleteColumn(columnId: string): Promise<void> {
   );
   if ((occupied?.n ?? 0) > 0)
     throw new Error("این قفسه نسخه دارد؛ ابتدا جابه‌جا کنید.");
-  await exec(`DELETE FROM columns WHERE id = ?`, [columnId]);
+  await sqlExec(`DELETE FROM columns WHERE id = ?`, [columnId]);
   await audit("delete_column", "column", columnId, null);
 }
 
@@ -1509,7 +1520,7 @@ export async function createShelf(
   );
   if (clash) throw new Error("این ردیف در این قفسه قبلاً ساخته شده است.");
   const id = uid();
-  await exec(
+  await sqlExec(
     `INSERT INTO shelves (id, column_id, shelf_type, code, capacity, created_at, updated_at) VALUES (?,?,?,?,?,?,?)`,
     [id, columnId, shelfType, code, capacity, timestamp(), timestamp()],
   );
@@ -1522,14 +1533,13 @@ export async function updateShelf(
   updates: { capacity?: number; notes?: string | null },
 ): Promise<void> {
   if (updates.capacity !== undefined) {
-    await exec(`UPDATE shelves SET capacity = ?, updated_at = ? WHERE id = ?`, [
-      Math.max(1, updates.capacity),
-      timestamp(),
-      shelfId,
-    ]);
+    await sqlExec(
+      `UPDATE shelves SET capacity = ?, updated_at = ? WHERE id = ?`,
+      [Math.max(1, updates.capacity), timestamp(), shelfId],
+    );
   }
   if (updates.notes !== undefined) {
-    await exec(`UPDATE shelves SET notes = ?, updated_at = ? WHERE id = ?`, [
+    await sqlExec(`UPDATE shelves SET notes = ?, updated_at = ? WHERE id = ?`, [
       updates.notes,
       timestamp(),
       shelfId,
@@ -1550,7 +1560,7 @@ export async function notifications(limit = 100): Promise<AppNotification[]> {
 export async function markNotificationRead(
   notificationId: string,
 ): Promise<void> {
-  const result = await exec(
+  const result = await sqlExec(
     `UPDATE notifications SET is_read = 1 WHERE id = ? AND is_read = 0`,
     [notificationId],
   );
@@ -1559,7 +1569,7 @@ export async function markNotificationRead(
 }
 
 export async function markAllNotificationsRead(): Promise<void> {
-  await exec(`UPDATE notifications SET is_read = 1 WHERE is_read = 0`);
+  await sqlExec(`UPDATE notifications SET is_read = 1 WHERE is_read = 0`);
 }
 
 /* ═════════════════════════ Audit log ═════════════════════════════════ */
@@ -1598,6 +1608,12 @@ const BACKUP_TABLES = [
   "fines",
 ] as const;
 
+/**
+ * Backup rows are external data: column identifiers that reach the SQL text
+ * must be plain names, never crafted strings ("x); DROP TABLE …--").
+ */
+const SAFE_IDENTIFIER = /^[A-Za-z_][A-Za-z0-9_]*$/;
+
 export async function exportLibraryBackup(): Promise<LibraryBackup> {
   const tables: LibraryBackup["tables"] = {};
   for (const table of BACKUP_TABLES) {
@@ -1619,7 +1635,7 @@ export async function importLibraryBackup(
       if (table === "members" && !row.full_name) continue;
       if (table === "book_authors" || table === "book_tags") continue; // composite-key pairs rebuilt below
       const entries = Object.entries(row).filter(
-        ([, value]) => value !== undefined,
+        ([key, value]) => value !== undefined && SAFE_IDENTIFIER.test(key),
       );
       if (entries.length === 0) continue;
       const columns = entries.map(([key]) => key);
@@ -1627,7 +1643,7 @@ export async function importLibraryBackup(
       const updates = columns
         .filter((column) => column !== "id")
         .map((column) => `${column} = excluded.${column}`);
-      await exec(
+      await sqlExec(
         `INSERT INTO ${table} (${columns.join(", ")}) VALUES (${marks})
          ON CONFLICT(id) DO UPDATE SET ${updates.join(", ")}`,
         entries.map(([, value]) => value),
@@ -1638,7 +1654,7 @@ export async function importLibraryBackup(
     for (const row of rows) {
       if (Array.isArray(row.author_ids)) {
         for (const authorId of row.author_ids as string[]) {
-          await exec(
+          await sqlExec(
             `INSERT OR IGNORE INTO book_authors (book_id, author_id) VALUES (?, ?)`,
             [row.id, authorId],
           );
@@ -1646,7 +1662,7 @@ export async function importLibraryBackup(
       }
       if (Array.isArray(row.tag_ids)) {
         for (const tagId of row.tag_ids as string[]) {
-          await exec(
+          await sqlExec(
             `INSERT OR IGNORE INTO book_tags (book_id, tag_id) VALUES (?, ?)`,
             [row.id, tagId],
           );
@@ -1662,11 +1678,11 @@ export async function importLibraryBackup(
 export async function deleteAllLibraryData(): Promise<Record<string, number>> {
   const deleted: Record<string, number> = {};
   for (const table of [...BACKUP_TABLES].reverse()) {
-    const result = await exec(`DELETE FROM ${table}`);
+    const result = await sqlExec(`DELETE FROM ${table}`);
     deleted[table] = result.rowsAffected;
   }
   deleted.notifications = (
-    await exec(`DELETE FROM notifications`)
+    await sqlExec(`DELETE FROM notifications`)
   ).rowsAffected;
   await audit("delete_all_library_data", "library", "factory-reset", deleted);
   return deleted;
@@ -1683,11 +1699,14 @@ export async function saveLibrarySettings(
 ): Promise<void> {
   const assignable = Object.entries(values).filter(
     ([key, value]) =>
-      key !== "id" && key !== "updated_at" && value !== undefined,
+      key !== "id" &&
+      key !== "updated_at" &&
+      value !== undefined &&
+      SAFE_IDENTIFIER.test(key),
   );
   if (assignable.length === 0) return;
   const columns = assignable.map(([key]) => `${key} = ?`).join(", ");
-  await exec(
+  await sqlExec(
     `UPDATE library_settings SET ${columns}, updated_at = ? WHERE id = 1`,
     [...assignable.map(([, value]) => value), timestamp()],
   );
@@ -1768,7 +1787,9 @@ export async function reportBreakdowns(): Promise<ReportBreakdowns> {
 
 /** Deletes all circulation history (loans + fines); affected copies return to the shelves. */
 export async function clearCirculation(): Promise<void> {
-  await exec(`UPDATE copies SET status = 'available' WHERE status = 'on-loan'`);
-  await exec(`DELETE FROM fines`);
-  await exec(`DELETE FROM loans`);
+  await sqlExec(
+    `UPDATE copies SET status = 'available' WHERE status = 'on-loan'`,
+  );
+  await sqlExec(`DELETE FROM fines`);
+  await sqlExec(`DELETE FROM loans`);
 }

@@ -9,6 +9,7 @@ import {
 import {
   type ButtonHTMLAttributes,
   type ElementType,
+  forwardRef,
   type InputHTMLAttributes,
   type ReactNode,
   useEffect,
@@ -99,12 +100,14 @@ export function Button({
   );
 }
 
-export function Input({
-  className,
-  ...props
-}: InputHTMLAttributes<HTMLInputElement>) {
-  return <input className={cn("field-input", className)} {...props} />;
-}
+export const Input = forwardRef<
+  HTMLInputElement,
+  InputHTMLAttributes<HTMLInputElement>
+>(function Input({ className, ...props }, ref) {
+  return (
+    <input ref={ref} className={cn("field-input", className)} {...props} />
+  );
+});
 
 export function Card({
   children,

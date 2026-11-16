@@ -1,4 +1,4 @@
-import { exec, getDb } from "./localDb";
+import { getDb, sqlExec } from "./localDb";
 
 /**
  * KetabYar SQLite schema — **TypeScript edition** implementation (the complete
@@ -366,7 +366,7 @@ const VIEWS: string[] = [
 /** Applies the schema once per app run; every statement is idempotent. */
 export async function ensureSchema(): Promise<void> {
   await getDb(); // open the connection first
-  for (const stmt of TABLES) await exec(stmt);
-  for (const stmt of INDEXES) await exec(stmt);
-  for (const stmt of VIEWS) await exec(stmt);
+  for (const stmt of TABLES) await sqlExec(stmt);
+  for (const stmt of INDEXES) await sqlExec(stmt);
+  for (const stmt of VIEWS) await sqlExec(stmt);
 }

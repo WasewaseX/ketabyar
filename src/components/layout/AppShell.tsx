@@ -8,12 +8,15 @@ import {
   ChevronRight,
   ClipboardList,
   Cog,
+  Copy,
+  History,
   LayoutDashboard,
   LogOut,
   type LucideIcon,
   Menu,
   Minus,
   Moon,
+  RefreshCw,
   Search,
   Settings,
   Sparkles,
@@ -60,7 +63,7 @@ const NAV_ITEMS: { route: string; icon: LucideIcon; key: string }[] = [
   { route: "/loans", icon: BookMarked, key: "nav.loans" },
   { route: "/inventory", icon: Warehouse, key: "nav.inventory" },
   { route: "/reports", icon: ClipboardList, key: "nav.reports" },
-  { route: "/activity", icon: ClipboardList, key: "nav.activity" },
+  { route: "/activity", icon: History, key: "nav.activity" },
   { route: "/notifications", icon: Bell, key: "nav.notifications" },
   { route: "/settings", icon: Cog, key: "nav.settings" },
 ];
@@ -386,6 +389,34 @@ export function AppShell() {
 
   /* ── Window controls ─────────────────────────────────────────────── */
 
+  /* ── Window controls ─────────────────────────────────────────────── */
+
+  /* Track maximized state so the titlebar can swap the maximize glyph for
+     the restore glyph (matching native window controls). */
+  const [maximized, setMaximized] = useState(false);
+  useEffect(() => {
+    let unlisten: (() => void) | null = null;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { getCurrentWindow } = await import("@tauri-apps/api/window");
+        const current = getCurrentWindow();
+        setMaximized(await current.isMaximized());
+        const promise = current.onResized(() => {
+          void current.isMaximized().then(setMaximized);
+        });
+        unlisten = await promise;
+        if (cancelled) unlisten();
+      } catch {
+        /* running in a plain browser */
+      }
+    })();
+    return () => {
+      cancelled = true;
+      unlisten?.();
+    };
+  }, []);
+
   const windowAction = async (
     action: "minimize" | "toggleMaximize" | "close",
   ) => {
@@ -410,7 +441,7 @@ export function AppShell() {
           id: "refresh",
           label: t("contextMenu.refresh", "Refresh"),
           shortcut: "Ctrl+R",
-          icon: Search,
+          icon: RefreshCw,
           variant: "accent",
           onClick: () => {
             void queryClient.invalidateQueries();
@@ -482,8 +513,11 @@ export function AppShell() {
       {/* Custom OS titlebar */}
       <div className="relative z-50 flex h-8 shrink-0 items-center bg-[#17211f] text-white/85">
         <span data-tauri-drag-region className="absolute inset-0" />
+        {/* `relative` keeps the buttons above the drag-region span — an
+            inset-0 absolutely-positioned sibling otherwise paints on top of
+            this static block and swallows every click (dead window buttons). */}
         <div
-          className="ms-auto flex h-full items-center ltr:me-0 rtl:ml-0"
+          className="relative ms-auto flex h-full items-center ltr:me-0 rtl:ml-0"
           dir="ltr"
         >
           <button
@@ -497,10 +531,10 @@ export function AppShell() {
           <button
             type="button"
             onClick={() => void windowAction("toggleMaximize")}
-            aria-label="Maximize"
+            aria-label={maximized ? "Restore" : "Maximize"}
             className="flex h-full w-11 items-center justify-center hover:bg-white/10"
           >
-            <Square size={11} />
+            {maximized ? <Copy size={11} /> : <Square size={11} />}
           </button>
           <button
             type="button"

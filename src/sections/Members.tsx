@@ -9,10 +9,10 @@ import {
   UserCheck,
   UserX,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useForm, useWatch } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { z } from "zod";
 import { ArtReading } from "../components/ui/art";
@@ -50,6 +50,9 @@ import {
  * Membership: registration, profiles with loans & holds, ID cards, status
  * management, and archive (soft-delete, guarded by open loans).
  */
+
+/** Stable empty array — keeps the filter memos from re-running every render. */
+const NO_MEMBERS: Member[] = [];
 
 /* ── Shared helpers (also used by Loans / Reservations) ──────────────── */
 
@@ -151,30 +154,45 @@ export function MembersPage() {
   const [sidebarTab, setSidebarTab] = useState<"profile" | "loans" | "holds">(
     "profile",
   );
-  const [addOpen, setAddOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [idCardOpen, setIdCardOpen] = useState(false);
   const [receipt, setReceipt] = useState<{
     kind: "renew" | "return";
     title: string;
     date: string;
+    printedAt: string;
   } | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [searchRef, setSearchRef] = useState<HTMLInputElement | null>(null);
+  const searchRef = useRef<HTMLInputElement | null>(null);
 
   const membersQuery = useQuery({
     queryKey: ["members", term],
     queryFn: () => fetchMembers(term),
   });
-  const allMembers = membersQuery.data ?? [];
+  const allMembers = membersQuery.data ?? NO_MEMBERS;
+
+  /* Deep links (?action=add-member, ?focus=search) are one-shot: the modal is
+     derived from the URL so it also opens when the palette fires mid-page,
+     and the param is consumed immediately so back/reload never re-fires it. */
+  const navigate = useNavigate();
+  const addRequested = useMemo(
+    () => new URLSearchParams(location.search).get("action") === "add-member",
+    [location.search],
+  );
+  const [addOpenState, setAddOpenState] = useState(addRequested);
+  const addOpen = addRequested || addOpenState;
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    if (params.get("action") === "add-member") setAddOpen(true);
-    if (params.get("focus") === "search") searchRef?.focus();
+    if (params.get("focus") === "search") searchRef.current?.focus();
     if (params.get("action") || params.get("focus"))
       history.replaceState(null, "", location.pathname);
-  }, [location.search, searchRef]);
+  }, [location.pathname, location.search]);
+
+  const closeAdd = () => {
+    setAddOpenState(false);
+    if (addRequested) navigate(location.pathname, { replace: true });
+  };
 
   const departments = useMemo(
     () =>
@@ -266,6 +284,7 @@ export function MembersPage() {
         kind: "renew",
         title: loan.title ?? "",
         date: dueDate(settings.loan_days),
+        printedAt: today(),
       });
       invalidate();
     } catch (error) {
@@ -277,7 +296,12 @@ export function MembersPage() {
     try {
       await returnCopies([loan.copy_id]);
       toast.success(t("circulation.alerts.returnSuccess", "Item returned"));
-      setReceipt({ kind: "return", title: loan.title ?? "", date: today() });
+      setReceipt({
+        kind: "return",
+        title: loan.title ?? "",
+        date: today(),
+        printedAt: today(),
+      });
       invalidate();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : String(error));
@@ -309,7 +333,7 @@ export function MembersPage() {
           action={
             <button
               type="button"
-              onClick={() => setAddOpen(true)}
+              onClick={() => setAddOpenState(true)}
               className="inline-flex items-center gap-2 rounded-[var(--radius-control)] bg-accent px-3.5 py-2 text-sm font-semibold text-white transition hover:opacity-90 dark:bg-accent-dark"
             >
               <Plus size={16} />
@@ -320,7 +344,7 @@ export function MembersPage() {
 
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <input
-            ref={setSearchRef}
+            ref={searchRef}
             className="field-input max-w-xs"
             placeholder={t(
               "members.searchPlaceholder",
@@ -929,7 +953,7 @@ export function MembersPage() {
 
       {addOpen ? (
         <MemberModal
-          onClose={() => setAddOpen(false)}
+          onClose={() => closeAdd()}
           existingNumbers={allMembers.map((member) =>
             member.member_number.toLowerCase(),
           )}
@@ -996,6 +1020,12 @@ function MemberModal({
         },
   });
 
+  /* Render-safe subscriptions (useWatch) — form.watch() during render is
+     incompatible with the React Compiler's purity rules. */
+  const firstName = useWatch({ control: form.control, name: "first_name" });
+  const lastName = useWatch({ control: form.control, name: "last_name" });
+  const avatarPath = useWatch({ control: form.control, name: "avatar_path" });
+
   const mutation = useMutation({
     mutationFn: async (values: MemberForm) => {
       const number = cleanMemberNumber(values.member_number);
@@ -1057,10 +1087,8 @@ function MemberModal({
         <div className="flex items-center gap-4">
           <ImageUpload
             shape="circle"
-            fallbackInitials={getMemberInitials(
-              `${form.watch("first_name")} ${form.watch("last_name")}`,
-            )}
-            value={form.watch("avatar_path") ?? null}
+            fallbackInitials={getMemberInitials(`${firstName} ${lastName}`)}
+            value={avatarPath ?? null}
             onChange={(value) => form.setValue("avatar_path", value)}
           />
           <div className="grid flex-1 grid-cols-2 gap-3">
@@ -1264,7 +1292,12 @@ function ReceiptModal({
   receipt,
   onClose,
 }: {
-  receipt: { kind: "renew" | "return"; title: string; date: string };
+  receipt: {
+    kind: "renew" | "return";
+    title: string;
+    date: string;
+    printedAt: string;
+  };
   onClose: () => void;
 }) {
   const { t } = useTranslation();
@@ -1293,7 +1326,7 @@ function ReceiptModal({
           : <b>{formatDisplayDate(receipt.date)}</b>
         </p>
         <p className="mt-3 text-[10px] text-ink/45 dark:text-ivory/45">
-          KetabYar · {formatDisplayDate(new Date().toISOString())}
+          KetabYar · {formatDisplayDate(receipt.printedAt)}
         </p>
       </div>
     </Modal>

@@ -60,25 +60,97 @@ export function ImageUpload({
 }) {
   const { t } = useTranslation();
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const areaRef = useRef<HTMLButtonElement | null>(null);
   const [original, setOriginal] = useState<string | null>(null);
   const [cropping, setCropping] = useState(false);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
-
-  useEffect(() => {
-    if (!cropping) return;
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setCropping(false);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [cropping]);
   const dragRef = useRef<{
     startX: number;
     startY: number;
     baseX: number;
     baseY: number;
   } | null>(null);
+
+  /* Crop overlay: Escape closes, clicking outside the card dismisses, the
+     stage is draggable / wheel-zoomable / arrow-key nudgeable. All listeners
+     are attached imperatively so the overlay markup stays free of handlers. */
+  useEffect(() => {
+    if (!cropping) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setCropping(false);
+    };
+    const onMouseDown = (event: MouseEvent) => {
+      const target = event.target;
+      if (target instanceof Element && target.closest("[data-crop-card]"))
+        return;
+      setCropping(false);
+    };
+    window.addEventListener("keydown", onKey);
+    document.addEventListener("mousedown", onMouseDown);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.removeEventListener("mousedown", onMouseDown);
+    };
+  }, [cropping]);
+
+  useEffect(() => {
+    const area = areaRef.current;
+    if (!cropping || !area) return;
+    const onAreaMouseDown = (event: MouseEvent) => {
+      dragRef.current = {
+        startX: event.clientX,
+        startY: event.clientY,
+        baseX: offset.x,
+        baseY: offset.y,
+      };
+    };
+    const onMove = (event: MouseEvent) => {
+      const drag = dragRef.current;
+      if (drag)
+        setOffset({
+          x: drag.baseX + (event.clientX - drag.startX),
+          y: drag.baseY + (event.clientY - drag.startY),
+        });
+    };
+    const onUp = () => {
+      dragRef.current = null;
+    };
+    const onWheel = (event: WheelEvent) => {
+      event.preventDefault();
+      setZoom((z) =>
+        Math.min(3, Math.max(0.2, z + (event.deltaY > 0 ? -0.05 : 0.05))),
+      );
+    };
+    const onAreaKey = (event: KeyboardEvent) => {
+      const step = 8;
+      if (event.key === "ArrowLeft")
+        setOffset((o) => ({ ...o, x: o.x - step }));
+      else if (event.key === "ArrowRight")
+        setOffset((o) => ({ ...o, x: o.x + step }));
+      else if (event.key === "ArrowUp")
+        setOffset((o) => ({ ...o, y: o.y - step }));
+      else if (event.key === "ArrowDown")
+        setOffset((o) => ({ ...o, y: o.y + step }));
+      else if (event.key === "+" || event.key === "=")
+        setZoom((z) => Math.min(3, z + 0.05));
+      else if (event.key === "-") setZoom((z) => Math.max(0.2, z - 0.05));
+      else return;
+      event.preventDefault();
+    };
+    area.addEventListener("mousedown", onAreaMouseDown);
+    area.addEventListener("wheel", onWheel, { passive: false });
+    area.addEventListener("keydown", onAreaKey);
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+    return () => {
+      area.removeEventListener("mousedown", onAreaMouseDown);
+      area.removeEventListener("wheel", onWheel);
+      area.removeEventListener("keydown", onAreaKey);
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+    };
+  }, [cropping, offset]);
 
   async function readNativeFile(): Promise<string | null> {
     const { open } = await import("@tauri-apps/plugin-dialog");
@@ -254,51 +326,26 @@ export function ImageUpload({
       />
 
       {cropping && original ? (
-        // biome-ignore lint/a11y/noStaticElementInteractions: the container doubles as the click-outside dismiss; keyboard path is the Escape effect in the component body
-        <div
-          className="fixed inset-0 z-[950] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) setCropping(false);
-          }}
-        >
-          <div className="w-[360px] rounded-2xl border border-ink/10 bg-white p-4 shadow-2xl dark:border-white/10 dark:bg-[#1b2723]">
+        <div className="fixed inset-0 z-[950] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div
+            data-crop-card
+            className="w-[360px] rounded-2xl border border-ink/10 bg-white p-4 shadow-2xl dark:border-white/10 dark:bg-[#1b2723]"
+          >
             <h3 className="mb-3 font-display text-sm font-bold">
               Crop &amp; Position
             </h3>
-            {/* biome-ignore lint/a11y/noStaticElementInteractions: drag-and-wheel crop positioning is mouse-essential; Escape closes the crop overlay */}
-            <div
-              className="relative mx-auto overflow-hidden rounded-xl bg-ink/10 dark:bg-white/5"
+            <button
+              ref={areaRef}
+              type="button"
+              aria-label={t(
+                "common.cropStage",
+                "Crop stage — drag or use the arrow keys to position, + and − to zoom",
+              )}
+              className="relative mx-auto block overflow-hidden rounded-xl bg-ink/10 outline-none focus-visible:ring-2 focus-visible:ring-accent dark:bg-white/5"
               style={{
                 width: SHAPE_CROP[shape].w,
                 height: SHAPE_CROP[shape].h,
                 cursor: "grab",
-              }}
-              onMouseDown={(event) => {
-                dragRef.current = {
-                  startX: event.clientX,
-                  startY: event.clientY,
-                  baseX: offset.x,
-                  baseY: offset.y,
-                };
-              }}
-              onMouseMove={(event) => {
-                const drag = dragRef.current;
-                if (drag)
-                  setOffset({
-                    x: drag.baseX + (event.clientX - drag.startX),
-                    y: drag.baseY + (event.clientY - drag.startY),
-                  });
-              }}
-              onMouseUp={() => (dragRef.current = null)}
-              onMouseLeave={() => (dragRef.current = null)}
-              onWheel={(event) => {
-                event.preventDefault();
-                setZoom((z) =>
-                  Math.min(
-                    3,
-                    Math.max(0.2, z + (event.deltaY > 0 ? -0.05 : 0.05)),
-                  ),
-                );
               }}
             >
               <img
@@ -314,7 +361,7 @@ export function ImageUpload({
                 }}
               />
               <div className="pointer-events-none absolute inset-0 rounded-[inherit] ring-2 ring-white/90" />
-            </div>
+            </button>
 
             <div className="mt-3 flex items-center gap-2">
               <ZoomIn size={14} className="text-ink/50 dark:text-ivory/50" />

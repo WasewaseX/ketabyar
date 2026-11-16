@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { updateCopy } from "../data/repositories/library";
@@ -65,10 +65,6 @@ export function CopyEditModal({
   const [shelfId, setShelfId] = useState(copy.shelf_id ?? "");
   const [condition, setCondition] = useState(copy.condition);
   const [status, setStatus] = useState<string>(copy.status);
-
-  useEffect(() => {
-    setShelfId("");
-  }, [columnId]);
 
   const rows = useMemo(
     () => shelves.filter((shelf) => shelf.column_id === columnId),
@@ -173,7 +169,10 @@ export function CopyEditModal({
             <select
               className="field-select"
               value={columnId}
-              onChange={(event) => setColumnId(event.target.value)}
+              onChange={(event) => {
+                setColumnId(event.target.value);
+                setShelfId(""); // a different bookcase invalidates the chosen row
+              }}
             >
               <option value="">
                 {t("catalog.details.shelfUnassigned", "Unassigned")}

@@ -1,5 +1,5 @@
 import type { PublicUser, UserRole, UserStatus } from "../types";
-import { exec, maybeOne, nowIso, select } from "./localDb";
+import { maybeOne, nowIso, select, sqlExec } from "./localDb";
 
 /**
  * KetabYar local authentication — **TypeScript edition** implementation.
@@ -77,7 +77,7 @@ export async function setPin(newPin: string): Promise<void> {
     throw new Error("پین باید بین ۴ تا ۸ رقم باشد.");
   const salt = await randomSalt();
   const hash = await sha256Hex(salt + newPin);
-  await exec(
+  await sqlExec(
     `UPDATE library_settings SET pin_hash = ?, pin_salt = ?, updated_at = ? WHERE id = 1`,
     [hash, salt, nowIso()],
   );

@@ -1,4 +1,4 @@
-import { type ReactNode, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { cn } from "../../utils/cn";
 import { Input } from "./primitives";
@@ -95,6 +95,13 @@ export function SearchableSelect<T>({
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [term, setTerm] = useState("");
+  const filterRef = useRef<HTMLInputElement | null>(null);
+
+  /* Focus the filter input on open — an effect instead of autoFocus, which
+     breaks screen-reader focus order (jsx-a11y/no-autofocus). */
+  useEffect(() => {
+    if (open) filterRef.current?.focus();
+  }, [open]);
 
   const selected = useMemo(
     () => options.find((option) => String(option[valueKey]) === value),
@@ -142,7 +149,7 @@ export function SearchableSelect<T>({
         <div className="absolute z-[810] mt-1.5 w-full overflow-hidden rounded-[var(--radius-control)] border border-ink/10 bg-white shadow-xl dark:border-white/10 dark:bg-[#1b2723]">
           <div className="border-b border-ink/8 p-2 dark:border-white/8">
             <Input
-              autoFocus
+              ref={filterRef}
               value={term}
               onChange={(e) => setTerm(e.target.value)}
               placeholder={t("common.typeToFilter", "Type to filter…")}

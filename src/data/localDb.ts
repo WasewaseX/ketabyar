@@ -28,7 +28,7 @@ export async function select<T = any>(
 }
 
 /** Runs a single INSERT / UPDATE / DELETE / DDL statement. */
-export async function exec(
+export async function sqlExec(
   sql: string,
   params: unknown[] = [],
 ): Promise<{ rowsAffected: number; lastInsertId?: unknown }> {
