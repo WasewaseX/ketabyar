@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import type { ContextMenuItem } from "../../components/ui/ContextMenu";
 import type { Member, MemberStatus } from "../../types";
 import { formatMemberNumber } from "../../utils/isbn";
-import { getMemberInitials, MemberStatusBadge } from "../Members";
+import { getMemberInitials, MemberStatusBadge } from "./memberHelpers";
 import { STATUSES } from "./membersShared";
 
 /** One member card: overlay-button pattern, status badge and context menu. */

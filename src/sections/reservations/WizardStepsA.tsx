@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { DefaultCover } from "../../components/ui/primitives";
 import type { Book, Member } from "../../types";
 import { cn } from "../../utils/cn";
-import { getMemberInitials } from "../Members";
+import { getMemberInitials } from "../members/memberHelpers";
 
 export type VisitorDraft = {
   name: string;

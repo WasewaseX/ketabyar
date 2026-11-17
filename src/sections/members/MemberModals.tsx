@@ -16,7 +16,7 @@ import {
   formatMemberNumber,
   normalizeDigits,
 } from "../../utils/isbn";
-import { getMemberInitials, splitFullName } from "../Members";
+import { getMemberInitials, splitFullName } from "./memberHelpers";
 import {
   type MemberForm,
   memberSchema,

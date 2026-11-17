@@ -12,7 +12,7 @@ import {
 import type { Reservation } from "../../types";
 import { cn } from "../../utils/cn";
 import { formatDisplayDate } from "../../utils/dates";
-import { getMemberInitials, MemberStatusBadge } from "../Members";
+import { getMemberInitials, MemberStatusBadge } from "../members/memberHelpers";
 import { holdCancelAction } from "./useReservationsData";
 
 type Translate = TFunction<"translation", undefined>;

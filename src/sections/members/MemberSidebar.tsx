@@ -4,7 +4,7 @@ import type { Loan, Member, Reservation } from "../../types";
 import { cn } from "../../utils/cn";
 import { daysLate, formatDisplayDate } from "../../utils/dates";
 import { formatMemberNumber } from "../../utils/isbn";
-import { getMemberInitials, MemberStatusBadge } from "../Members";
+import { getMemberInitials, MemberStatusBadge } from "./memberHelpers";
 
 /** Profile / loans / holds panel for the selected member. */
 export function MemberSidebar({
