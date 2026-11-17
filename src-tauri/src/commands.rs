@@ -42,14 +42,10 @@ fn resolve_actor(actor: Option<String>) -> String {
 
 type Cmd<T> = Result<T>;
 
-// ─────────────────────────────── Dashboard ───────────────────────────────
-
 #[tauri::command]
 pub fn dashboard(state: State<'_, DbState>) -> Cmd<DashboardMetrics> {
     with_db(&state, s::dashboard)
 }
-
-// ─────────────────────────────── Books & copies ───────────────────────────────
 
 #[tauri::command]
 pub fn books_list(state: State<'_, DbState>, query: String, item_type: String) -> Cmd<Vec<Json>> {
@@ -134,8 +130,6 @@ pub fn copies_list(state: State<'_, DbState>, query: String) -> Cmd<Vec<Json>> {
     with_db(&state, |conn| b::copies(conn, &query))
 }
 
-// ─────────────────────────────── Members ───────────────────────────────
-
 #[tauri::command]
 pub fn members_list(state: State<'_, DbState>, query: String) -> Cmd<Vec<Json>> {
     with_db(&state, |conn| m::members(conn, &query))
@@ -205,8 +199,6 @@ pub fn member_unban(
     })
 }
 
-// ─────────────────────────────── Circulation ───────────────────────────────
-
 #[tauri::command]
 pub fn loans_list(state: State<'_, DbState>, open_only: bool) -> Cmd<Vec<Json>> {
     with_db(&state, |conn| c::loans(conn, open_only))
@@ -274,8 +266,6 @@ pub fn loan_update_due(
         c::update_loan_due_date(conn, &resolve_actor(actor), &loan_id, &due_at)
     })
 }
-
-// ─────────────────────────────── Reservations ───────────────────────────────
 
 #[tauri::command]
 pub fn sweep_reservations(state: State<'_, DbState>, actor: Option<String>) -> Cmd<()> {
@@ -401,8 +391,6 @@ pub fn reservation_delete(
     })
 }
 
-// ─────────────────────────────── Fines ───────────────────────────────
-
 #[tauri::command]
 pub fn fines_list(state: State<'_, DbState>) -> Cmd<Vec<Json>> {
     with_db(&state, s::fines)
@@ -426,8 +414,6 @@ pub fn fine_waive(
         s::waive_fine(conn, &resolve_actor(actor), &fine_id, &reason)
     })
 }
-
-// ─────────────────────────────── Inventory ───────────────────────────────
 
 #[tauri::command]
 pub fn rooms_list(state: State<'_, DbState>) -> Cmd<Vec<Json>> {
@@ -531,8 +517,6 @@ pub fn shelf_update(
     })
 }
 
-// ─────────────────────────────── Notifications / Audit ───────────────────────────────
-
 #[tauri::command]
 pub fn notifications_list(state: State<'_, DbState>, limit: i64) -> Cmd<Vec<Json>> {
     with_db(&state, |conn| s::notifications(conn, limit))
@@ -555,8 +539,6 @@ pub fn audit_log(state: State<'_, DbState>, limit: i64) -> Cmd<Vec<Json>> {
     with_db(&state, |conn| s::audit_log(conn, limit))
 }
 
-// ─────────────────────────────── Backup / Restore ───────────────────────────────
-
 #[tauri::command]
 pub fn backup_export(state: State<'_, DbState>) -> Cmd<Json> {
     with_db(&state, s::export_library_backup)
@@ -576,8 +558,6 @@ pub fn library_wipe(state: State<'_, DbState>, actor: Option<String>) -> Cmd<Jso
     })
 }
 
-// ─────────────────────────────── Settings ───────────────────────────────
-
 #[tauri::command]
 pub fn settings_get(state: State<'_, DbState>) -> Cmd<LibrarySettings> {
     with_db(&state, |conn| {
@@ -591,8 +571,6 @@ pub fn settings_save(state: State<'_, DbState>, values: Json, actor: Option<Stri
         ketabyar_core::repo::save_library_settings(conn, &resolve_actor(actor), &values)
     })
 }
-
-// ─────────────────────────────── Reports & maintenance ───────────────────────────────
 
 /// Aggregate GROUP BY breakdowns for the Reports page — one command replaces
 /// the nine ad-hoc SQL round-trips. Label is '' where the source column is
@@ -674,11 +652,6 @@ pub fn clear_circulation(state: State<'_, DbState>, actor: Option<String>) -> Cm
         Ok(())
     })
 }
-
-// ─────────────────────────────── Auth (PIN) ───────────────────────────────
-// Native PIN gate for the Rust edition — the exact port of src/data/auth.ts.
-// The TS edition keeps hashing in the webview (WebCrypto); both write the same
-// salted SHA-256 scheme into library_settings, so databases are interchangeable.
 
 /// True when a PIN has been set on this machine.
 #[tauri::command]

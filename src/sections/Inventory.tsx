@@ -1673,7 +1673,7 @@ export function InventoryPage() {
       onError: (error: Error) => toast.error(error.message),
     });
 
-    const candidates = useMemo(() => {
+    const candidates = (() => {
       const needle = termLocal.trim().toLowerCase();
       return allCopies.filter((copy) => {
         if (shelfFilter === "unassigned" && copy.shelf_id) return false;
@@ -1691,7 +1691,7 @@ export function InventoryPage() {
           .toLowerCase()
           .includes(needle);
       });
-    }, [allCopies, termLocal, shelfFilter]);
+    })();
 
     return (
       <Modal

@@ -35,7 +35,6 @@ export async function getReservationsForMember(
   );
 }
 
-/** Shared checkout path used by hold fulfilment. */
 export async function checkoutOne(
   memberId: string,
   copyId: string,
@@ -87,6 +86,17 @@ export async function checkoutOne(
     scope === "internal" ? rules.reservation_internal_days : rules.loan_days;
   const dueAt = new Date(Date.now() + days * DAY_MS).toISOString();
 
+  await issueLoan(copyId, memberId, scope, dueAt, copy.condition);
+}
+
+/** One checkout = insert the loan row and flip the copy to on-loan. */
+async function issueLoan(
+  copyId: string,
+  memberId: string,
+  scope: string,
+  dueAt: string,
+  conditionOut: string | null,
+) {
   await sqlExec(
     `INSERT INTO loans (id, copy_id, member_id, scope, borrowed_at, due_at, renewed_count, issued_by, condition_out)
      VALUES (?,?,?,?,?,?,0,?,?)`,
@@ -98,7 +108,7 @@ export async function checkoutOne(
       timestamp(),
       dueAt,
       currentActor(),
-      copy.condition,
+      conditionOut,
     ],
   );
   await sqlExec(
@@ -167,23 +177,12 @@ export async function checkout(
     scope === "internal" ? rules.reservation_internal_days : rules.loan_days;
   const dueAt = new Date(Date.now() + days * DAY_MS).toISOString();
   for (const copyId of copyIds) {
-    await sqlExec(
-      `INSERT INTO loans (id, copy_id, member_id, scope, borrowed_at, due_at, renewed_count, issued_by, condition_out)
-       VALUES (?,?,?,?,?,?,0,?,?)`,
-      [
-        uid(),
-        copyId,
-        memberId,
-        scope,
-        timestamp(),
-        dueAt,
-        currentActor(),
-        conditions.get(copyId) ?? null,
-      ],
-    );
-    await sqlExec(
-      `UPDATE copies SET status = 'on-loan', updated_at = ? WHERE id = ?`,
-      [timestamp(), copyId],
+    await issueLoan(
+      copyId,
+      memberId,
+      scope,
+      dueAt,
+      conditions.get(copyId) ?? null,
     );
     await audit("checkout", "loan", copyId, { memberId, scope });
   }

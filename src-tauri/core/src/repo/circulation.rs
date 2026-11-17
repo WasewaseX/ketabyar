@@ -5,8 +5,6 @@ use crate::{exec, maybe_one, now_iso, one, select, uid, Result};
 use rusqlite::Connection;
 use serde_json::{json, Value as Json};
 
-// ─────────────────────────────── Loans ───────────────────────────────
-
 pub fn loans(conn: &Connection, open_only: bool) -> Result<Vec<Json>> {
     let sql = if open_only {
         "SELECT * FROM loan_details WHERE returned_at IS NULL ORDER BY borrowed_at DESC"
@@ -196,8 +194,6 @@ pub fn update_loan_due_date(
     )?;
     Ok(())
 }
-
-// ─────────────────────────────── Reservations ───────────────────────────────
 
 /// Expiry sweep commits as one unit — a failure mid-sweep cannot leave some
 /// reservations expired and their copies half-released.
@@ -402,7 +398,7 @@ pub fn decline_reservation(
             message: "رزرو یافت نشد یا قبلاً تصمیم‌گیری شده است.".into(),
         });
     }
-    let res = res.unwrap();
+    let res = res.expect("reservation row present after status check");
     exec(
         conn,
         "UPDATE reservations SET status = 'declined', decided_by = ?, decided_at = ?, decision_reason = ? WHERE id = ?",

@@ -15,6 +15,7 @@ import type {
   Shelf,
 } from "../../types";
 import type { FineRow, SaveBookInput } from "./librarySql";
+import type { LibraryBackup, ReportBreakdowns } from "./librarySqlSystem";
 
 /**
  * KetabYar **Rust edition** repository — the exact same public API as
@@ -29,8 +30,6 @@ const withActor = () => ({ actor: currentActor() });
 export async function dashboard(): Promise<DashboardMetrics> {
   return invoke<DashboardMetrics>("dashboard");
 }
-
-// ─────────────────────────────── Books ───────────────────────────────
 
 export async function books(query = "", itemType = ""): Promise<Book[]> {
   return invoke<Book[]>("books_list", { query, itemType });
@@ -95,8 +94,6 @@ export async function copies(query = ""): Promise<
   return invoke("copies_list", { query });
 }
 
-// ─────────────────────────────── Members ───────────────────────────────
-
 export async function members(query = ""): Promise<Member[]> {
   return invoke<Member[]>("members_list", { query });
 }
@@ -135,8 +132,6 @@ export async function unbanMember(memberId: string): Promise<void> {
   await invoke("member_unban", { memberId, ...withActor() });
 }
 
-// ─────────────────────────────── Circulation ───────────────────────────────
-
 export async function loans(openOnly = false): Promise<Loan[]> {
   return invoke<Loan[]>("loans_list", { openOnly });
 }
@@ -174,8 +169,6 @@ export async function updateLoanDueDate(
 ): Promise<void> {
   await invoke("loan_update_due", { loanId, dueAt, ...withActor() });
 }
-
-// ─────────────────────────────── Reservations ───────────────────────────────
 
 export async function sweepReservations(): Promise<void> {
   await invoke("sweep_reservations", { ...withActor() });
@@ -248,8 +241,6 @@ export async function deleteReservation(reservationId: string): Promise<void> {
   await invoke("reservation_delete", { reservationId, ...withActor() });
 }
 
-// ─────────────────────────────── Fines ───────────────────────────────
-
 export async function fines(): Promise<FineRow[]> {
   return invoke<FineRow[]>("fines_list");
 }
@@ -261,8 +252,6 @@ export async function payFine(fineId: string): Promise<void> {
 export async function waiveFine(fineId: string, reason: string): Promise<void> {
   await invoke("fine_waive", { fineId, reason, ...withActor() });
 }
-
-// ─────────────────────────────── Rooms / Columns / Shelves ───────────────────────────────
 
 export async function getRooms(): Promise<Room[]> {
   return invoke<Room[]>("rooms_list");
@@ -331,8 +320,6 @@ export async function updateShelf(
   await invoke("shelf_update", { shelfId, updates, ...withActor() });
 }
 
-// ─────────────────────────────── Notifications / Audit ───────────────────────────────
-
 export async function notifications(limit = 100): Promise<AppNotification[]> {
   return invoke<AppNotification[]>("notifications_list", { limit });
 }
@@ -349,14 +336,6 @@ export async function markAllNotificationsRead(): Promise<void> {
 
 export async function auditLog(limit = 500) {
   return invoke<unknown[]>("audit_log", { limit });
-}
-
-// ─────────────────────────────── Backup / Restore ───────────────────────────────
-
-export interface LibraryBackup {
-  _version: number;
-  _exported_at: string;
-  tables: Record<string, Record<string, unknown>[]>;
 }
 
 export async function exportLibraryBackup(): Promise<LibraryBackup> {
@@ -377,8 +356,6 @@ export async function deleteAllLibraryData(): Promise<Record<string, number>> {
   return invoke<Record<string, number>>("library_wipe", { ...withActor() });
 }
 
-// ─────────────────────────────── Library Settings ───────────────────────────────
-
 export async function getLibrarySettings(): Promise<LibrarySettings> {
   return invoke<LibrarySettings>("settings_get");
 }
@@ -389,23 +366,7 @@ export async function saveLibrarySettings(
   await invoke("settings_save", { values, ...withActor() });
 }
 
-// ─────────────────────────────── Reports & maintenance ───────────────────────────────
-
-export interface BreakdownRow {
-  label: string;
-  n: number;
-}
-
-export interface ReportBreakdowns {
-  loanCategories: BreakdownRow[];
-  copyConditions: BreakdownRow[];
-  memberRoles: BreakdownRow[];
-  copyStatuses: BreakdownRow[];
-  itemTypes: BreakdownRow[];
-  inventoryCategories: BreakdownRow[];
-  memberStatuses: BreakdownRow[];
-  memberJoins: BreakdownRow[];
-}
+// Shared with the SQL edition — declared once in librarySqlSystem.ts.
 
 export async function reportBreakdowns(): Promise<ReportBreakdowns> {
   return invoke<ReportBreakdowns>("report_breakdowns");

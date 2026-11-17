@@ -39,7 +39,6 @@ export function StatPill({
   );
 }
 
-/** Filter pill row used by Loans / Reservations / Catalog saved views. */
 export function FilterPill({
   active,
   count,

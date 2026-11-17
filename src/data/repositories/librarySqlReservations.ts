@@ -168,10 +168,16 @@ export async function acceptReservation(
   ]);
 }
 
-export async function declineReservation(
+/** A hold that can still be decided on (declined / cancelled / fulfilled). */
+async function loadDecidableHold(
   reservationId: string,
-  reason: string | null = null,
-): Promise<Reservation> {
+  refusal: string,
+): Promise<{
+  id: string;
+  copy_id: string | null;
+  book_id: string;
+  status: string;
+}> {
   const hold = await one<{
     id: string;
     copy_id: string | null;
@@ -181,17 +187,32 @@ export async function declineReservation(
     reservationId,
   ]);
   if (!["pending", "queued", "ready"].includes(hold.status))
-    throw new Error("این درخواست قابل رد نیست.");
+    throw new Error(refusal);
+  return hold;
+}
+
+/** Release the copy a decided hold had bound (no-op for queued holds). */
+async function freeReservedCopy(copyId: string | null): Promise<void> {
+  if (!copyId) return;
+  await sqlExec(
+    `UPDATE copies SET status = 'available', updated_at = ? WHERE id = ? AND status = 'reserved'`,
+    [timestamp(), copyId],
+  );
+}
+
+export async function declineReservation(
+  reservationId: string,
+  reason: string | null = null,
+): Promise<Reservation> {
+  const hold = await loadDecidableHold(
+    reservationId,
+    "این درخواست قابل رد نیست.",
+  );
   await sqlExec(
     `UPDATE reservations SET status = 'declined', decided_by = ?, decided_at = ?, decision_reason = ? WHERE id = ?`,
     [currentActor(), timestamp(), reason, reservationId],
   );
-  if (hold.copy_id) {
-    await sqlExec(
-      `UPDATE copies SET status = 'available', updated_at = ? WHERE id = ? AND status = 'reserved'`,
-      [timestamp(), hold.copy_id],
-    );
-  }
+  await freeReservedCopy(hold.copy_id);
   await audit("decline_reservation", "reservation", reservationId, { reason });
   const rules = await getRules();
   await advanceReservationQueue(hold.book_id, rules);
@@ -276,26 +297,15 @@ export async function updateReservation(
 }
 
 export async function cancelReservation(reservationId: string): Promise<void> {
-  const hold = await one<{
-    id: string;
-    copy_id: string | null;
-    book_id: string;
-    status: string;
-  }>(`SELECT id, copy_id, book_id, status FROM reservations WHERE id = ?`, [
+  const hold = await loadDecidableHold(
     reservationId,
-  ]);
-  if (!["pending", "queued", "ready"].includes(hold.status))
-    throw new Error("این رزرو قابل لغو نیست.");
+    "این رزرو قابل لغو نیست.",
+  );
   await sqlExec(
     `UPDATE reservations SET status = 'cancelled', decided_at = ? WHERE id = ?`,
     [timestamp(), reservationId],
   );
-  if (hold.copy_id) {
-    await sqlExec(
-      `UPDATE copies SET status = 'available', updated_at = ? WHERE id = ? AND status = 'reserved'`,
-      [timestamp(), hold.copy_id],
-    );
-  }
+  await freeReservedCopy(hold.copy_id);
   await audit("cancel_reservation", "reservation", reservationId, null);
   const rules = await getRules();
   await advanceReservationQueue(hold.book_id, rules);

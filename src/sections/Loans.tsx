@@ -31,7 +31,7 @@ import {
 } from "../data/repositories/library";
 import { useQuery } from "../hooks/useLibraryQuery";
 import { useLibrarySettingsStore } from "../store/librarySettingsStore";
-import type { Loan } from "../types";
+import type { Loan, LoanState } from "../types";
 import { cn } from "../utils/cn";
 import { formatDisplayCurrency } from "../utils/currency";
 import { formatDisplayDate } from "../utils/dates";
@@ -44,8 +44,6 @@ const EMPTY_LOANS: Loan[] = [];
  * returns, renewals (sequential in bulk so one refusal never aborts the
  * rest), due-date overrides, and the open-fines panel.
  */
-
-export type LoanState = "active" | "dueSoon" | "overdue" | "returned";
 
 export function loanState(
   loan: Loan,

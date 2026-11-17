@@ -1,5 +1,5 @@
 import { Delete, ShieldCheck } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { changeOwnPassword, login } from "../data/auth";
 import { useAuthStore } from "../store/authStore";
@@ -60,44 +60,47 @@ export function LoginPage() {
   const submitLock = useRef(false);
   const autoTimer = useRef<number | null>(null);
 
-  const clearAutoTimer = () => {
+  const clearAutoTimer = useCallback(() => {
     if (autoTimer.current !== null) {
       window.clearTimeout(autoTimer.current);
       autoTimer.current = null;
     }
-  };
+  }, []);
 
-  const submit = async (candidate: string) => {
-    if (submitLock.current || candidate.length < 4) return;
-    submitLock.current = true;
-    setBusy(true);
-    setError(null);
-    try {
-      const user: PublicUser = await login(candidate);
-      // The gate in App.tsx re-renders on setUser — navigation happens here.
-      setUser(user);
-      // Non-fatal: the dashboard needs library settings, but a failure here
-      // must never mask a successful login (the store carries defaults).
-      useLibrarySettingsStore
-        .getState()
-        .load()
-        .catch((settingsError) =>
-          console.error("library settings load failed", settingsError),
+  const submit = useCallback(
+    async (candidate: string) => {
+      if (submitLock.current || candidate.length < 4) return;
+      submitLock.current = true;
+      setBusy(true);
+      setError(null);
+      try {
+        const user: PublicUser = await login(candidate);
+        // The gate in App.tsx re-renders on setUser — navigation happens here.
+        setUser(user);
+        // Non-fatal: the dashboard needs library settings, but a failure here
+        // must never mask a successful login (the store carries defaults).
+        useLibrarySettingsStore
+          .getState()
+          .load()
+          .catch((settingsError) =>
+            console.error("library settings load failed", settingsError),
+          );
+      } catch (loginError) {
+        setError(
+          loginError instanceof Error ? loginError.message : String(loginError),
         );
-    } catch (loginError) {
-      setError(
-        loginError instanceof Error ? loginError.message : String(loginError),
-      );
-      pinRef.current = "";
-      setPin("");
-      inputRef.current?.focus();
-    } finally {
-      submitLock.current = false;
-      setBusy(false);
-    }
-  };
+        pinRef.current = "";
+        setPin("");
+        inputRef.current?.focus();
+      } finally {
+        submitLock.current = false;
+        setBusy(false);
+      }
+    },
+    [setUser],
+  );
 
-  const scheduleAutoSubmit = () => {
+  const scheduleAutoSubmit = useCallback(() => {
     clearAutoTimer();
     if (pinRef.current.length < 4) return;
     // Short idle window so 5–8-digit PINs can finish typing before the
@@ -106,27 +109,30 @@ export function LoginPage() {
       autoTimer.current = null;
       void submit(pinRef.current);
     }, 550);
-  };
+  }, [clearAutoTimer, submit]);
 
-  const pressDigit = (asciiDigit: string) => {
-    if (submitLock.current) return;
-    pinRef.current = (pinRef.current + asciiDigit).slice(0, 8);
-    setPin(pinRef.current);
-    setError(null);
-    scheduleAutoSubmit();
-  };
+  const pressDigit = useCallback(
+    (asciiDigit: string) => {
+      if (submitLock.current) return;
+      pinRef.current = (pinRef.current + asciiDigit).slice(0, 8);
+      setPin(pinRef.current);
+      setError(null);
+      scheduleAutoSubmit();
+    },
+    [scheduleAutoSubmit],
+  );
 
-  const pressBackspace = () => {
+  const pressBackspace = useCallback(() => {
     if (submitLock.current) return;
     clearAutoTimer();
     pinRef.current = pinRef.current.slice(0, -1);
     setPin(pinRef.current);
-  };
+  }, [clearAutoTimer]);
 
-  const pressEnter = () => {
+  const pressEnter = useCallback(() => {
     clearAutoTimer();
     void submit(pinRef.current);
-  };
+  }, [clearAutoTimer, submit]);
 
   // Focus the (visually hidden) input on mount so soft keyboards appear.
   useEffect(() => {

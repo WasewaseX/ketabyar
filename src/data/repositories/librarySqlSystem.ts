@@ -17,12 +17,8 @@ import {
   timestamp,
 } from "./librarySqlShared";
 
-export async function dashboard(): Promise<DashboardMetrics> {
-  const rules = await getRules();
-  const grace = graceDays(rules);
-  const graceCutoff = new Date(Date.now() - grace * DAY_MS).toISOString();
-
-  const counts = await one<{
+async function dashboardCounts(graceCutoff: string) {
+  return one<{
     titles: number;
     copies: number;
     members: number;
@@ -45,7 +41,9 @@ export async function dashboard(): Promise<DashboardMetrics> {
       new Date(Date.now() + 2 * DAY_MS).toISOString(),
     ],
   );
+}
 
+async function dashboardLoanViews(graceCutoff: string) {
   const recentLoans = await select<Loan>(
     `SELECT * FROM loan_details WHERE returned_at IS NULL ORDER BY borrowed_at DESC LIMIT 5`,
   );
@@ -57,7 +55,10 @@ export async function dashboard(): Promise<DashboardMetrics> {
     `SELECT * FROM loan_details WHERE returned_at IS NULL AND due_at >= ? AND due_at <= ? ORDER BY due_at ASC LIMIT 10`,
     [new Date().toISOString(), new Date(Date.now() + 2 * DAY_MS).toISOString()],
   );
+  return { recentLoans, overdueLoans, dueSoonLoans };
+}
 
+async function dashboardActivity() {
   const activityRows = await select<{ date: string; count: number }>(
     `SELECT SUBSTR(borrowed_at, 1, 10) AS date, COUNT(*) AS count
      FROM loans WHERE borrowed_at >= ? GROUP BY date`,
@@ -73,14 +74,19 @@ export async function dashboard(): Promise<DashboardMetrics> {
       count: activityRows.find((row) => row.date === day)?.count ?? 0,
     });
   }
+  return activity;
+}
 
-  const activeDepartments = await select<{ name: string; count: number }>(
+async function dashboardDepartments() {
+  return select<{ name: string; count: number }>(
     `SELECT m.department AS name, COUNT(*) AS count
      FROM loans l JOIN members m ON m.id = l.member_id
      WHERE m.department IS NOT NULL AND m.department != ''
      GROUP BY m.department ORDER BY count DESC LIMIT 5`,
   );
+}
 
+async function dashboardRhythm() {
   const rhythmRows = await select<{
     hour: number;
     checkouts: number;
@@ -111,7 +117,21 @@ export async function dashboard(): Promise<DashboardMetrics> {
         .reduce((sum, row) => sum + row.n, 0),
     });
   }
+  return circulationRhythm;
+}
 
+export async function dashboard(): Promise<DashboardMetrics> {
+  const rules = await getRules();
+  const grace = graceDays(rules);
+  const graceCutoff = new Date(Date.now() - grace * DAY_MS).toISOString();
+  const [counts, loanViews, activity, activeDepartments, circulationRhythm] =
+    await Promise.all([
+      dashboardCounts(graceCutoff),
+      dashboardLoanViews(graceCutoff),
+      dashboardActivity(),
+      dashboardDepartments(),
+      dashboardRhythm(),
+    ]);
   return {
     titles: counts.titles,
     copies: counts.copies,
@@ -120,9 +140,9 @@ export async function dashboard(): Promise<DashboardMetrics> {
     overdue: counts.overdue,
     dueSoon: counts.dueSoon,
     readyReservations: counts.ready,
-    recentLoans,
-    overdueLoans,
-    dueSoonLoans,
+    recentLoans: loanViews.recentLoans,
+    overdueLoans: loanViews.overdueLoans,
+    dueSoonLoans: loanViews.dueSoonLoans,
     activity,
     activeDepartments,
     circulationRhythm,

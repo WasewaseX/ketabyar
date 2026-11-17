@@ -334,14 +334,15 @@ export function CatalogPage() {
       let result = 0;
       if (key === "available_copies")
         result = (a.available_copies ?? 0) - (b.available_copies ?? 0);
-      else
-        result = String(
-          (a as unknown as Record<string, unknown>)[key] ?? "",
-        ).localeCompare(
-          String((b as unknown as Record<string, unknown>)[key] ?? ""),
+      else {
+        const valueOf = (book: Book) =>
+          Object.entries(book).find(([field]) => field === key)?.[1];
+        result = String(valueOf(a) ?? "").localeCompare(
+          String(valueOf(b) ?? ""),
           "fa",
           { numeric: true, sensitivity: "base" },
         );
+      }
       return result * dir;
     });
     return sorted;

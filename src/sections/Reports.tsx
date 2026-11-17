@@ -7,26 +7,10 @@ import {
   Info,
   Printer,
   RefreshCw,
-  TrendingDown,
   TrendingUp,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  Area,
-  AreaChart,
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  Legend,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
 import { toast } from "sonner";
 import { useContextMenu } from "../components/ui/ContextMenu";
 import { PageLoader } from "../components/ui/primitives";
@@ -39,52 +23,33 @@ import {
 import { useQuery } from "../hooks/useLibraryQuery";
 import { useLibrarySettingsStore } from "../store/librarySettingsStore";
 import { useUiStore } from "../store/uiStore";
-import { captureChart, waitForChartsToSettle } from "../utils/chartCapture";
+import type { Loan } from "../types";
 import { cn } from "../utils/cn";
 import { daysLate } from "../utils/dates";
-import { exportCsvZip } from "../utils/exportFile";
-import { generateReportsPdf } from "../utils/reportsPdf";
+import {
+  InventoryCharts,
+  MembersCharts,
+} from "./reports/InventoryMembersCharts";
+import {
+  CirculationCharts,
+  OverviewCharts,
+} from "./reports/OverviewCirculationCharts";
+import {
+  buildReportZip,
+  countBy,
+  runReportsPdfExport,
+  TAB_CHARTS,
+  type TabId,
+} from "./reports/ReportsShared";
+
+/** Stable empty array — keeps hook deps from changing every render. */
+const EMPTY_LOANS: Loan[] = [];
 
 /**
  * Analytics: 4 tabs × 4 charts, a KPI strip, CSV (ZIP) export and a printed
- * PDF report. Only the active tab's charts are mounted; the PDF exporter
- * cycles through all tabs, captures each, then restores the original tab.
+ * PDF report. The chart panels live in ./reports/*; this page owns the
+ * queries, the derived data sets and the exporters.
  */
-
-type TabId = "overview" | "circulation" | "inventory" | "members";
-
-const PIE_COLORS = [
-  "#1a4d40",
-  "#c06b3e",
-  "#2f5d8a",
-  "#6d3fa8",
-  "#0f6e9c",
-  "#d98d5f",
-  "#1b9277",
-  "#b23244",
-];
-
-function countBy(
-  values: (string | null | undefined)[],
-  fallback: string,
-): { name: string; value: number }[] {
-  const buckets = new Map<string, number>();
-  for (const raw of values) {
-    const key = raw?.trim() || fallback;
-    buckets.set(key, (buckets.get(key) ?? 0) + 1);
-  }
-  return Array.from(buckets.entries())
-    .map(([name, value]) => ({ name, value }))
-    .sort((a, b) => b.value - a.value);
-}
-
-const tooltipStyle = {
-  background: "#17211f",
-  color: "#ffffff",
-  borderRadius: 12,
-  fontSize: 12,
-} as const;
-
 export function ReportsPage() {
   const { t } = useTranslation();
   const { showContextMenu } = useContextMenu();
@@ -157,14 +122,27 @@ export function ReportsPage() {
   const [range, setRange] = useState<"7d" | "30d" | "1y" | "all">("30d");
   const [pdfExporting, setPdfExporting] = useState(false);
   const chartRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  // The ref registry is owned here; tab components register via this stable
+  // callback so no child mutates a prop-owned ref (react/immutability).
+  const registerChart = useCallback(
+    (key: string, element: HTMLDivElement | null) => {
+      chartRefs.current[key] = element;
+    },
+    [],
+  );
 
-  const allLoans = loansQuery.data ?? [];
+  const allLoans = loansQuery.data ?? EMPTY_LOANS;
   const openLoans = allLoans.filter((loan) => !loan.returned_at);
   const overdueOpen = openLoans.filter((loan) => daysLate(loan.due_at) > 0);
   const overdueRate =
     openLoans.length > 0
       ? `${((overdueOpen.length / openLoans.length) * 100).toFixed(1)}%`
       : "0.0%";
+  const loanCounts = {
+    total: allLoans.length,
+    open: openLoans.length,
+    overdue: overdueOpen.length,
+  };
 
   const trendData = useMemo(() => {
     const weekdayTag =
@@ -198,18 +176,6 @@ export function ReportsPage() {
   }, [trendData]);
 
   const rhythm = dashQuery.data?.circulationRhythm ?? [];
-  const statusLabel = (value: string) =>
-    t(`reports.statusLabels.${value.replace("-", "")}`, value);
-  const conditionLabel = (value: string) =>
-    t(`catalog.condition.${value}`, value);
-  const roleLabel = (value: string) => t(`members.roles.${value}`, value);
-  const memberStatusLabel = (value: string) =>
-    ({
-      active: t("reports.statusLabels.memberActive", "Active"),
-      expired: t("reports.statusLabels.memberExpired", "Expired"),
-      suspended: t("reports.statusLabels.memberSuspended", "Suspended"),
-      archived: t("reports.statusLabels.memberSuspended", "Archived"),
-    })[value] ?? value;
 
   const kpis = [
     {
@@ -238,28 +204,6 @@ export function ReportsPage() {
     },
   ];
 
-  const TAB_CHARTS: Record<TabId, string[]> = {
-    overview: [
-      "circulationTrend",
-      "topCategories",
-      "statusDistribution",
-      "hourlyRhythm",
-    ],
-    circulation: [
-      "peakHours",
-      "mediaTypeDist",
-      "fulfillmentStatus",
-      "dailyPace",
-    ],
-    inventory: [
-      "copyStatusDist",
-      "conditionHealth",
-      "categoryShare",
-      "formatHoldingsCount",
-    ],
-    members: ["membersByRole", "activeDepts", "memberStatus", "memberJoins"],
-  };
-
   const rangeLabels: Record<typeof range, string> = {
     "7d": t("reports.ranges.7d", "Last 7 days"),
     "30d": t("reports.ranges.30d", "Last 30 days"),
@@ -268,172 +212,51 @@ export function ReportsPage() {
   };
 
   const exportZip = () => {
-    const stamp = new Date().toISOString().slice(0, 10);
-    void exportCsvZip(
-      `ketabyar-library-report-${stamp}.zip`,
-      [
-        {
-          name: "summary.csv",
-          columns: ["Metric", "Value"],
-          rows: kpis.map((kpi) => [kpi.label, kpi.value]),
-        },
-        {
-          name: "circulation-trend.csv",
-          columns: [
-            t("reports.columns.day", "Day"),
-            t("reports.columns.circulation", "Circulation"),
-          ],
-          rows: trendData.map((point) => [point.name, point.circulation]),
-        },
-        {
-          name: "top-categories.csv",
-          columns: [
-            t("reports.columns.category", "Category"),
-            t("reports.columns.loans", "Loans"),
-          ],
-          rows: categoriesData.map((row) => [row.name, row.value]),
-        },
-        {
-          name: "copy-status.csv",
-          columns: [
-            t("reports.columns.status", "Status"),
-            t("reports.columns.count", "Count"),
-          ],
-          rows: copyStatusData.map((row) => [statusLabel(row.label), row.n]),
-        },
-        {
-          name: "condition-health.csv",
-          columns: [
-            t("reports.columns.condition", "Condition"),
-            t("reports.columns.copies", "Copies"),
-          ],
-          rows: conditionsData.map((row) => [conditionLabel(row.label), row.n]),
-        },
-        {
-          name: "media-types.csv",
-          columns: [
-            t("reports.columns.type", "Type"),
-            t("reports.columns.count", "Count"),
-          ],
-          rows: itemTypesData.map((row) => [row.name, row.value]),
-        },
-        {
-          name: "members-by-role.csv",
-          columns: [
-            t("reports.columns.role", "Role"),
-            t("reports.columns.count", "Count"),
-          ],
-          rows: rolesData.map((row) => [roleLabel(row.name), row.value]),
-        },
-        {
-          name: "member-status.csv",
-          columns: [
-            t("reports.columns.status", "Status"),
-            t("reports.columns.count", "Count"),
-          ],
-          rows: memberStatusData.map((row) => [
-            memberStatusLabel(row.name),
-            row.value,
-          ]),
-        },
-        {
-          name: "new-members-over-time.csv",
-          columns: [
-            t("reports.columns.month", "Month"),
-            t("reports.columns.count", "Count"),
-          ],
-          rows: memberJoinsData.map((row) => [row.name, row.joins]),
-        },
-        {
-          name: "peak-circulation-hours.csv",
-          columns: [
-            t("reports.columns.time", "Time"),
-            t("reports.columns.checkouts", "Checkouts"),
-            t("reports.columns.returns", "Returns"),
-          ],
-          rows: rhythm.map((slot) => [slot.time, slot.checkouts, slot.returns]),
-        },
-      ],
-      t("reports.csvExportedNamed", "Report exported: {{filename}}", {
-        filename: `ketabyar-library-report-${stamp}.zip`,
-      }),
-      t("common.openFolder", "Open folder"),
-    );
+    buildReportZip({
+      t,
+      kpis,
+      trendData,
+      categoriesData,
+      copyStatusData,
+      conditionsData,
+      itemTypesData,
+      rolesData,
+      memberStatusData,
+      memberJoinsData,
+      rhythm,
+    });
   };
 
   const exportPdf = async () => {
     if (pdfExporting) return;
     setPdfExporting(true);
-    const toastId = toast.loading(
-      t("reports.generatingPdf", "Building the PDF report…"),
-    );
     const originalTab = activeTab;
     try {
-      const charts: {
-        title: string;
-        dataUrl: string;
-        width: number;
-        height: number;
-      }[] = [];
-      for (const tab of Object.keys(TAB_CHARTS) as TabId[]) {
-        setActiveTab(tab);
-        await waitForChartsToSettle();
-        for (const key of TAB_CHARTS[tab]) {
-          const captured = await captureChart(chartRefs.current[key]);
-          if (captured) {
-            charts.push({
-              title: t(`reports.charts.${key}`, key),
-              ...captured,
-            });
-          }
-        }
-      }
-      setActiveTab(originalTab);
-
-      const sections = (Object.keys(TAB_CHARTS) as TabId[]).map((tab) => ({
-        id: tab,
-        title: t(`reports.tabs.${tab}`, tab),
-        subtitle: t(
-          `reports.sectionSubtitles.${tab === "overview" ? "circulation" : tab}`,
-          "",
-        ),
-        charts: charts.filter((chart) =>
-          TAB_CHARTS[tab].some(
-            (key) => chart.title === t(`reports.charts.${key}`, key),
-          ),
-        ),
-        tables: [],
-      }));
-
-      await generateReportsPdf({
+      await runReportsPdfExport({
+        setActiveTab,
+        chartRefs,
         libraryName: settings.library_name || "KetabYar Library",
         librarySubtitle:
           settings.library_description || "Library Analytics & Reports",
-        generatedAt: new Date(),
-        rangeLabel: rangeLabels[range],
         locale,
-        kpis: kpis.map((kpi) => ({
-          label: kpi.label,
-          value: String(kpi.value),
-          sub: kpi.sub,
-        })),
-        sections,
-      });
-      toast.success(t("reports.pdfExported", "PDF report is ready"), {
-        id: toastId,
-        duration: 8000,
-      });
-    } catch (error) {
-      setActiveTab(originalTab);
-      toast.error(error instanceof Error ? error.message : String(error), {
-        id: toastId,
+        rangeLabel: rangeLabels[range],
+        kpis,
+        t,
       });
     } finally {
+      setActiveTab(originalTab);
       setPdfExporting(false);
     }
   };
 
   const loading = dashQuery.isLoading || loansQuery.isLoading;
+
+  // Latest-export mirror: the window context-menu listener below stays
+  // registered with stable deps while always calling the current exporter.
+  const exportPdfRef = useRef<() => Promise<void>>(async () => {});
+  useEffect(() => {
+    exportPdfRef.current = exportPdf;
+  });
 
   // Region context menu on a window listener: the page container stays free
   // of interaction props (Biome a11y); the keyboard menu key still fires
@@ -444,7 +267,7 @@ export function ReportsPage() {
     const onCtx = (event: MouseEvent) => {
       if (!reportRegionRef.current?.contains(event.target as Node)) return;
       showContextMenu(
-        event as unknown as React.MouseEvent,
+        event,
         [
           {
             id: "refresh",
@@ -461,7 +284,7 @@ export function ReportsPage() {
             id: "pdf",
             label: t("reports.printReport", "Export PDF report"),
             icon: Printer,
-            onClick: () => void exportPdf(),
+            onClick: () => void exportPdfRef.current(),
           },
           {
             id: "summary",
@@ -485,7 +308,6 @@ export function ReportsPage() {
   }, [
     showContextMenu,
     t,
-    exportPdf,
     dashQuery,
     loansQuery,
     breakdownsQuery,
@@ -585,676 +407,44 @@ export function ReportsPage() {
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {activeTab === "overview" ? (
-              <>
-                <ChartWidget
-                  ref={(element) => {
-                    chartRefs.current.circulationTrend = element;
-                  }}
-                  title={t(
-                    "reports.charts.circulationTrend",
-                    "Circulation trend",
-                  )}
-                  badge={
-                    trendBadge
-                      ? {
-                          positive: !trendBadge.startsWith("-"),
-                          text: `${trendBadge} ${t("reports.charts.vsLastPeriodSuffix", "vs previous period")}`,
-                        }
-                      : undefined
-                  }
-                >
-                  <ResponsiveContainer width="100%" height={220}>
-                    <AreaChart data={trendData}>
-                      <defs>
-                        <linearGradient
-                          id="gradCirculation"
-                          x1="0"
-                          y1="0"
-                          x2="0"
-                          y2="1"
-                        >
-                          <stop
-                            offset="0%"
-                            stopColor="var(--color-accent)"
-                            stopOpacity={0.35}
-                          />
-                          <stop
-                            offset="100%"
-                            stopColor="var(--color-accent)"
-                            stopOpacity={0}
-                          />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" opacity={0.12} />
-                      <XAxis
-                        dataKey="name"
-                        tick={{
-                          fontSize: 11,
-                          fill: "currentColor",
-                          opacity: 0.6,
-                        }}
-                        axisLine={false}
-                        tickLine={false}
-                      />
-                      <Tooltip contentStyle={tooltipStyle} />
-                      <Area
-                        type="monotone"
-                        dataKey="circulation"
-                        stroke="var(--color-accent)"
-                        strokeWidth={2.5}
-                        fill="url(#gradCirculation)"
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </ChartWidget>
-
-                <ChartWidget
-                  ref={(element) => {
-                    chartRefs.current.topCategories = element;
-                  }}
-                  title={t(
-                    "reports.charts.topCategories",
-                    "Most-borrowed categories",
-                  )}
-                >
-                  <ResponsiveContainer width="100%" height={220}>
-                    <BarChart data={categoriesData} layout="vertical">
-                      <XAxis type="number" hide />
-                      <YAxis
-                        type="category"
-                        dataKey="name"
-                        width={120}
-                        tick={{
-                          fontSize: 11,
-                          fill: "currentColor",
-                          opacity: 0.7,
-                        }}
-                        axisLine={false}
-                        tickLine={false}
-                      />
-                      <Tooltip contentStyle={tooltipStyle} />
-                      <Bar
-                        dataKey="value"
-                        fill="var(--color-accent)"
-                        radius={[0, 6, 6, 0]}
-                        barSize={18}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </ChartWidget>
-
-                <ChartWidget
-                  ref={(element) => {
-                    chartRefs.current.statusDistribution = element;
-                  }}
-                  title={t(
-                    "reports.charts.statusDistribution",
-                    "Loan status distribution",
-                  )}
-                >
-                  <ResponsiveContainer width="100%" height={220}>
-                    <PieChart>
-                      <Pie
-                        data={[
-                          {
-                            name: t(
-                              "reports.statusLabels.returned",
-                              "Returned",
-                            ),
-                            value: allLoans.length - openLoans.length,
-                          },
-                          {
-                            name: t(
-                              "reports.statusLabels.openActive",
-                              "Open & active",
-                            ),
-                            value: openLoans.length - overdueOpen.length,
-                          },
-                          {
-                            name: t("reports.statusLabels.overdue", "Overdue"),
-                            value: overdueOpen.length,
-                          },
-                        ]}
-                        innerRadius={45}
-                        outerRadius={80}
-                        paddingAngle={2}
-                        dataKey="value"
-                        nameKey="name"
-                      >
-                        {PIE_COLORS.slice(0, 3).map((color, index) => (
-                          <Cell key={index} fill={color} stroke="none" />
-                        ))}
-                      </Pie>
-                      <Legend
-                        iconType="circle"
-                        wrapperStyle={{ fontSize: 11 }}
-                      />
-                      <Tooltip contentStyle={tooltipStyle} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </ChartWidget>
-
-                <ChartWidget
-                  ref={(element) => {
-                    chartRefs.current.hourlyRhythm = element;
-                  }}
-                  title={t(
-                    "reports.charts.hourlyRhythm",
-                    "Today's hourly rhythm",
-                  )}
-                  secondaryBadge={t(
-                    "reports.charts.checkoutsVsReturns",
-                    "Checkouts vs returns",
-                  )}
-                >
-                  <ResponsiveContainer width="100%" height={220}>
-                    <BarChart data={rhythm}>
-                      <CartesianGrid strokeDasharray="3 3" opacity={0.12} />
-                      <XAxis
-                        dataKey="time"
-                        tick={{
-                          fontSize: 11,
-                          fill: "currentColor",
-                          opacity: 0.6,
-                        }}
-                        axisLine={false}
-                        tickLine={false}
-                      />
-                      <Tooltip contentStyle={tooltipStyle} />
-                      <Bar
-                        dataKey="checkouts"
-                        name={t("dashboard.checkouts", "Checkouts")}
-                        fill="var(--color-accent)"
-                        radius={[6, 6, 0, 0]}
-                        barSize={14}
-                      />
-                      <Bar
-                        dataKey="returns"
-                        name={t("dashboard.returns", "Returns")}
-                        fill="#c06b3e"
-                        radius={[6, 6, 0, 0]}
-                        barSize={14}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </ChartWidget>
-              </>
+              <OverviewCharts
+                trendData={trendData}
+                trendBadge={trendBadge}
+                categoriesData={categoriesData}
+                rhythm={rhythm}
+                loanCounts={loanCounts}
+                registerChart={registerChart}
+              />
             ) : null}
 
             {activeTab === "circulation" ? (
-              <>
-                <ChartWidget
-                  ref={(element) => {
-                    chartRefs.current.peakHours = element;
-                  }}
-                  title={t("reports.charts.peakHours", "Peak hours")}
-                >
-                  <ResponsiveContainer width="100%" height={220}>
-                    <BarChart data={rhythm}>
-                      <CartesianGrid strokeDasharray="3 3" opacity={0.12} />
-                      <XAxis
-                        dataKey="time"
-                        tick={{
-                          fontSize: 11,
-                          fill: "currentColor",
-                          opacity: 0.6,
-                        }}
-                        axisLine={false}
-                        tickLine={false}
-                      />
-                      <Tooltip contentStyle={tooltipStyle} />
-                      <Bar
-                        dataKey="checkouts"
-                        fill="var(--color-accent)"
-                        radius={[6, 6, 0, 0]}
-                        barSize={22}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </ChartWidget>
-
-                <ChartWidget
-                  ref={(element) => {
-                    chartRefs.current.mediaTypeDist = element;
-                  }}
-                  title={t(
-                    "reports.charts.mediaTypeDist",
-                    "Loans by media type",
-                  )}
-                >
-                  <ResponsiveContainer width="100%" height={220}>
-                    <BarChart data={itemTypesData}>
-                      <XAxis
-                        dataKey="name"
-                        tick={{
-                          fontSize: 11,
-                          fill: "currentColor",
-                          opacity: 0.6,
-                        }}
-                        axisLine={false}
-                        tickLine={false}
-                      />
-                      <Tooltip contentStyle={tooltipStyle} />
-                      <Bar
-                        dataKey="value"
-                        fill="#c06b3e"
-                        radius={[6, 6, 0, 0]}
-                        barSize={28}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </ChartWidget>
-
-                <ChartWidget
-                  ref={(element) => {
-                    chartRefs.current.fulfillmentStatus = element;
-                  }}
-                  title={t("reports.charts.fulfillmentStatus", "Loan states")}
-                >
-                  <ResponsiveContainer width="100%" height={220}>
-                    <BarChart
-                      data={[
-                        {
-                          name: t(
-                            "reports.statusLabels.openActive",
-                            "Open & active",
-                          ),
-                          value: openLoans.length - overdueOpen.length,
-                        },
-                        {
-                          name: t("reports.statusLabels.overdue", "Overdue"),
-                          value: overdueOpen.length,
-                        },
-                        {
-                          name: t("reports.statusLabels.returned", "Returned"),
-                          value: allLoans.length - openLoans.length,
-                        },
-                      ]}
-                    >
-                      <XAxis
-                        dataKey="name"
-                        tick={{
-                          fontSize: 11,
-                          fill: "currentColor",
-                          opacity: 0.6,
-                        }}
-                        axisLine={false}
-                        tickLine={false}
-                      />
-                      <Tooltip contentStyle={tooltipStyle} />
-                      <Bar
-                        dataKey="value"
-                        fill="var(--color-accent)"
-                        radius={[6, 6, 0, 0]}
-                        barSize={30}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </ChartWidget>
-
-                <ChartWidget
-                  ref={(element) => {
-                    chartRefs.current.dailyPace = element;
-                  }}
-                  title={t("reports.charts.dailyPace", "Daily pace")}
-                >
-                  <ResponsiveContainer width="100%" height={220}>
-                    <AreaChart data={trendData}>
-                      <defs>
-                        <linearGradient
-                          id="gradDaily"
-                          x1="0"
-                          y1="0"
-                          x2="0"
-                          y2="1"
-                        >
-                          <stop
-                            offset="0%"
-                            stopColor="#0f6e9c"
-                            stopOpacity={0.35}
-                          />
-                          <stop
-                            offset="100%"
-                            stopColor="#0f6e9c"
-                            stopOpacity={0}
-                          />
-                        </linearGradient>
-                      </defs>
-                      <XAxis
-                        dataKey="name"
-                        tick={{
-                          fontSize: 11,
-                          fill: "currentColor",
-                          opacity: 0.6,
-                        }}
-                        axisLine={false}
-                        tickLine={false}
-                      />
-                      <Tooltip contentStyle={tooltipStyle} />
-                      <Area
-                        type="monotone"
-                        dataKey="circulation"
-                        stroke="#0f6e9c"
-                        strokeWidth={2.5}
-                        fill="url(#gradDaily)"
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </ChartWidget>
-              </>
+              <CirculationCharts
+                trendData={trendData}
+                rhythm={rhythm}
+                itemTypesData={itemTypesData}
+                loanCounts={loanCounts}
+                registerChart={registerChart}
+              />
             ) : null}
 
             {activeTab === "inventory" ? (
-              <>
-                <ChartWidget
-                  ref={(element) => {
-                    chartRefs.current.copyStatusDist = element;
-                  }}
-                  title={t(
-                    "reports.charts.copyStatusDist",
-                    "Copy status distribution",
-                  )}
-                >
-                  <ResponsiveContainer width="100%" height={220}>
-                    <BarChart
-                      data={copyStatusData.map((row) => ({
-                        name: statusLabel(row.label),
-                        value: row.n,
-                      }))}
-                    >
-                      <XAxis
-                        dataKey="name"
-                        tick={{
-                          fontSize: 11,
-                          fill: "currentColor",
-                          opacity: 0.6,
-                        }}
-                        axisLine={false}
-                        tickLine={false}
-                      />
-                      <Tooltip contentStyle={tooltipStyle} />
-                      <Bar
-                        dataKey="value"
-                        fill="var(--color-accent)"
-                        radius={[6, 6, 0, 0]}
-                        barSize={26}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </ChartWidget>
-
-                <ChartWidget
-                  ref={(element) => {
-                    chartRefs.current.conditionHealth = element;
-                  }}
-                  title={t(
-                    "reports.charts.conditionHealth",
-                    "Condition health",
-                  )}
-                >
-                  <ResponsiveContainer width="100%" height={220}>
-                    <BarChart
-                      data={conditionsData.map((row) => ({
-                        name: conditionLabel(row.label),
-                        value: row.n,
-                      }))}
-                    >
-                      <XAxis
-                        dataKey="name"
-                        tick={{
-                          fontSize: 11,
-                          fill: "currentColor",
-                          opacity: 0.6,
-                        }}
-                        axisLine={false}
-                        tickLine={false}
-                      />
-                      <Tooltip contentStyle={tooltipStyle} />
-                      <Bar
-                        dataKey="value"
-                        fill="#c06b3e"
-                        radius={[6, 6, 0, 0]}
-                        barSize={26}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </ChartWidget>
-
-                <ChartWidget
-                  ref={(element) => {
-                    chartRefs.current.categoryShare = element;
-                  }}
-                  title={t(
-                    "reports.charts.categoryShare",
-                    "Inventory by category",
-                  )}
-                >
-                  <ResponsiveContainer width="100%" height={220}>
-                    <BarChart data={inventoryCategoriesData} layout="vertical">
-                      <XAxis type="number" hide />
-                      <YAxis
-                        type="category"
-                        dataKey="name"
-                        width={120}
-                        tick={{
-                          fontSize: 11,
-                          fill: "currentColor",
-                          opacity: 0.7,
-                        }}
-                        axisLine={false}
-                        tickLine={false}
-                      />
-                      <Tooltip contentStyle={tooltipStyle} />
-                      <Bar
-                        dataKey="value"
-                        fill="#2f5d8a"
-                        radius={[0, 6, 6, 0]}
-                        barSize={18}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </ChartWidget>
-
-                <ChartWidget
-                  ref={(element) => {
-                    chartRefs.current.formatHoldingsCount = element;
-                  }}
-                  title={t(
-                    "reports.charts.formatHoldingsCount",
-                    "Holdings by format",
-                  )}
-                >
-                  <ResponsiveContainer width="100%" height={220}>
-                    <BarChart data={itemTypesData}>
-                      <XAxis
-                        dataKey="name"
-                        tick={{
-                          fontSize: 11,
-                          fill: "currentColor",
-                          opacity: 0.6,
-                        }}
-                        axisLine={false}
-                        tickLine={false}
-                      />
-                      <Tooltip contentStyle={tooltipStyle} />
-                      <Bar
-                        dataKey="value"
-                        fill="#6d3fa8"
-                        radius={[6, 6, 0, 0]}
-                        barSize={28}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </ChartWidget>
-              </>
+              <InventoryCharts
+                copyStatusData={copyStatusData}
+                conditionsData={conditionsData}
+                inventoryCategoriesData={inventoryCategoriesData}
+                itemTypesData={itemTypesData}
+                registerChart={registerChart}
+              />
             ) : null}
 
             {activeTab === "members" ? (
-              <>
-                <ChartWidget
-                  ref={(element) => {
-                    chartRefs.current.membersByRole = element;
-                  }}
-                  title={t("reports.charts.membersByRole", "Members by role")}
-                >
-                  <ResponsiveContainer width="100%" height={220}>
-                    <BarChart
-                      data={rolesData.map((row) => ({
-                        name: roleLabel(row.name),
-                        value: row.value,
-                      }))}
-                    >
-                      <XAxis
-                        dataKey="name"
-                        tick={{
-                          fontSize: 11,
-                          fill: "currentColor",
-                          opacity: 0.6,
-                        }}
-                        axisLine={false}
-                        tickLine={false}
-                      />
-                      <Tooltip contentStyle={tooltipStyle} />
-                      <Bar
-                        dataKey="value"
-                        fill="var(--color-accent)"
-                        radius={[6, 6, 0, 0]}
-                        barSize={26}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </ChartWidget>
-
-                <ChartWidget
-                  ref={(element) => {
-                    chartRefs.current.activeDepts = element;
-                  }}
-                  title={t(
-                    "reports.charts.activeDepts",
-                    "Most active departments",
-                  )}
-                >
-                  <ResponsiveContainer width="100%" height={220}>
-                    <BarChart
-                      data={(dashQuery.data?.activeDepartments ?? []).slice(
-                        0,
-                        6,
-                      )}
-                      layout="vertical"
-                    >
-                      <XAxis type="number" hide />
-                      <YAxis
-                        type="category"
-                        dataKey="name"
-                        width={120}
-                        tick={{
-                          fontSize: 11,
-                          fill: "currentColor",
-                          opacity: 0.7,
-                        }}
-                        axisLine={false}
-                        tickLine={false}
-                      />
-                      <Tooltip contentStyle={tooltipStyle} />
-                      <Bar
-                        dataKey="count"
-                        fill="#c06b3e"
-                        radius={[0, 6, 6, 0]}
-                        barSize={18}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </ChartWidget>
-
-                <ChartWidget
-                  ref={(element) => {
-                    chartRefs.current.memberStatus = element;
-                  }}
-                  title={t("reports.charts.memberStatus", "Member status")}
-                >
-                  <ResponsiveContainer width="100%" height={220}>
-                    <PieChart>
-                      <Pie
-                        data={memberStatusData.map((row) => ({
-                          name: memberStatusLabel(row.name),
-                          value: row.value,
-                        }))}
-                        innerRadius={45}
-                        outerRadius={80}
-                        paddingAngle={2}
-                        dataKey="value"
-                        nameKey="name"
-                      >
-                        {memberStatusData.map((_entry, index) => (
-                          <Cell
-                            key={index}
-                            fill={PIE_COLORS[index % PIE_COLORS.length]}
-                            stroke="none"
-                          />
-                        ))}
-                      </Pie>
-                      <Legend
-                        iconType="circle"
-                        wrapperStyle={{ fontSize: 11 }}
-                      />
-                      <Tooltip contentStyle={tooltipStyle} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </ChartWidget>
-
-                <ChartWidget
-                  ref={(element) => {
-                    chartRefs.current.memberJoins = element;
-                  }}
-                  title={t(
-                    "reports.charts.memberJoins",
-                    "New members over time",
-                  )}
-                >
-                  <ResponsiveContainer width="100%" height={220}>
-                    <AreaChart data={memberJoinsData}>
-                      <defs>
-                        <linearGradient
-                          id="gradJoins"
-                          x1="0"
-                          y1="0"
-                          x2="0"
-                          y2="1"
-                        >
-                          <stop
-                            offset="0%"
-                            stopColor="#1b9277"
-                            stopOpacity={0.4}
-                          />
-                          <stop
-                            offset="100%"
-                            stopColor="#1b9277"
-                            stopOpacity={0}
-                          />
-                        </linearGradient>
-                      </defs>
-                      <XAxis
-                        dataKey="name"
-                        tick={{
-                          fontSize: 10,
-                          fill: "currentColor",
-                          opacity: 0.6,
-                        }}
-                        axisLine={false}
-                        tickLine={false}
-                      />
-                      <Tooltip contentStyle={tooltipStyle} />
-                      <Area
-                        type="monotone"
-                        dataKey="joins"
-                        stroke="#1b9277"
-                        strokeWidth={2.5}
-                        fill="url(#gradJoins)"
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </ChartWidget>
-              </>
+              <MembersCharts
+                rolesData={rolesData}
+                activeDepartments={dashQuery.data?.activeDepartments ?? []}
+                memberStatusData={memberStatusData}
+                memberJoinsData={memberJoinsData}
+                registerChart={registerChart}
+              />
             ) : null}
 
             <div className="md:col-span-2">
@@ -1269,53 +459,6 @@ export function ReportsPage() {
           </div>
         </>
       )}
-    </div>
-  );
-}
-
-function ChartWidget({
-  title,
-  ref,
-  badge,
-  secondaryBadge,
-  children,
-}: {
-  title: string;
-  ref?: React.Ref<HTMLDivElement>;
-  badge?: { positive: boolean; text: string };
-  secondaryBadge?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="rounded-[var(--radius-card)] border border-ink/8 bg-white p-4 shadow-card dark:border-white/8 dark:bg-[#1b2723]">
-      <div className="mb-3 flex items-center justify-between gap-2">
-        <p className="text-sm font-bold">{title}</p>
-        <div className="flex items-center gap-1.5">
-          {badge ? (
-            <span
-              className={cn(
-                "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold",
-                badge.positive
-                  ? "bg-accent/10 text-accent dark:text-accent-dark"
-                  : "bg-red-600/10 text-red-600",
-              )}
-            >
-              {badge.positive ? (
-                <TrendingUp size={10} />
-              ) : (
-                <TrendingDown size={10} />
-              )}
-              {badge.text}
-            </span>
-          ) : null}
-          {secondaryBadge ? (
-            <span className="rounded-full bg-ink/6 px-2 py-0.5 text-[10px] font-bold text-ink/60 dark:bg-white/8 dark:text-ivory/60">
-              {secondaryBadge}
-            </span>
-          ) : null}
-        </div>
-      </div>
-      <div ref={ref}>{children}</div>
     </div>
   );
 }

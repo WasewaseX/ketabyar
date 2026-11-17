@@ -1,4 +1,26 @@
 import { jsPDF } from "jspdf";
+
+declare module "jspdf" {
+  // autoTable attaches its end position to the document it rendered into.
+  interface jsPDF {
+    lastAutoTable?: { finalY: number };
+  }
+}
+
+declare module "jspdf" {
+  // autoTable attaches its end position to the document it rendered into.
+  interface jsPDF {
+    lastAutoTable?: { finalY: number };
+  }
+}
+
+declare module "jspdf" {
+  // autoTable attaches its end position to the document it rendered into.
+  interface jsPDF {
+    lastAutoTable?: { finalY: number };
+  }
+}
+
 import autoTable from "jspdf-autotable";
 import vazirmatnBold from "../assets/fonts/Vazirmatn-Bold.ttf?inline";
 import vazirmatnRegular from "../assets/fonts/Vazirmatn-Regular.ttf?inline";
@@ -224,9 +246,7 @@ function drawTables(
       alternateRowStyles: { fillColor: "#fcfbf8" },
       margin: { left: PAGE_MARGIN, right: PAGE_MARGIN },
     });
-    const cursor = (doc as unknown as { lastAutoTable?: { finalY: number } })
-      .lastAutoTable;
-    y = (cursor?.finalY ?? y) + 8;
+    y = (doc.lastAutoTable?.finalY ?? y) + 8;
   }
 }
 

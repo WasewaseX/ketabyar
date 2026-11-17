@@ -6,6 +6,69 @@ import { cn } from "../../utils/cn";
  * CSS, and adds zero asset weight.
  */
 
+const SPINE_ROWS = [
+  {
+    x: 36,
+    y: 38,
+    count: 5,
+    height: 28,
+    evenTone: "fill-copper/70",
+    oddTone: "fill-accent/70 dark:fill-accent-dark/70",
+  },
+  {
+    x: 40,
+    y: 74,
+    count: 3,
+    height: 26,
+    evenTone: "fill-accent/55 dark:fill-accent-dark/55",
+    oddTone: "fill-copper/60",
+  },
+] as const;
+
+/**
+ * A row of rounded rects — the recurring "page lines / book spines" motif.
+ * Steps in y (page lines) or x (spines) depending on the caller.
+ */
+function RectRow({
+  count,
+  x,
+  y,
+  xStep,
+  yStep,
+  width,
+  height,
+  rx,
+  className,
+}: {
+  count: number;
+  x: number;
+  y: number;
+  xStep: number;
+  yStep: number;
+  width: number;
+  height: number;
+  rx: number;
+  className: string | ((index: number) => string);
+}) {
+  return (
+    <>
+      {Array.from({ length: count }, (_, index) => (
+        <rect
+          key={index}
+          x={x + index * xStep}
+          y={y + index * yStep}
+          width={width}
+          height={height}
+          rx={rx}
+          className={
+            typeof className === "function" ? className(index) : className
+          }
+        />
+      ))}
+    </>
+  );
+}
+
 export function ArtReading({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 160 120" className={cn("h-32", className)} aria-hidden>
@@ -24,26 +87,21 @@ export function ArtReading({ className }: { className?: string }) {
         d="M80 34c10-9 26-12 40-9v64c-14-3-30 0-40 9V34z"
         className="fill-accent/60 dark:fill-accent-dark/60"
       />
-      {[0, 1, 2].map((row) => (
-        <rect
-          key={row}
-          x="50"
-          y={48 + row * 12}
-          width="20"
-          height="3.5"
-          rx="1.75"
-          className="fill-white/70"
-        />
-      ))}
-      {[0, 1, 2].map((row) => (
-        <rect
-          key={row}
-          x="92"
-          y={48 + row * 12}
-          width="20"
-          height="3.5"
-          rx="1.75"
-          className="fill-white/50"
+      {[
+        { x: 50, tone: "fill-white/70" },
+        { x: 92, tone: "fill-white/50" },
+      ].map((line) => (
+        <RectRow
+          key={line.x}
+          count={3}
+          x={line.x}
+          y={48}
+          xStep={0}
+          yStep={12}
+          width={20}
+          height={3.5}
+          rx={1.75}
+          className={line.tone}
         />
       ))}
       <path
@@ -148,58 +206,29 @@ export function ArtQuill({ className }: { className?: string }) {
 export function ArtShelf({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 160 120" className={cn("h-28", className)} aria-hidden>
-      <rect
-        x="30"
-        y="30"
-        width="100"
-        height="8"
-        rx="2"
+      <RectRow
+        count={3}
+        x={30}
+        y={30}
+        xStep={0}
+        yStep={36}
+        width={100}
+        height={8}
+        rx={2}
         className="fill-ink/15 dark:fill-white/15"
       />
-      <rect
-        x="30"
-        y="66"
-        width="100"
-        height="8"
-        rx="2"
-        className="fill-ink/15 dark:fill-white/15"
-      />
-      <rect
-        x="30"
-        y="100"
-        width="100"
-        height="8"
-        rx="2"
-        className="fill-ink/15 dark:fill-white/15"
-      />
-      {[0, 1, 2, 3, 4].map((index) => (
-        <rect
-          key={index}
-          x={36 + index * 15}
-          y={38}
+      {SPINE_ROWS.map((row) => (
+        <RectRow
+          key={row.x}
+          count={row.count}
+          x={row.x}
+          y={row.y}
+          xStep={15}
+          yStep={0}
           width={11}
-          height={28}
+          height={row.height}
           rx={2}
-          className={
-            index % 2
-              ? "fill-accent/70 dark:fill-accent-dark/70"
-              : "fill-copper/70"
-          }
-        />
-      ))}
-      {[0, 1, 2].map((index) => (
-        <rect
-          key={index}
-          x={40 + index * 15}
-          y={74}
-          width={11}
-          height={26}
-          rx={2}
-          className={
-            index % 2
-              ? "fill-copper/60"
-              : "fill-accent/55 dark:fill-accent-dark/55"
-          }
+          className={(index) => (index % 2 ? row.oddTone : row.evenTone)}
         />
       ))}
       <rect

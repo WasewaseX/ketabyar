@@ -6,8 +6,6 @@ use crate::{exec, now_iso, one, select, uid, Result};
 use rusqlite::Connection;
 use serde_json::{json, Map, Value as Json};
 
-// ─────────────────────────────── Fines ───────────────────────────────
-
 pub fn fines(conn: &Connection) -> Result<Vec<Json>> {
     select(
         conn,
@@ -49,8 +47,6 @@ pub fn waive_fine(conn: &Connection, actor: &str, fine_id: &str, reason: &str) -
     Ok(())
 }
 
-// ─────────────────────────────── Notifications ───────────────────────────────
-
 pub fn notifications(conn: &Connection, limit: i64) -> Result<Vec<Json>> {
     let rows = select(
         conn,
@@ -89,8 +85,6 @@ pub fn mark_all_notifications_read(conn: &Connection) -> Result<()> {
     Ok(())
 }
 
-// ─────────────────────────────── Audit ───────────────────────────────
-
 pub fn audit_log(conn: &Connection, limit: i64) -> Result<Vec<Json>> {
     select(
         conn,
@@ -98,8 +92,6 @@ pub fn audit_log(conn: &Connection, limit: i64) -> Result<Vec<Json>> {
         &[json!(limit)],
     )
 }
-
-// ─────────────────────────────── Rooms / Columns / Shelves ───────────────────────────────
 
 pub fn get_rooms(conn: &Connection) -> Result<Vec<Json>> {
     select(
@@ -361,8 +353,6 @@ pub fn update_shelf(conn: &Connection, actor: &str, shelf_id: &str, updates: &Js
     Ok(())
 }
 
-// ─────────────────────────────── Backup / Restore ───────────────────────────────
-
 pub const BACKUP_TABLES: [&str; 15] = [
     "rooms",
     "columns",
@@ -442,7 +432,10 @@ fn import_library_backup_tx(conn: &Connection, actor: &str, backup: &Json) -> Re
                 .map(|c| match row.get(c) {
                     None | Some(Json::Null) => Json::Null,
                     Some(Json::Bool(b)) => json!(if *b { 1 } else { 0 }),
-                    Some(Json::Number(_) | Json::String(_)) => row.get(c).unwrap().clone(),
+                    Some(Json::Number(_) | Json::String(_)) => row
+                        .get(c)
+                        .cloned()
+                        .unwrap_or(Json::Null),
                     Some(other) => json!(other.to_string()),
                 })
                 .collect();
@@ -518,8 +511,6 @@ fn delete_all_library_data_tx(conn: &Connection, actor: &str) -> Result<Json> {
     )?;
     Ok(counts_json)
 }
-
-// ─────────────────────────────── Dashboard ───────────────────────────────
 
 pub fn dashboard(conn: &Connection) -> Result<crate::models::DashboardMetrics> {
     let settings = get_library_settings(conn)?;

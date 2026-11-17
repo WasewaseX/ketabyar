@@ -2,7 +2,7 @@ import { AnimatePresence, motion } from "motion/react";
 import {
   type ComponentType,
   createContext,
-  type MouseEvent,
+  type MouseEvent as ReactMouseEvent,
   type ReactNode,
   useCallback,
   useContext,
@@ -48,7 +48,7 @@ interface ContextMenuState {
 
 interface ContextMenuApi {
   showContextMenu: (
-    event: MouseEvent,
+    event: MouseEvent | ReactMouseEvent,
     items: ContextMenuItem[],
     options?: { title?: string },
   ) => void;
@@ -88,7 +88,7 @@ export function ContextMenuProvider({ children }: { children: ReactNode }) {
 
   const showContextMenu = useCallback(
     (
-      event: MouseEvent,
+      event: MouseEvent | ReactMouseEvent,
       items: ContextMenuItem[],
       options?: { title?: string },
     ) => {

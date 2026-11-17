@@ -1,5 +1,5 @@
 import { Crop, Trash2, Upload, ZoomIn } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { cn } from "../../utils/cn";
@@ -152,7 +152,7 @@ export function ImageUpload({
     };
   }, [cropping, offset]);
 
-  async function readNativeFile(): Promise<string | null> {
+  const readNativeFile = useCallback(async (): Promise<string | null> => {
     const { open } = await import("@tauri-apps/plugin-dialog");
     const { readFile } = await import("@tauri-apps/plugin-fs");
     const picked = await open({
@@ -162,37 +162,42 @@ export function ImageUpload({
     if (!picked || typeof picked !== "string") return null;
     const bytes = await readFile(picked);
     return bytesToDataUrl(new Uint8Array(bytes), mimeFor(picked));
-  }
+  }, []);
 
-  async function acceptFile(file?: File | null) {
-    try {
-      let dataUrl: string | null = null;
-      if (file) {
-        if (!file.type.startsWith("image/")) {
-          toast.warning(
-            t("common.uploadImageFileType", "Only image files are accepted."),
-          );
-          return;
+  const acceptFile = useCallback(
+    async (file?: File | null) => {
+      try {
+        let dataUrl: string | null = null;
+        if (file) {
+          if (!file.type.startsWith("image/")) {
+            toast.warning(
+              t("common.uploadImageFileType", "Only image files are accepted."),
+            );
+            return;
+          }
+          dataUrl = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(String(reader.result));
+            reader.onerror = () => reject(reader.error);
+            reader.readAsDataURL(file);
+          });
+        } else if (isTauri()) {
+          dataUrl = await readNativeFile();
         }
-        dataUrl = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(String(reader.result));
-          reader.onerror = () => reject(reader.error);
-          reader.readAsDataURL(file);
-        });
-      } else if (isTauri()) {
-        dataUrl = await readNativeFile();
+        if (!dataUrl) return;
+        setOriginal(dataUrl);
+        setOffset({ x: 0, y: 0 });
+        setZoom(1);
+        setCropping(true);
+      } catch (error) {
+        console.error(error);
+        toast.error(
+          t("common.readImageFailed", "The image could not be read."),
+        );
       }
-      if (!dataUrl) return;
-      setOriginal(dataUrl);
-      setOffset({ x: 0, y: 0 });
-      setZoom(1);
-      setCropping(true);
-    } catch (error) {
-      console.error(error);
-      toast.error(t("common.readImageFailed", "The image could not be read."));
-    }
-  }
+    },
+    [readNativeFile, t],
+  );
 
   function applyCrop() {
     if (!original) return;

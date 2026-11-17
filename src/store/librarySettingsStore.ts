@@ -59,13 +59,12 @@ export const useLibrarySettingsStore = create<LibrarySettingsState>(
     loaded: false,
     load: async () => {
       const data = await getLibrarySettings();
-      const merged: Record<string, unknown> = { ...defaults };
-      for (const [key, value] of Object.entries(
-        data as unknown as Record<string, unknown>,
-      )) {
-        if (value !== null && value !== undefined) merged[key] = value;
+      const merged: LibrarySettings = { ...defaults, ...data };
+      for (const [key, value] of Object.entries(data)) {
+        if (value !== null && value !== undefined)
+          Object.assign(merged, { [key]: value });
       }
-      set({ settings: merged as unknown as LibrarySettings, loaded: true });
+      set({ settings: merged, loaded: true });
     },
     update: async (values) => {
       await saveLibrarySettings(values);

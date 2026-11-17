@@ -43,9 +43,8 @@ export function OnboardingPage() {
       void i18n.changeLanguage("fa");
       navigate("/dashboard");
     } catch (completeError) {
-      // v1.2.4: this path used to have NO catch — a failed settings read or
-      // save left the user stuck on onboarding with zero feedback (the same
-      // silent-failure class as the login deadlock). Surface it and stay
+      // A failed settings read or save must not leave the user stuck on
+      // onboarding without any feedback: surface the error and stay
       // retryable instead.
       const message =
         completeError instanceof Error

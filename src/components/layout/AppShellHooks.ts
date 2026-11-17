@@ -7,7 +7,12 @@ import {
   Sparkles,
   Sun,
 } from "lucide-react";
-import { useCallback, useEffect, useRef } from "react";
+import {
+  type MouseEvent as ReactMouseEvent,
+  useCallback,
+  useEffect,
+  useRef,
+} from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -183,7 +188,7 @@ export function useAppContextMenu({
   const setPaletteOpen = useUiStore((state) => state.setPaletteOpen);
 
   return useCallback(
-    (event: React.MouseEvent) => {
+    (event: MouseEvent | ReactMouseEvent) => {
       showContextMenu(
         event,
         [
@@ -265,13 +270,13 @@ export function useAppContextMenu({
 /** Runs the region context-menu handler from a window listener: the layout
  * container stays free of interaction props (Biome a11y). */
 export function useRegionContextMenu(
-  onContextMenu: (event: React.MouseEvent) => void,
+  onContextMenu: (event: MouseEvent | ReactMouseEvent) => void,
 ) {
   const contentRegionRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const onCtx = (event: MouseEvent) => {
       if (!contentRegionRef.current?.contains(event.target as Node)) return;
-      onContextMenu(event as unknown as React.MouseEvent);
+      onContextMenu(event);
     };
     window.addEventListener("contextmenu", onCtx);
     return () => window.removeEventListener("contextmenu", onCtx);

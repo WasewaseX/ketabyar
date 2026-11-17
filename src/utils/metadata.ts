@@ -6,6 +6,8 @@
  * KetabYar adds Persian language normalisation on top.
  */
 
+import { GROQ_ENDPOINT, OPENLIBRARY_BASE } from "../config/endpoints";
+
 export interface ExternalBookMetadata {
   title: string;
   subtitle?: string;
@@ -176,7 +178,7 @@ async function queryOpenLibraryByIsbn(
   clean: string,
 ): Promise<ExternalBookMetadata | null> {
   try {
-    const url = `https://openlibrary.org/api/books?bibkeys=ISBN:${clean}&jscmd=data&format=json`;
+    const url = `${OPENLIBRARY_BASE}/api/books?bibkeys=ISBN:${clean}&jscmd=data&format=json`;
     const response = await fetchWithTimeout(url);
     if (!response.ok) return null;
     const payload = await response.json();
@@ -218,7 +220,7 @@ async function queryOpenLibraryByText(
   query: string,
 ): Promise<ExternalBookMetadata | null> {
   try {
-    const url = `https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=5`;
+    const url = `${OPENLIBRARY_BASE}/search.json?q=${encodeURIComponent(query)}&limit=5`;
     const response = await fetchWithTimeout(url);
     if (!response.ok) return null;
     const payload = await response.json();
@@ -318,15 +320,6 @@ export async function fetchBookMetadata(
   ]);
   return mergeResults(google, openLibrary, trimmed);
 }
-
-/** Convenience alias for ISBN-only lookups. */
-export async function fetchBookMetadataByIsbn(
-  isbn: string,
-): Promise<ExternalBookMetadata> {
-  return fetchBookMetadata(isbn);
-}
-
-const GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
 
 /**
  * Optional second pass: asks Groq's fast model to complete / correct the

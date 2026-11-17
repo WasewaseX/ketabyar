@@ -38,8 +38,6 @@ pub fn in_transaction<T>(
     }
 }
 
-// ─────────────────────────── JSON input accessors ───────────────────────────
-
 pub fn jstr(v: &Json, key: &str) -> Option<String> {
     v.get(key).and_then(|x| x.as_str()).map(|s| s.to_string())
 }
@@ -53,8 +51,6 @@ pub fn jbool(v: &Json, key: &str) -> Option<bool> {
         _ => None,
     }
 }
-
-// ─────────────────────────── Cleaning utils (isbn.ts port) ───────────────────────────
 
 pub fn normalize_isbn(v: &str) -> String {
     v.chars()
@@ -114,8 +110,6 @@ pub fn clean_text(v: &str) -> String {
     v.trim().to_string()
 }
 
-// ─────────────────────────── Audit ───────────────────────────
-
 pub fn audit(
     conn: &Connection,
     actor: &str,
@@ -132,8 +126,6 @@ pub fn audit(
     )?;
     Ok(())
 }
-
-// ─────────────────────────── name upsert ───────────────────────────
 
 /// Finds a row by its unique `name` column, inserting one if missing.
 /// `table` must be one of publishers/categories/authors/tags.
@@ -197,8 +189,6 @@ pub fn split_tags(tags: &str) -> Vec<String> {
         .filter(|t| seen.insert(t.clone()))
         .collect()
 }
-
-// ─────────────────────────── Library settings ───────────────────────────
 
 pub fn num_col(row: &Json, key: &str, default: f64) -> f64 {
     row.get(key).and_then(|x| x.as_f64()).unwrap_or(default)
@@ -356,8 +346,6 @@ pub fn save_library_settings(conn: &Connection, actor: &str, values: &Json) -> R
     Ok(())
 }
 
-// ─────────────────────────── Barcode / accession uniqueness ───────────────────────────
-
 pub fn ensure_unique_barcode(
     conn: &Connection,
     input_barcode: Option<&str>,
@@ -465,8 +453,6 @@ pub fn ensure_unique_accession(
     }
     Ok(base)
 }
-
-// ─────────────────────────── Circulation primitives ───────────────────────────
 
 pub fn ms(days: f64) -> i64 {
     (days * 86_400_000.0) as i64
@@ -701,8 +687,6 @@ pub fn charge_overdue_fine(
     )?;
     Ok(())
 }
-
-// ─────────────────────────── Tests ───────────────────────────
 
 #[cfg(test)]
 mod tests {
