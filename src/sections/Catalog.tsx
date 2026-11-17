@@ -335,10 +335,10 @@ export function CatalogPage() {
       if (key === "available_copies")
         result = (a.available_copies ?? 0) - (b.available_copies ?? 0);
       else {
-        const valueOf = (book: Book) =>
+        const cellValue = (book: Book) =>
           Object.entries(book).find(([field]) => field === key)?.[1];
-        result = String(valueOf(a) ?? "").localeCompare(
-          String(valueOf(b) ?? ""),
+        result = String(cellValue(a) ?? "").localeCompare(
+          String(cellValue(b) ?? ""),
           "fa",
           { numeric: true, sensitivity: "base" },
         );
