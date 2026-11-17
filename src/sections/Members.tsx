@@ -14,7 +14,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { ArtReading } from "../components/ui/art";
 import { useContextMenu } from "../components/ui/ContextMenu";
-import { EmptyState, Modal, PageLoader } from "../components/ui/primitives";
+import { EmptyState, PageLoader } from "../components/ui/primitives";
 import { PageTitle } from "../components/ui/shared";
 import {
   cancelReservation,
