@@ -1,6 +1,7 @@
 {
   "app": "کتابیار",
   "auth": {
+    "pinInput": "ورودی پین",
     "signInTitle": "ورود به کتابیار",
     "signInSubtitle": "برای ادامه، پین کتابخانه را وارد کنید.",
     "username": "نام کاربری",
@@ -227,6 +228,11 @@
     "defenseYear": "سال دفاع"
   },
   "catalog": {
+    "filterType": "فیلتر نوع",
+    "filterCategory": "فیلتر دسته‌بندی",
+    "filterLanguage": "فیلتر زبان",
+    "selectAll": "انتخاب همه کتاب‌ها",
+    "selectRow": "انتخاب کتاب {{title}}",
     "title": "کاتالوگ",
     "subtitle": "مجموعهٔ منابع • {{count}} مورد",
     "addBook": "افزودن منبع",
@@ -425,6 +431,9 @@
     }
   },
   "members": {
+    "filterDepartment": "فیلتر دانشکده",
+    "sortBy": "ترتیب بر اساس",
+    "selectRow": "انتخاب عضو {{name}}",
     "title": "اعضا",
     "subtitle": "مدیریت شرایط امانت، اطلاعات تماس و عضویت.",
     "addMember": "افزودن عضو",
@@ -543,6 +552,12 @@
     "saveAndSwitch": "ایجاد و تغییر"
   },
   "reservations": {
+    "filterStatus": "فیلتر وضعیت",
+    "addModal.memberDeptFilter": "فیلتر دانشکده",
+    "addModal.memberRoleFilter": "فیلتر نقش",
+    "addModal.itemCategoryFilter": "فیلتر دسته‌بندی",
+    "addModal.itemTypeFilter": "فیلتر نوع",
+    "addModal.availabilityFilter": "فیلتر موجودی",
     "title": "رزروها",
     "subtitle": "مدیریت صف رزرو و تحویل منابع رزروشده.",
     "search": "جست‌وجوی رزروها…",
@@ -716,6 +731,8 @@
     "visitor": "مهمان"
   },
   "loans": {
+    "sortBy": "ترتیب بر اساس",
+    "selectRow": "انتخاب وام {{title}}",
     "title": "امانت‌ها",
     "subtitle": "همهٔ مواردِ در امانت، معوق یا بازگشتی.",
     "searchPlaceholder": "جست‌وجوی عنوان، عضو، بارکد، قفسه…",
@@ -794,6 +811,10 @@
     }
   },
   "inventory": {
+    "filterCondition": "فیلتر وضعیت نسخه",
+    "filterShelf": "فیلتر قفسه",
+    "selectAll": "انتخاب همه نسخه‌ها",
+    "selectRow": "انتخاب نسخه {{title}}",
     "title": "انبار",
     "subtitle": "بازرسی، تطبیق و مرور قفسه‌ها.",
     "shelves": "محل قفسه‌ها",
@@ -977,6 +998,7 @@
     "unassignedOption": "فقط بدون قفسه"
   },
   "reports": {
+    "filterRange": "فیلتر بازهٔ زمانی",
     "loading": "در حال بارگذاری آمار…",
     "title": "گزارش‌ها",
     "subtitle": "خروجی خلاصه‌ها، آمار کتابخانه و فایل‌های اکسل.",
@@ -1104,6 +1126,8 @@
     "generatingPdf": "در حال ساخت گزارش PDF…"
   },
   "notificationsPage": {
+    "filterKind": "فیلتر نوع",
+    "filterRead": "فیلتر وضعیت خواندن",
     "subtitle": "امانت‌های معوق، رزروهای آماده و تاریخچهٔ اعلان‌ها",
     "markAllRead": "علامت‌گذاری همه به‌عنوان خوانده‌شده",
     "needsAttention": "نیازمند توجه",
@@ -1129,6 +1153,10 @@
     "noMatchesDesc": "جست‌وجو را پاک کنید یا نوع را به «همه» برگردانید."
   },
   "activity": {
+    "dateFilter": "فیلتر تاریخ",
+    "entityFilter": "فیلتر موجودیت",
+    "actorFilter": "فیلتر کاربر",
+    "actionFilter": "فیلتر عملیات",
     "title": "گزارش فعالیت‌ها",
     "subtitle": "سابقهٔ تراکنش‌های کتابخانه و نوشتارهای پایگاه‌داده.",
     "all": "همهٔ اقدامات",
@@ -1272,6 +1300,7 @@
       "about": "درباره"
     },
     "general": {
+      "pageSize": "تعداد ردیف در هر صفحه",
       "title": "عمومی",
       "desc": "شناسهٔ کتابخانه و پروندهٔ کتابدار را پیکربندی کنید.",
       "identityTitle": "شناسهٔ کتابخانه",
@@ -1747,6 +1776,7 @@
     "backupError": "صدور پشتیبان ممکن نشد."
   },
   "common": {
+    "imageZoom": "بزرگ‌نمایی تصویر",
     "typeToFilter": "برای پالایش تایپ کنید…",
     "noResults": "نتیجه‌ای یافت نشد",
     "closeDialog": "بستن پنجره",

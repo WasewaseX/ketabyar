@@ -271,6 +271,10 @@ export function NotificationsPage() {
 
       <div className="mb-4 flex flex-wrap items-center gap-2 rounded-[var(--radius-card)] border border-ink/8 bg-white p-3 shadow-card dark:border-white/8 dark:bg-[#1b2723]">
         <input
+          aria-label={t(
+            "notificationsPage.searchPlaceholder",
+            "Search notifications…",
+          )}
           className="field-input max-w-xs"
           placeholder={t(
             "notificationsPage.searchPlaceholder",
@@ -280,6 +284,10 @@ export function NotificationsPage() {
           onChange={(event) => setTerm(event.target.value)}
         />
         <select
+          aria-label={t(
+            "notificationsPage.filterKind",
+            "Notification type filter",
+          )}
           className="field-select max-w-44"
           value={kindFilter}
           onChange={(event) =>
@@ -303,6 +311,7 @@ export function NotificationsPage() {
           </option>
         </select>
         <select
+          aria-label={t("notificationsPage.filterRead", "Read-state filter")}
           className="field-select max-w-40"
           value={unreadOnly ? "unread" : "all"}
           onChange={(event) => setUnreadOnly(event.target.value === "unread")}

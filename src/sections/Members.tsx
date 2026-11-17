@@ -345,6 +345,10 @@ export function MembersPage() {
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <input
             ref={searchRef}
+            aria-label={t(
+              "members.searchPlaceholder",
+              "Search name, number, phone…",
+            )}
             className="field-input max-w-xs"
             placeholder={t(
               "members.searchPlaceholder",
@@ -357,6 +361,7 @@ export function MembersPage() {
             }}
           />
           <select
+            aria-label={t("members.filterDepartment", "Department filter")}
             className="field-select max-w-44"
             value={departmentFilter}
             onChange={(event) => {
@@ -374,6 +379,7 @@ export function MembersPage() {
             ))}
           </select>
           <select
+            aria-label={t("members.sortBy", "Sort by")}
             className="field-select max-w-40"
             value={sortKey}
             onChange={(event) =>
@@ -552,6 +558,11 @@ export function MembersPage() {
                   <input
                     type="checkbox"
                     className="absolute start-3 top-3"
+                    aria-label={t(
+                      "members.selectRow",
+                      "Select member {{name}}",
+                      { name: member.full_name },
+                    )}
                     checked={selectedIds.has(member.id)}
                     onChange={(event) => {
                       const next = new Set(selectedIds);

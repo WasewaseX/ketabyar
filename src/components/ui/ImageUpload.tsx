@@ -247,19 +247,37 @@ export function ImageUpload({
     image.src = original;
   }
 
+  // Drag-and-drop on a window listener: the preview container stays free of
+  // interaction props (Biome a11y). Drops outside the zone keep the browser
+  // default exactly as before.
+  const dropZoneRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const onDragOver = (event: DragEvent) => {
+      if (dropZoneRef.current?.contains(event.target as Node))
+        event.preventDefault();
+    };
+    const onDrop = (event: DragEvent) => {
+      if (!dropZoneRef.current?.contains(event.target as Node)) return;
+      event.preventDefault();
+      void acceptFile(event.dataTransfer?.files?.[0]);
+    };
+    window.addEventListener("dragover", onDragOver);
+    window.addEventListener("drop", onDrop);
+    return () => {
+      window.removeEventListener("dragover", onDragOver);
+      window.removeEventListener("drop", onDrop);
+    };
+  }, [acceptFile]);
+
   return (
     <div className="flex flex-col gap-2">
-      {/* biome-ignore lint/a11y/noStaticElementInteractions: drag-and-drop target; the visible file-picker button below is the keyboard path */}
       <div
+        ref={dropZoneRef}
         className={cn(
           "relative overflow-hidden border border-ink/12 bg-ivory dark:border-white/12 dark:bg-ink",
           SHAPE_PREVIEW[shape],
         )}
-        onDragOver={(event) => event.preventDefault()}
-        onDrop={(event) => {
-          event.preventDefault();
-          void acceptFile(event.dataTransfer.files?.[0]);
-        }}
       >
         {value ? (
           <>
@@ -321,6 +339,7 @@ export function ImageUpload({
         ref={inputRef}
         type="file"
         accept="image/*"
+        aria-label={t("common.uploadNewImage", "Replace image")}
         className="hidden"
         onChange={(event) => void acceptFile(event.target.files?.[0])}
       />
@@ -367,6 +386,7 @@ export function ImageUpload({
               <ZoomIn size={14} className="text-ink/50 dark:text-ivory/50" />
               <input
                 type="range"
+                aria-label={t("common.imageZoom", "Image zoom")}
                 min={0.2}
                 max={3}
                 step={0.05}

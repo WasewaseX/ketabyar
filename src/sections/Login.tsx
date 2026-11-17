@@ -135,7 +135,7 @@ export function LoginPage() {
 
   // Physical keyboard: handle digits, backspace and Enter even when the
   // hidden input is not focused — the usual case on first launch. Every
-  // handler reads pinRef, so registering once can never go stale.
+  // handler reads pinRef, so a re-register per render can never go stale.
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.target === inputRef.current) return; // the input handles its own keys
@@ -154,8 +154,7 @@ export function LoginPage() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [pressDigit, pressBackspace, pressEnter]);
 
   return (
     <Shell>
@@ -200,6 +199,7 @@ export function LoginPage() {
         <input
           ref={inputRef}
           className="sr-only"
+          aria-label={t("auth.pinInput", "Library PIN")}
           type="password"
           inputMode="numeric"
           value={pin}
@@ -312,6 +312,7 @@ export function ForcedPasswordChangePage({ user }: { user: PublicUser }) {
             className="field-input"
             type="password"
             inputMode="numeric"
+            aria-label={t("settings.account.currentPassword", "پین فعلی")}
             placeholder={t("settings.account.currentPassword", "پین فعلی")}
             value={current}
             onChange={(event) => setCurrent(event.target.value)}
@@ -320,6 +321,7 @@ export function ForcedPasswordChangePage({ user }: { user: PublicUser }) {
             className="field-input"
             type="password"
             inputMode="numeric"
+            aria-label={t("settings.account.newPassword", "پین جدید")}
             placeholder={t("settings.account.newPassword", "پین جدید")}
             value={next}
             onChange={(event) => setNext(event.target.value)}
@@ -328,6 +330,7 @@ export function ForcedPasswordChangePage({ user }: { user: PublicUser }) {
             className="field-input"
             type="password"
             inputMode="numeric"
+            aria-label={t("settings.account.confirmPassword", "تکرار پین جدید")}
             placeholder={t(
               "settings.account.confirmPassword",
               "تکرار پین جدید",

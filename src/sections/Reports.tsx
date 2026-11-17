@@ -10,7 +10,7 @@ import {
   TrendingDown,
   TrendingUp,
 } from "lucide-react";
-import { type RefObject, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Area,
@@ -435,48 +435,66 @@ export function ReportsPage() {
 
   const loading = dashQuery.isLoading || loansQuery.isLoading;
 
+  // Region context menu on a window listener: the page container stays free
+  // of interaction props (Biome a11y); the keyboard menu key still fires
+  // contextmenu events, which this listener receives like any other.
+  const reportRegionRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const onCtx = (event: MouseEvent) => {
+      if (!reportRegionRef.current?.contains(event.target as Node)) return;
+      showContextMenu(
+        event as unknown as React.MouseEvent,
+        [
+          {
+            id: "refresh",
+            label: t("reports.refreshReports", "Refresh reports"),
+            icon: RefreshCw,
+            onClick: () => {
+              void dashQuery.refetch();
+              void loansQuery.refetch();
+              void breakdownsQuery.refetch();
+              toast.success(t("reports.refreshed", "Reports refreshed"));
+            },
+          },
+          {
+            id: "pdf",
+            label: t("reports.printReport", "Export PDF report"),
+            icon: Printer,
+            onClick: () => void exportPdf(),
+          },
+          {
+            id: "summary",
+            label: t("reports.copySummary", "Copy stat summary"),
+            icon: Copy,
+            onClick: () => {
+              void navigator.clipboard.writeText(
+                `KetabYar Library Reports Summary:\nTitles: ${dashQuery.data?.titles ?? 0}\nCopies: ${dashQuery.data?.copies ?? 0}\nTotal Loans: ${allLoans.length}\nActive Members: ${dashQuery.data?.members ?? 0}\nOverdue Rate: ${overdueRate}`,
+              );
+              toast.success(
+                t("reports.copiedSummary", "Summary copied to clipboard"),
+              );
+            },
+          },
+        ],
+        { title: t("reports.title", "Reports") },
+      );
+    };
+    window.addEventListener("contextmenu", onCtx);
+    return () => window.removeEventListener("contextmenu", onCtx);
+  }, [
+    showContextMenu,
+    t,
+    exportPdf,
+    dashQuery,
+    loansQuery,
+    breakdownsQuery,
+    allLoans,
+    overdueRate,
+  ]);
+
   return (
-    // biome-ignore lint/a11y/noStaticElementInteractions: the contextmenu event also fires from the keyboard menu key on this region
-    <div
-      onContextMenu={(event) =>
-        showContextMenu(
-          event,
-          [
-            {
-              id: "refresh",
-              label: t("reports.refreshReports", "Refresh reports"),
-              icon: RefreshCw,
-              onClick: () => {
-                void dashQuery.refetch();
-                void loansQuery.refetch();
-                void breakdownsQuery.refetch();
-                toast.success(t("reports.refreshed", "Reports refreshed"));
-              },
-            },
-            {
-              id: "pdf",
-              label: t("reports.printReport", "Export PDF report"),
-              icon: Printer,
-              onClick: () => void exportPdf(),
-            },
-            {
-              id: "summary",
-              label: t("reports.copySummary", "Copy stat summary"),
-              icon: Copy,
-              onClick: () => {
-                void navigator.clipboard.writeText(
-                  `KetabYar Library Reports Summary:\nTitles: ${dashQuery.data?.titles ?? 0}\nCopies: ${dashQuery.data?.copies ?? 0}\nTotal Loans: ${allLoans.length}\nActive Members: ${dashQuery.data?.members ?? 0}\nOverdue Rate: ${overdueRate}`,
-                );
-                toast.success(
-                  t("reports.copiedSummary", "Summary copied to clipboard"),
-                );
-              },
-            },
-          ],
-          { title: t("reports.title", "Reports") },
-        )
-      }
-    >
+    <div ref={reportRegionRef}>
       <PageTitle
         title={t("reports.title", "Reports")}
         detail={t(
@@ -525,6 +543,7 @@ export function ReportsPage() {
           ))}
         </div>
         <select
+          aria-label={t("reports.filterRange", "Date-range filter")}
           className="field-select max-w-40"
           value={range}
           onChange={(event) => setRange(event.target.value as typeof range)}
@@ -568,12 +587,13 @@ export function ReportsPage() {
             {activeTab === "overview" ? (
               <>
                 <ChartWidget
-                  refKey="circulationTrend"
+                  ref={(element) => {
+                    chartRefs.current.circulationTrend = element;
+                  }}
                   title={t(
                     "reports.charts.circulationTrend",
                     "Circulation trend",
                   )}
-                  refs={chartRefs}
                   badge={
                     trendBadge
                       ? {
@@ -629,12 +649,13 @@ export function ReportsPage() {
                 </ChartWidget>
 
                 <ChartWidget
-                  refKey="topCategories"
+                  ref={(element) => {
+                    chartRefs.current.topCategories = element;
+                  }}
                   title={t(
                     "reports.charts.topCategories",
                     "Most-borrowed categories",
                   )}
-                  refs={chartRefs}
                 >
                   <ResponsiveContainer width="100%" height={220}>
                     <BarChart data={categoriesData} layout="vertical">
@@ -663,12 +684,13 @@ export function ReportsPage() {
                 </ChartWidget>
 
                 <ChartWidget
-                  refKey="statusDistribution"
+                  ref={(element) => {
+                    chartRefs.current.statusDistribution = element;
+                  }}
                   title={t(
                     "reports.charts.statusDistribution",
                     "Loan status distribution",
                   )}
-                  refs={chartRefs}
                 >
                   <ResponsiveContainer width="100%" height={220}>
                     <PieChart>
@@ -713,12 +735,13 @@ export function ReportsPage() {
                 </ChartWidget>
 
                 <ChartWidget
-                  refKey="hourlyRhythm"
+                  ref={(element) => {
+                    chartRefs.current.hourlyRhythm = element;
+                  }}
                   title={t(
                     "reports.charts.hourlyRhythm",
                     "Today's hourly rhythm",
                   )}
-                  refs={chartRefs}
                   secondaryBadge={t(
                     "reports.charts.checkoutsVsReturns",
                     "Checkouts vs returns",
@@ -761,9 +784,10 @@ export function ReportsPage() {
             {activeTab === "circulation" ? (
               <>
                 <ChartWidget
-                  refKey="peakHours"
+                  ref={(element) => {
+                    chartRefs.current.peakHours = element;
+                  }}
                   title={t("reports.charts.peakHours", "Peak hours")}
-                  refs={chartRefs}
                 >
                   <ResponsiveContainer width="100%" height={220}>
                     <BarChart data={rhythm}>
@@ -790,12 +814,13 @@ export function ReportsPage() {
                 </ChartWidget>
 
                 <ChartWidget
-                  refKey="mediaTypeDist"
+                  ref={(element) => {
+                    chartRefs.current.mediaTypeDist = element;
+                  }}
                   title={t(
                     "reports.charts.mediaTypeDist",
                     "Loans by media type",
                   )}
-                  refs={chartRefs}
                 >
                   <ResponsiveContainer width="100%" height={220}>
                     <BarChart data={itemTypesData}>
@@ -821,9 +846,10 @@ export function ReportsPage() {
                 </ChartWidget>
 
                 <ChartWidget
-                  refKey="fulfillmentStatus"
+                  ref={(element) => {
+                    chartRefs.current.fulfillmentStatus = element;
+                  }}
                   title={t("reports.charts.fulfillmentStatus", "Loan states")}
-                  refs={chartRefs}
                 >
                   <ResponsiveContainer width="100%" height={220}>
                     <BarChart
@@ -867,9 +893,10 @@ export function ReportsPage() {
                 </ChartWidget>
 
                 <ChartWidget
-                  refKey="dailyPace"
+                  ref={(element) => {
+                    chartRefs.current.dailyPace = element;
+                  }}
                   title={t("reports.charts.dailyPace", "Daily pace")}
-                  refs={chartRefs}
                 >
                   <ResponsiveContainer width="100%" height={220}>
                     <AreaChart data={trendData}>
@@ -920,12 +947,13 @@ export function ReportsPage() {
             {activeTab === "inventory" ? (
               <>
                 <ChartWidget
-                  refKey="copyStatusDist"
+                  ref={(element) => {
+                    chartRefs.current.copyStatusDist = element;
+                  }}
                   title={t(
                     "reports.charts.copyStatusDist",
                     "Copy status distribution",
                   )}
-                  refs={chartRefs}
                 >
                   <ResponsiveContainer width="100%" height={220}>
                     <BarChart
@@ -956,12 +984,13 @@ export function ReportsPage() {
                 </ChartWidget>
 
                 <ChartWidget
-                  refKey="conditionHealth"
+                  ref={(element) => {
+                    chartRefs.current.conditionHealth = element;
+                  }}
                   title={t(
                     "reports.charts.conditionHealth",
                     "Condition health",
                   )}
-                  refs={chartRefs}
                 >
                   <ResponsiveContainer width="100%" height={220}>
                     <BarChart
@@ -992,12 +1021,13 @@ export function ReportsPage() {
                 </ChartWidget>
 
                 <ChartWidget
-                  refKey="categoryShare"
+                  ref={(element) => {
+                    chartRefs.current.categoryShare = element;
+                  }}
                   title={t(
                     "reports.charts.categoryShare",
                     "Inventory by category",
                   )}
-                  refs={chartRefs}
                 >
                   <ResponsiveContainer width="100%" height={220}>
                     <BarChart data={inventoryCategoriesData} layout="vertical">
@@ -1026,12 +1056,13 @@ export function ReportsPage() {
                 </ChartWidget>
 
                 <ChartWidget
-                  refKey="formatHoldingsCount"
+                  ref={(element) => {
+                    chartRefs.current.formatHoldingsCount = element;
+                  }}
                   title={t(
                     "reports.charts.formatHoldingsCount",
                     "Holdings by format",
                   )}
-                  refs={chartRefs}
                 >
                   <ResponsiveContainer width="100%" height={220}>
                     <BarChart data={itemTypesData}>
@@ -1061,9 +1092,10 @@ export function ReportsPage() {
             {activeTab === "members" ? (
               <>
                 <ChartWidget
-                  refKey="membersByRole"
+                  ref={(element) => {
+                    chartRefs.current.membersByRole = element;
+                  }}
                   title={t("reports.charts.membersByRole", "Members by role")}
-                  refs={chartRefs}
                 >
                   <ResponsiveContainer width="100%" height={220}>
                     <BarChart
@@ -1094,12 +1126,13 @@ export function ReportsPage() {
                 </ChartWidget>
 
                 <ChartWidget
-                  refKey="activeDepts"
+                  ref={(element) => {
+                    chartRefs.current.activeDepts = element;
+                  }}
                   title={t(
                     "reports.charts.activeDepts",
                     "Most active departments",
                   )}
-                  refs={chartRefs}
                 >
                   <ResponsiveContainer width="100%" height={220}>
                     <BarChart
@@ -1134,9 +1167,10 @@ export function ReportsPage() {
                 </ChartWidget>
 
                 <ChartWidget
-                  refKey="memberStatus"
+                  ref={(element) => {
+                    chartRefs.current.memberStatus = element;
+                  }}
                   title={t("reports.charts.memberStatus", "Member status")}
-                  refs={chartRefs}
                 >
                   <ResponsiveContainer width="100%" height={220}>
                     <PieChart>
@@ -1169,12 +1203,13 @@ export function ReportsPage() {
                 </ChartWidget>
 
                 <ChartWidget
-                  refKey="memberJoins"
+                  ref={(element) => {
+                    chartRefs.current.memberJoins = element;
+                  }}
                   title={t(
                     "reports.charts.memberJoins",
                     "New members over time",
                   )}
-                  refs={chartRefs}
                 >
                   <ResponsiveContainer width="100%" height={220}>
                     <AreaChart data={memberJoinsData}>
@@ -1239,16 +1274,14 @@ export function ReportsPage() {
 }
 
 function ChartWidget({
-  refKey,
   title,
-  refs,
+  ref,
   badge,
   secondaryBadge,
   children,
 }: {
-  refKey: string;
   title: string;
-  refs: RefObject<Record<string, HTMLDivElement | null>>;
+  ref?: React.Ref<HTMLDivElement>;
   badge?: { positive: boolean; text: string };
   secondaryBadge?: string;
   children: React.ReactNode;
@@ -1282,13 +1315,7 @@ function ChartWidget({
           ) : null}
         </div>
       </div>
-      <div
-        ref={(element) => {
-          refs.current[refKey] = element;
-        }}
-      >
-        {children}
-      </div>
+      <div ref={ref}>{children}</div>
     </div>
   );
 }

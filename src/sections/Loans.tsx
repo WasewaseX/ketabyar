@@ -36,6 +36,9 @@ import { cn } from "../utils/cn";
 import { formatDisplayCurrency } from "../utils/currency";
 import { formatDisplayDate } from "../utils/dates";
 
+/** Stable empty array — keeps the filter memos from re-running every render. */
+const EMPTY_LOANS: Loan[] = [];
+
 /**
  * The circulation desk: every loan with live due-state (grace-aware),
  * returns, renewals (sequential in bulk so one refusal never aborts the
@@ -207,6 +210,10 @@ function FinesPanel({ onManage }: { onManage: (fine: FineRow) => void }) {
           <textarea
             className="field-input mt-3"
             rows={2}
+            aria-label={t(
+              "loans.fines.waiveReasonPlaceholder",
+              "Reason (optional)",
+            )}
             placeholder={t(
               "loans.fines.waiveReasonPlaceholder",
               "Reason (optional)",
@@ -261,7 +268,7 @@ export function LoansPage() {
     queryKey: ["loans"],
     queryFn: () => fetchLoans(false),
   });
-  const allLoans = loansQuery.data ?? [];
+  const allLoans = loansQuery.data ?? EMPTY_LOANS;
 
   const enriched = useMemo(
     () =>
@@ -437,6 +444,7 @@ export function LoansPage() {
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <input
+          aria-label={t("loans.searchPlaceholder", "Title, member, barcode…")}
           className="field-input max-w-xs"
           placeholder={t("loans.searchPlaceholder", "Title, member, barcode…")}
           value={term}
@@ -457,6 +465,7 @@ export function LoansPage() {
           ))}
         </div>
         <select
+          aria-label={t("loans.sortBy", "Sort by")}
           className="field-select ms-auto max-w-44"
           value={sortBy}
           onChange={(event) => setSortBy(event.target.value)}
@@ -583,6 +592,11 @@ export function LoansPage() {
                   <div className="flex items-center gap-3">
                     <input
                       type="checkbox"
+                      aria-label={t(
+                        "loans.selectRow",
+                        "Select loan {{title}}",
+                        { title: loan.title },
+                      )}
                       checked={selectedIds.has(loan.id)}
                       onChange={(event) => {
                         const next = new Set(selectedIds);

@@ -209,6 +209,10 @@ export function ReservationsPage() {
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <input
+          aria-label={t(
+            "reservations.searchPlaceholder",
+            "Title, member, barcode…",
+          )}
           className="field-input max-w-xs"
           placeholder={t(
             "reservations.searchPlaceholder",
@@ -248,6 +252,7 @@ export function ReservationsPage() {
           </FilterPill>
         </div>
         <select
+          aria-label={t("reservations.filterStatus", "Status filter")}
           className="field-select ms-auto max-w-44"
           value={statusFilter}
           onChange={(event) =>
@@ -1332,6 +1337,10 @@ function Wizard({ onClose }: { onClose: () => void }) {
             <>
               <div className="mb-3 flex flex-wrap gap-2">
                 <input
+                  aria-label={t(
+                    "reservations.addModal.searchMemberPlaceholder",
+                    "Search members…",
+                  )}
                   className="field-input max-w-xs"
                   placeholder={t(
                     "reservations.addModal.searchMemberPlaceholder",
@@ -1341,6 +1350,10 @@ function Wizard({ onClose }: { onClose: () => void }) {
                   onChange={(event) => setMemberTerm(event.target.value)}
                 />
                 <select
+                  aria-label={t(
+                    "reservations.addModal.memberDeptFilter",
+                    "Department filter",
+                  )}
                   className="field-select max-w-44"
                   value={memberDept}
                   onChange={(event) => setMemberDept(event.target.value)}
@@ -1355,6 +1368,10 @@ function Wizard({ onClose }: { onClose: () => void }) {
                   ))}
                 </select>
                 <select
+                  aria-label={t(
+                    "reservations.addModal.memberRoleFilter",
+                    "Role filter",
+                  )}
                   className="field-select max-w-36"
                   value={memberRole}
                   onChange={(event) => setMemberRole(event.target.value)}
@@ -1496,6 +1513,10 @@ function Wizard({ onClose }: { onClose: () => void }) {
         <div>
           <div className="mb-3 flex flex-wrap gap-2">
             <input
+              aria-label={t(
+                "reservations.addModal.searchItemPlaceholder",
+                "Search the catalog…",
+              )}
               className="field-input max-w-xs"
               placeholder={t(
                 "reservations.addModal.searchItemPlaceholder",
@@ -1505,6 +1526,10 @@ function Wizard({ onClose }: { onClose: () => void }) {
               onChange={(event) => setItemTerm(event.target.value)}
             />
             <select
+              aria-label={t(
+                "reservations.addModal.itemCategoryFilter",
+                "Category filter",
+              )}
               className="field-select max-w-44"
               value={itemCategory}
               onChange={(event) => setItemCategory(event.target.value)}
@@ -1519,6 +1544,10 @@ function Wizard({ onClose }: { onClose: () => void }) {
               ))}
             </select>
             <select
+              aria-label={t(
+                "reservations.addModal.itemTypeFilter",
+                "Item type filter",
+              )}
               className="field-select max-w-36"
               value={itemType}
               onChange={(event) => setItemType(event.target.value)}
@@ -1533,6 +1562,10 @@ function Wizard({ onClose }: { onClose: () => void }) {
               ))}
             </select>
             <select
+              aria-label={t(
+                "reservations.addModal.availabilityFilter",
+                "Availability filter",
+              )}
               className="field-select max-w-40"
               value={availability}
               onChange={(event) =>

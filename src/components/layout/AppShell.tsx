@@ -126,7 +126,6 @@ export function AppShell() {
       ? stored
       : 260;
   });
-  const resizing = useRef(false);
   const [search, setSearch] = useState("");
   const searchRef = useRef<HTMLInputElement | null>(null);
   const [bellOpen, setBellOpen] = useState(false);
@@ -266,25 +265,8 @@ export function AppShell() {
   }, [navigate, setPaletteOpen, toggleFullscreen, toggleSidebar]);
 
   /* ── Sidebar resize (RTL: drag distance measured from the right) ─── */
-
-  useEffect(() => {
-    const onMove = (event: MouseEvent) => {
-      if (!resizing.current) return;
-      const width = window.innerWidth - event.clientX;
-      setSidebarWidth(Math.max(200, Math.min(480, width)));
-    };
-    const onUp = () => {
-      if (resizing.current)
-        localStorage.setItem(SIDEBAR_WIDTH_KEY, String(sidebarWidth));
-      resizing.current = false;
-    };
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
-    return () => {
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
-    };
-  }, [sidebarWidth]);
+  /* The resize handle is a native <input type="range"> — dragging and
+     arrow keys are handled by the browser, no global listeners needed. */
 
   /* ── Notification bell data ──────────────────────────────────────── */
 
@@ -356,11 +338,9 @@ export function AppShell() {
     settings.notify_ready,
   ]);
 
-  const syntheticIds = syntheticAlerts.map((alert) => alert.id).join("|");
   useEffect(() => {
     sync(syntheticAlerts.map((alert) => alert.id));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [syntheticIds]);
+  }, [syntheticAlerts, sync]);
 
   const unreadDb = (historyQuery.data ?? []).filter(
     (item) => !item.is_read,
@@ -506,6 +486,41 @@ export function AppShell() {
     setUser(null);
   };
 
+  // Region-level context menu: the listener lives on window so the layout
+  // container stays free of interaction props (Biome a11y).
+  const contentRegionRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const onCtx = (event: MouseEvent) => {
+      if (!contentRegionRef.current?.contains(event.target as Node)) return;
+      onContextMenu(event as unknown as React.MouseEvent);
+    };
+    window.addEventListener("contextmenu", onCtx);
+    return () => window.removeEventListener("contextmenu", onCtx);
+  }, [onContextMenu]);
+
+  // Profile popover hover: opens on the footer button, stays open while the
+  // pointer is inside the footer zone, closes on leave. Managed from a
+  // window pointerover listener so the popover div itself carries no mouse
+  // handlers (Biome a11y: no handlers on static elements).
+  const profileZoneRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!profileOpen) return;
+    const onOver = (event: PointerEvent) => {
+      const zone = profileZoneRef.current;
+      if (!zone) return;
+      if (zone.contains(event.target as Node)) {
+        if (profileTimer.current) window.clearTimeout(profileTimer.current);
+        return;
+      }
+      profileTimer.current = window.setTimeout(
+        () => setProfileOpen(false),
+        220,
+      );
+    };
+    window.addEventListener("pointerover", onOver);
+    return () => window.removeEventListener("pointerover", onOver);
+  }, [profileOpen]);
+
   const expanded = sidebarOpen;
 
   return (
@@ -547,8 +562,7 @@ export function AppShell() {
         </div>
       </div>
 
-      {/* biome-ignore lint/a11y/noStaticElementInteractions: the contextmenu event also fires from the keyboard menu key on this region */}
-      <div className="flex min-h-0 flex-1" onContextMenu={onContextMenu}>
+      <div ref={contentRegionRef} className="flex min-h-0 flex-1">
         {/* Sidebar */}
         <aside
           className="relative z-20 flex shrink-0 flex-col bg-[#132622] text-white transition-[width] duration-200"
@@ -615,7 +629,10 @@ export function AppShell() {
           </div>
 
           {/* Profile footer */}
-          <div className="relative border-t border-white/10 p-3">
+          <div
+            ref={profileZoneRef}
+            className="relative border-t border-white/10 p-3"
+          >
             <button
               type="button"
               className={cn(
@@ -650,15 +667,9 @@ export function AppShell() {
             </button>
 
             {profileOpen ? (
-              // biome-ignore lint/a11y/noStaticElementInteractions: hover-managed popover; the toggle button above is the keyboard path and Escape closes it
               <div
                 className="absolute bottom-full z-40 mb-2 w-64 rounded-2xl border border-ink/10 bg-white p-3 text-ink shadow-2xl dark:border-white/10 dark:bg-[#1b2723] dark:text-ivory"
                 style={{ insetInlineEnd: expanded ? "0.75rem" : "0.5rem" }}
-                onMouseEnter={() =>
-                  profileTimer.current &&
-                  window.clearTimeout(profileTimer.current)
-                }
-                onMouseLeave={() => setProfileOpen(false)}
               >
                 <p className="text-sm font-bold">{user?.full_name}</p>
                 <p className="text-xs text-ink/50 dark:text-ivory/50">
@@ -713,33 +724,23 @@ export function AppShell() {
             ) : null}
           </div>
 
-          {/* Resize handle (only while expanded) */}
+          {/* Resize handle (only while expanded): a native range input — the
+              browser owns dragging and arrow keys (RTL mirroring included)
+              and the element carries real slider semantics. */}
           {expanded ? (
-            <hr
-              role="slider"
-              aria-orientation="vertical"
+            <input
+              type="range"
+              min={200}
+              max={480}
+              step={16}
+              value={sidebarWidth}
               aria-label={t("nav.sidebarResize", "Sidebar width")}
-              aria-valuemin={200}
-              aria-valuemax={480}
-              aria-valuenow={sidebarWidth}
-              tabIndex={0}
-              className="absolute inset-y-0 start-0 z-30 w-1.5 cursor-col-resize bg-copper/0 transition hover:bg-copper/60 focus-visible:bg-copper focus-visible:outline-none"
-              onMouseDown={() => (resizing.current = true)}
-              onKeyDown={(event) => {
-                // RTL sidebar hugs the right edge: ArrowLeft widens.
-                if (event.key !== "ArrowLeft" && event.key !== "ArrowRight")
-                  return;
-                event.preventDefault();
-                const next = Math.max(
-                  200,
-                  Math.min(
-                    480,
-                    sidebarWidth + (event.key === "ArrowLeft" ? 16 : -16),
-                  ),
-                );
+              onChange={(event) => {
+                const next = Number(event.currentTarget.value);
                 setSidebarWidth(next);
                 localStorage.setItem(SIDEBAR_WIDTH_KEY, String(next));
               }}
+              className="absolute inset-y-0 start-0 z-30 w-1.5 cursor-col-resize appearance-none bg-copper/0 transition hover:bg-copper/60 focus-visible:bg-copper focus-visible:outline-none"
             />
           ) : null}
         </aside>
@@ -755,6 +756,7 @@ export function AppShell() {
               />
               <input
                 id="global-search"
+                aria-label={t("nav.quickSearch", "Quick search…")}
                 ref={searchRef}
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}

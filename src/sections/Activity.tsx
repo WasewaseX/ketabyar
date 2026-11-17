@@ -297,6 +297,10 @@ export function ActivityPage() {
 
       <div className="mb-4 flex flex-wrap items-center gap-2 rounded-[var(--radius-card)] border border-ink/8 bg-white p-3 shadow-card dark:border-white/8 dark:bg-[#1b2723]">
         <input
+          aria-label={t(
+            "activity.searchPlaceholder",
+            "Search actions, operators, ids…",
+          )}
           className="field-input max-w-xs"
           placeholder={t(
             "activity.searchPlaceholder",
@@ -310,6 +314,7 @@ export function ActivityPage() {
         />
         <input
           type="date"
+          aria-label={t("activity.dateFilter", "Date filter")}
           className="field-input max-w-40"
           value={dateFilter}
           onChange={(event) => {
@@ -327,6 +332,7 @@ export function ActivityPage() {
           </button>
         ) : null}
         <select
+          aria-label={t("activity.entityFilter", "Entity filter")}
           className="field-select max-w-40"
           value={entityFilter}
           onChange={(event) => {
@@ -342,6 +348,7 @@ export function ActivityPage() {
           ))}
         </select>
         <select
+          aria-label={t("activity.actorFilter", "User filter")}
           className="field-select max-w-40"
           value={actorFilter}
           onChange={(event) => {
@@ -357,6 +364,7 @@ export function ActivityPage() {
           ))}
         </select>
         <select
+          aria-label={t("activity.actionFilter", "Action filter")}
           className="field-select max-w-44"
           value={actionFilter}
           onChange={(event) => {

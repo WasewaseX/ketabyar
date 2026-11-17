@@ -14,7 +14,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { z } from "zod";
 import { CopyEditModal } from "../components/CopyEditModal";
@@ -111,6 +111,9 @@ const bookSchema = z.object({
   studio: optionalString,
   owner: optionalString,
 });
+
+/** Stable empty array — keeps the filter memos from re-running every render. */
+const EMPTY_BOOKS: Book[] = [];
 
 type BookForm = z.infer<typeof bookSchema>;
 
@@ -242,7 +245,6 @@ function matchesView(view: SavedView, book: Book): boolean {
 export function CatalogPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const location = useLocation();
   const queryClient = useQueryClient();
   const { showContextMenu } = useContextMenu();
   const pageSize = useUiStore((state) => state.preferences.pageSize) || 10;
@@ -250,7 +252,9 @@ export function CatalogPage() {
     (state) => state.preferences.titlePreference,
   );
 
-  const [term, setTerm] = useState("");
+  const [term, setTerm] = useState(
+    () => new URLSearchParams(window.location.search).get("q") ?? "",
+  );
   const [typeFilter, setTypeFilter] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [languageFilter, setLanguageFilter] = useState("");
@@ -262,7 +266,10 @@ export function CatalogPage() {
   const [page, setPage] = useState(1);
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const [sidebarTab, setSidebarTab] = useState<"details" | "copies">("details");
-  const [editorOpen, setEditorOpen] = useState(false);
+  const [editorOpen, setEditorOpen] = useState(
+    () =>
+      new URLSearchParams(window.location.search).get("action") === "add-book",
+  );
   const [editingBook, setEditingBook] = useState<Book | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [editCopy, setEditCopy] = useState<Copy | null>(null);
@@ -272,22 +279,17 @@ export function CatalogPage() {
     queryFn: () => books(term, typeFilter),
   });
   const shelvesQuery = useQuery({ queryKey: ["shelves"], queryFn: getShelves });
-  const allBooks = booksQuery.data ?? [];
+  const allBooks = booksQuery.data ?? EMPTY_BOOKS;
 
-  /* URL deep links: ?q=, ?action=add-book, ?focus=search */
+  /* Deep-link consumption: the ?q= / ?action=add-book state is initialized
+     lazily above, so this effect only focuses the search box and strips the
+     parameters from the URL — no setState inside an effect. */
   useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const q = params.get("q");
-    if (q) setTerm(q);
-    if (params.get("action") === "add-book") {
-      setEditingBook(null);
-      setEditorOpen(true);
-    }
+    const params = new URLSearchParams(window.location.search);
     if (params.get("focus") === "search")
       document.getElementById("catalog-page-search")?.focus();
-    if (q || params.get("action") || params.get("focus"))
-      history.replaceState(null, "", location.pathname);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (params.get("q") || params.get("action") || params.get("focus"))
+      history.replaceState(null, "", window.location.pathname);
   }, []);
 
   const categories = useMemo(
@@ -441,6 +443,10 @@ export function CatalogPage() {
             />
             <input
               id="catalog-page-search"
+              aria-label={t(
+                "catalog.searchPlaceholder",
+                "Search title, author, ISBN…",
+              )}
               className="field-input ps-9"
               placeholder={t(
                 "catalog.searchPlaceholder",
@@ -454,6 +460,7 @@ export function CatalogPage() {
             />
           </div>
           <select
+            aria-label={t("catalog.filterType", "Item type filter")}
             className="field-select max-w-40"
             value={typeFilter}
             onChange={(event) => {
@@ -468,6 +475,7 @@ export function CatalogPage() {
             <option value="other">{t("itemTypes.other", "Other")}</option>
           </select>
           <select
+            aria-label={t("catalog.filterCategory", "Category filter")}
             className="field-select max-w-44"
             value={categoryFilter}
             onChange={(event) => {
@@ -485,6 +493,7 @@ export function CatalogPage() {
             ))}
           </select>
           <select
+            aria-label={t("catalog.filterLanguage", "Language filter")}
             className="field-select max-w-36"
             value={languageFilter}
             onChange={(event) => {
@@ -551,6 +560,7 @@ export function CatalogPage() {
                     <th className="w-10 px-3 py-3">
                       <input
                         type="checkbox"
+                        aria-label={t("catalog.selectAll", "Select all books")}
                         checked={
                           pageBooks.length > 0 &&
                           pageBooks.every((book) => selectedIds.has(book.id))
@@ -707,6 +717,11 @@ export function CatalogPage() {
                         <td className="border-b border-ink/6 px-3 py-3 dark:border-white/6">
                           <input
                             type="checkbox"
+                            aria-label={t(
+                              "catalog.selectRow",
+                              "Select book {{title}}",
+                              { title: book.title },
+                            )}
                             checked={selectedIds.has(book.id)}
                             onChange={(event) => {
                               const next = new Set(selectedIds);
@@ -1390,7 +1405,15 @@ function BookEditorModal({
   const groqKey = useUiStore((state) => state.preferences.groqApiKey);
   const groqEnabled = useUiStore((state) => state.preferences.groqEnabled);
   const [autoFilling, setAutoFilling] = useState(false);
-  const [unresolved, setUnresolved] = useState<string[]>([]);
+  const [unresolved, setUnresolved] = useState<{
+    key: string;
+    fields: string[];
+  }>({ key: "", fields: [] });
+  // Unresolved field names belong to the book they were found for; for any
+  // other book they read as empty (replaces a reset inside the open effect).
+  const unresolvedKey = String(book?.id ?? "new");
+  const unresolvedFields =
+    unresolved.key === unresolvedKey ? unresolved.fields : [];
 
   const form = useForm<BookForm>({
     resolver: zodResolver(bookSchema),
@@ -1420,10 +1443,8 @@ function BookEditorModal({
         description: book.description ?? "",
         cover_path: book.cover_path ?? "",
       });
-      setUnresolved([]);
     } else {
       form.reset(EMPTY_FORM);
-      setUnresolved([]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, book?.id]);
@@ -1537,7 +1558,10 @@ function BookEditorModal({
         form.setValue("isbn", formatIsbn(meta.isbn13 || meta.isbn10));
       if (!values.dewey_code && meta.dewey_code)
         form.setValue("dewey_code", meta.dewey_code);
-      setUnresolved(meta.unresolvedFields ?? []);
+      setUnresolved({
+        key: unresolvedKey,
+        fields: meta.unresolvedFields ?? [],
+      });
       if (meta.cover_url) {
         toast.info(t("catalog.alerts.downloadingCover", "Downloading cover…"));
         const cover = await downloadCoverAsBase64(meta.cover_url);
@@ -1557,7 +1581,7 @@ function BookEditorModal({
   };
 
   const gapHint = (field: string) =>
-    unresolved.includes(
+    unresolvedFields.includes(
       field as "subtitle" | "arabic_title" | "description",
     ) ? (
       <p className="mt-1 text-[11px] text-amber-600">

@@ -24,7 +24,7 @@ import {
   Users,
   Zap,
 } from "lucide-react";
-import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -279,7 +279,11 @@ export function SettingsPage() {
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
-  const [tab, setTab] = useState<TabId>(() => {
+  // Deep-link support: a valid ?tab= URL parameter is authoritative while
+  // present; otherwise the locally-selected tab wins. Deriving the active
+  // tab during render (instead of an effect writing state back) keeps the
+  // URL and the UI in sync without cascading renders.
+  const [tabState, setTabState] = useState<TabId>(() => {
     const param = new URLSearchParams(location.search).get("tab");
     return (
       TAB_GROUPS.flatMap((group) => group.tabs).some(
@@ -291,16 +295,15 @@ export function SettingsPage() {
   });
   const [navTerm, setNavTerm] = useState("");
 
-  useEffect(() => {
-    const param = new URLSearchParams(location.search).get("tab");
-    if (
-      param &&
-      TAB_GROUPS.flatMap((group) => group.tabs).some(
-        (entry) => entry.id === param,
-      )
-    )
-      setTab(param as TabId);
-  }, [location.search]);
+  const urlParam = new URLSearchParams(location.search).get("tab");
+  const urlTabValid = TAB_GROUPS.flatMap((group) => group.tabs).some(
+    (entry) => entry.id === urlParam,
+  );
+  const tab: TabId = urlTabValid ? (urlParam as TabId) : tabState;
+  const selectTab = (id: TabId) => {
+    setTabState(id);
+    if (urlTabValid) navigate(`/settings?tab=${id}`, { replace: true });
+  };
 
   return (
     <div className="mx-auto max-w-6xl">
@@ -321,6 +324,7 @@ export function SettingsPage() {
               className="pointer-events-none absolute inset-y-0 start-3 my-auto text-ink/40 dark:text-ivory/40"
             />
             <input
+              aria-label={t("settings.searchPlaceholder", "Find a setting…")}
               className="field-input ps-9 text-sm"
               placeholder={t("settings.searchPlaceholder", "Find a setting…")}
               value={navTerm}
@@ -344,7 +348,7 @@ export function SettingsPage() {
                     <li key={entry.id}>
                       <button
                         type="button"
-                        onClick={() => setTab(entry.id)}
+                        onClick={() => selectTab(entry.id)}
                         className={cn(
                           "flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-start text-[13px] font-medium transition",
                           tab === entry.id
@@ -750,6 +754,7 @@ function AppearanceTab() {
               type="button"
               key={preset.value}
               title={t(preset.labelKey, preset.value)}
+              aria-label={t(preset.labelKey, preset.value)}
               onClick={() => {
                 updatePreferences({ accentColor: preset.value });
                 applyAccent(preset.value);
@@ -1392,7 +1397,7 @@ function IntegrationsTab() {
   const [enrichLog, setEnrichLog] = useState<
     { title: string; status: string; message: string }[]
   >([]);
-  const cancelRef = useMemo(() => ({ current: false }), []);
+  const cancelRef = useRef(false);
 
   const testGroq = async () => {
     try {
@@ -1507,6 +1512,10 @@ function IntegrationsTab() {
             <div className="flex gap-2">
               <div className="relative flex-1">
                 <input
+                  aria-label={t(
+                    "settings.integrations.groqPlaceholder",
+                    "gsk_…",
+                  )}
                   className="field-input pe-10"
                   type={keyVisible ? "text" : "password"}
                   placeholder={t(
@@ -1714,6 +1723,10 @@ function UsersTab() {
         size="md"
       >
         <input
+          aria-label={t(
+            "settings.users.newPinPlaceholder",
+            "New PIN (4–8 digits)",
+          )}
           className="field-input"
           inputMode="numeric"
           placeholder={t(
@@ -1839,6 +1852,7 @@ function DesktopTab() {
           )}
         >
           <select
+            aria-label={t("settings.general.pageSize", "Rows per page")}
             className="field-select max-w-40"
             value={preferences.pageSize}
             onChange={(event) =>

@@ -126,7 +126,7 @@ export function ContextMenuProvider({ children }: { children: ReactNode }) {
       Math.min(state.y, window.innerHeight - rect.height - 12),
     );
     if (x !== state.x || y !== state.y) setState((prev) => ({ ...prev, x, y }));
-  }, [state.isOpen, state.x, state.y, state.items]);
+  }, [state.isOpen, state.x, state.y]);
 
   useLayoutEffect(() => {
     if (!state.isOpen) return;

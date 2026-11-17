@@ -61,6 +61,7 @@ import { cleanBarcode } from "../utils/isbn";
 /** Stable empties — keeps the shelf-map memos from re-running every render. */
 const EMPTY_COPIES: Copy[] = [];
 const EMPTY_SHELVES: Shelf[] = [];
+const EMPTY_ROOMS: Room[] = [];
 
 type ScanResult = {
   barcode: string;
@@ -161,11 +162,12 @@ export function InventoryPage() {
 
   const allCopies = copiesQuery.data ?? EMPTY_COPIES;
   const allShelves = shelvesQuery.data ?? EMPTY_SHELVES;
-  const allRooms = roomsQuery.data ?? [];
+  const allRooms = roomsQuery.data ?? EMPTY_ROOMS;
 
-  useEffect(() => {
-    if (!roomId && allRooms.length > 0) setRoomId(allRooms[0].id);
-  }, [allRooms, roomId]);
+  // Derived: until the user picks a room, the first room is active. This
+  // replaces an effect that wrote the default back into state (Biome
+  // react/set-state-in-effect).
+  const activeRoomId = roomId || allRooms[0]?.id || "";
 
   const shelvesWithCopies = useMemo(() => {
     const byShelf = new Map<string, Copy[]>();
@@ -185,17 +187,17 @@ export function InventoryPage() {
   const roomShelves = useMemo(
     () =>
       shelvesWithCopies.filter(
-        (shelf) => shelf.column_id && (shelf.room_id ?? "") === roomId,
+        (shelf) => shelf.column_id && (shelf.room_id ?? "") === activeRoomId,
       ),
-    [shelvesWithCopies, roomId],
+    [shelvesWithCopies, activeRoomId],
   );
 
   const roomColumns = useMemo(
     () =>
       (columnsQuery.data ?? [])
-        .filter((column) => column.room_id === roomId)
+        .filter((column) => column.room_id === activeRoomId)
         .sort((a, b) => a.number - b.number),
-    [columnsQuery.data, roomId],
+    [columnsQuery.data, activeRoomId],
   );
 
   const rows = useMemo(() => {
@@ -460,7 +462,7 @@ export function InventoryPage() {
               <button
                 type="button"
                 onClick={() => setNewColumnOpen(true)}
-                disabled={!roomId}
+                disabled={!activeRoomId}
                 className="inline-flex items-center gap-2 rounded-[var(--radius-control)] bg-accent px-3.5 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50 dark:bg-accent-dark"
               >
                 <Plus size={15} />
@@ -497,6 +499,10 @@ export function InventoryPage() {
 
         <div className="mb-4 flex flex-wrap items-center gap-2">
           <input
+            aria-label={t(
+              "inventory.searchPlaceholder",
+              "Barcode, title or shelf…",
+            )}
             className="field-input max-w-xs"
             placeholder={t(
               "inventory.searchPlaceholder",
@@ -509,6 +515,7 @@ export function InventoryPage() {
             }}
           />
           <select
+            aria-label={t("inventory.filterCondition", "Copy condition filter")}
             className="field-select max-w-40"
             value={conditionFilter}
             onChange={(event) => {
@@ -746,6 +753,10 @@ export function InventoryPage() {
                     <th className="w-10 px-3 py-3">
                       <input
                         type="checkbox"
+                        aria-label={t(
+                          "inventory.selectAll",
+                          "Select all copies",
+                        )}
                         onChange={(event) =>
                           setSelectedIds(
                             event.target.checked
@@ -876,6 +887,11 @@ export function InventoryPage() {
                       <td className="border-b border-ink/6 px-3 py-3 dark:border-white/6">
                         <input
                           type="checkbox"
+                          aria-label={t(
+                            "inventory.selectRow",
+                            "Select copy {{title}}",
+                            { title: copy.title },
+                          )}
                           checked={selectedIds.has(copy.id)}
                           onChange={(event) => {
                             const next = new Set(selectedIds);
@@ -989,7 +1005,7 @@ export function InventoryPage() {
                   }}
                   className={cn(
                     "w-full rounded-xl px-3 py-2 text-start text-sm transition",
-                    roomId === room.id
+                    activeRoomId === room.id
                       ? "bg-accent font-bold text-white dark:bg-accent-dark"
                       : "hover:bg-ink/5 dark:hover:bg-white/5",
                   )}
@@ -1031,6 +1047,10 @@ export function InventoryPage() {
             <input
               ref={scannerRef}
               disabled={scanPaused}
+              aria-label={t(
+                "inventory.scanBarcodePlaceholder",
+                "Scan or type a barcode, press Enter",
+              )}
               className="field-input font-mono"
               placeholder={t(
                 "inventory.scanBarcodePlaceholder",
@@ -1238,7 +1258,10 @@ export function InventoryPage() {
         />
       ) : null}
       {newColumnOpen ? (
-        <ColumnModal roomId={roomId} onClose={() => setNewColumnOpen(false)} />
+        <ColumnModal
+          roomId={activeRoomId}
+          onClose={() => setNewColumnOpen(false)}
+        />
       ) : null}
       {editShelfOpen ? (
         <ShelfEditModal
@@ -1408,6 +1431,7 @@ export function InventoryPage() {
             >
               <input
                 className="field-input"
+                aria-label={t("inventory.roomName", "Room name")}
                 defaultValue={room.name}
                 onKeyDown={(event) => {
                   if (event.key === "Enter")
@@ -1444,6 +1468,7 @@ export function InventoryPage() {
         <div className="flex gap-2">
           <input
             className="field-input"
+            aria-label={t("inventory.roomName", "Room name")}
             placeholder={t("inventory.roomName", "Room name")}
             value={name}
             onChange={(event) => setName(event.target.value)}
@@ -1692,6 +1717,10 @@ export function InventoryPage() {
         </p>
         <div className="mb-3 flex flex-wrap gap-2">
           <input
+            aria-label={t(
+              "inventory.browseSearchPlaceholder",
+              "Title, author, barcode…",
+            )}
             className="field-input max-w-xs"
             placeholder={t(
               "inventory.browseSearchPlaceholder",
@@ -1701,6 +1730,7 @@ export function InventoryPage() {
             onChange={(event) => setTermLocal(event.target.value)}
           />
           <select
+            aria-label={t("inventory.filterShelf", "Shelf filter")}
             className="field-select max-w-48"
             value={shelfFilter}
             onChange={(event) => setShelfFilter(event.target.value)}
