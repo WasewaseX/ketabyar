@@ -104,7 +104,7 @@ export function getMemberInitials(fullName: string): string {
 /* ── Form schema ─────────────────────────────────────────────────────── */
 
 import { IdCardModal, MemberModal, ReceiptModal } from "./members/MemberModals";
-import { type MemberForm, STATUSES } from "./members/membersShared";
+import { STATUSES } from "./members/membersShared";
 
 /* ── Page ────────────────────────────────────────────────────────────── */
 
