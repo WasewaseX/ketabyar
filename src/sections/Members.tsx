@@ -1,12 +1,9 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { Archive, Clock, Plus, UserCheck, UserX } from "lucide-react";
+import { Archive, Clock, UserCheck, UserX } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ArtReading } from "../components/ui/art";
 import { useContextMenu } from "../components/ui/ContextMenu";
-import { EmptyState, PageLoader } from "../components/ui/primitives";
-import { PageTitle } from "../components/ui/shared";
 import {
   members as fetchMembers,
   getLoansForMember,
@@ -17,11 +14,10 @@ import { useLibrarySettingsStore } from "../store/librarySettingsStore";
 import { useUiStore } from "../store/uiStore";
 import type { Member } from "../types";
 import { cn } from "../utils/cn";
-import { MemberCard } from "./members/MemberCard";
-import { MemberFilters, MembersPagination } from "./members/MemberFilters";
 import type { MemberReceipt } from "./members/MemberModals";
 import { MemberSidebar } from "./members/MemberSidebar";
 import { MembersBulkBar, MembersDialogs } from "./members/MembersBulkBar";
+import { MembersMain } from "./members/MembersMain";
 import { useMemberFilters } from "./members/useMemberFilters";
 import {
   useMemberCirculation,
@@ -191,97 +187,49 @@ export function MembersPage() {
 
   return (
     <div className="flex gap-5">
-      <div className="min-w-0 flex-1">
-        <PageTitle
-          title={t("members.title", "Members")}
-          detail={t(
-            "members.subtitle",
-            "{{count}} members match your filters",
-            { count: filtered.length },
-          )}
-          action={
-            <button
-              type="button"
-              onClick={() => setAddOpenState(true)}
-              className="inline-flex items-center gap-2 rounded-[var(--radius-control)] bg-accent px-3.5 py-2 text-sm font-semibold text-white transition hover:opacity-90 dark:bg-accent-dark"
-            >
-              <Plus size={16} />
-              {t("members.addMember", "Add member")}
-            </button>
-          }
-        />
-
-        <MemberFilters
-          searchRef={searchRef}
-          term={term}
-          setTerm={(value) => {
+      <MembersMain
+        filters={{
+          searchRef,
+          term,
+          setTerm: (value) => {
             setTerm(value);
             setPage(1);
-          }}
-          departmentFilter={departmentFilter}
-          setDepartmentFilter={(value) => {
+          },
+          departmentFilter,
+          setDepartmentFilter: (value) => {
             setDepartmentFilter(value);
             setPage(1);
-          }}
-          departments={departments}
-          sortKey={sortKey}
-          setSortKey={setSortKey}
-          sortDir={sortDir}
-          setSortDir={setSortDir}
-          statusView={statusView}
-          setStatusView={(view) => {
+          },
+          departments,
+          sortKey,
+          setSortKey,
+          sortDir,
+          setSortDir,
+          statusView,
+          setStatusView: (view) => {
             setStatusView(view);
             setPage(1);
-          }}
-          setPage={setPage}
-        />
-
-        {membersQuery.isLoading ? (
-          <PageLoader label={t("members.loading", "Loading members…")} />
-        ) : filtered.length === 0 ? (
-          <EmptyState
-            artwork={<ArtReading />}
-            title={t("members.noMembers", "No members here")}
-            description={t(
-              "members.noMembersHelp",
-              "Register the library's first borrower to get circulation going.",
-            )}
-          />
-        ) : (
-          <>
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-3 2xl:grid-cols-4">
-              {pageMembers.map((member) => (
-                <MemberCard
-                  key={member.id}
-                  member={member}
-                  selected={selectedIds.has(member.id)}
-                  onToggle={(checked) => {
-                    const next = new Set(selectedIds);
-                    if (checked) next.add(member.id);
-                    else next.delete(member.id);
-                    setSelectedIds(next);
-                  }}
-                  onOpen={() => {
-                    setSelected(member);
-                    setSidebarTab("profile");
-                  }}
-                  showContextMenu={showContextMenu}
-                  setStatus={setStatus}
-                  archive={archive}
-                />
-              ))}
-            </div>
-
-            <MembersPagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              setPage={setPage}
-              total={filtered.length}
-              pageSize={pageSize}
-            />
-          </>
-        )}
-      </div>
+          },
+          setPage,
+        }}
+        filteredCount={filtered.length}
+        isLoading={membersQuery.isLoading}
+        pageMembers={pageMembers}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        setPage={setPage}
+        pageSize={pageSize}
+        selectedIds={selectedIds}
+        setSelectedIds={setSelectedIds}
+        showContextMenu={showContextMenu}
+        setStatus={setStatus}
+        archive={archive}
+        onAdd={() => setAddOpenState(true)}
+        onOpen={(member) => {
+          setSelected(member);
+          setSidebarTab("profile");
+        }}
+      />
 
       {selected ? (
         <MemberSidebar
