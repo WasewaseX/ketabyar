@@ -432,10 +432,9 @@ fn import_library_backup_tx(conn: &Connection, actor: &str, backup: &Json) -> Re
                 .map(|c| match row.get(c) {
                     None | Some(Json::Null) => Json::Null,
                     Some(Json::Bool(b)) => json!(if *b { 1 } else { 0 }),
-                    Some(Json::Number(_) | Json::String(_)) => row
-                        .get(c)
-                        .cloned()
-                        .unwrap_or(Json::Null),
+                    Some(Json::Number(_) | Json::String(_)) => {
+                        row.get(c).cloned().unwrap_or(Json::Null)
+                    }
                     Some(other) => json!(other.to_string()),
                 })
                 .collect();
