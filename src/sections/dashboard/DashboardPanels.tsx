@@ -185,8 +185,8 @@ export function DashboardPanels({
 
   return (
     <>
-      return ( // biome-ignore lint/a11y/noStaticElementInteractions: the
-      contextmenu event also fires from the keyboard menu key on this region
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: the contextmenu
+          event also fires from the keyboard menu key on this region */}
       <div
         onContextMenu={(event) =>
           showContextMenu(
