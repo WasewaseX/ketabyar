@@ -282,8 +282,8 @@ export function CatalogPage() {
   const allBooks = booksQuery.data ?? EMPTY_BOOKS;
 
   /* Deep-link consumption: the ?q= / ?action=add-book state is initialized
-     lazily above, so this effect only focuses the search box and strips the
-     parameters from the URL — no setState inside an effect. */
+    lazily above, so this effect only focuses the search box and strips the
+    parameters from the URL — no setState inside an effect. */
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("focus") === "search")
