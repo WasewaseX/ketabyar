@@ -1,10 +1,45 @@
 import { Pencil, ScanLine } from "lucide-react";
+import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import type { Copy, Room } from "../../types";
 import { cn } from "../../utils/cn";
 import { occupancyTone } from "./ShelfCell";
 import type { ShelfWithCopies } from "./types";
 import type { ScanSession } from "./useScanSession";
+
+/** The scan intake field — owns its own ref so focus stays local. */
+function ScanBarcodeInput({ session }: { session: ScanSession }) {
+  const ref = useRef<HTMLInputElement | null>(null);
+  const { t } = useTranslation();
+  // Scan-mode screen: the scanner input owns the keyboard on entry (the
+  // autoFocus attribute is intentionally avoided — see Biome a11y).
+  useEffect(() => {
+    if (!session.paused) ref.current?.focus();
+  }, [session.paused]);
+  return (
+    <input
+      ref={ref}
+      disabled={session.paused}
+      aria-label={t(
+        "inventory.scanBarcodePlaceholder",
+        "Scan or type a barcode, press Enter",
+      )}
+      className="field-input font-mono"
+      placeholder={t(
+        "inventory.scanBarcodePlaceholder",
+        "Scan or type a barcode, press Enter",
+      )}
+      value={session.input}
+      onChange={(event) => session.setInput(event.target.value)}
+      onKeyDown={(event) => {
+        if (event.key === "Enter") {
+          session.submit();
+          ref.current?.focus();
+        }
+      }}
+    />
+  );
+}
 
 /** Right rail: rooms picker, the scan-session panel and the shelf details. */
 export function InventoryRail({
@@ -94,24 +129,7 @@ export function InventoryRail({
               style={{ width: `${scan.progress}%` }}
             />
           </div>
-          <input
-            ref={scan.onScannerMount}
-            disabled={scan.paused}
-            aria-label={t(
-              "inventory.scanBarcodePlaceholder",
-              "Scan or type a barcode, press Enter",
-            )}
-            className="field-input font-mono"
-            placeholder={t(
-              "inventory.scanBarcodePlaceholder",
-              "Scan or type a barcode, press Enter",
-            )}
-            value={scan.input}
-            onChange={(event) => scan.setInput(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") scan.submit();
-            }}
-          />
+          <ScanBarcodeInput session={scan} />
           <div className="mt-2 grid grid-cols-3 gap-1 text-center text-[10px] font-bold">
             <span className="rounded-lg bg-accent/10 py-1 text-accent dark:text-accent-dark">
               {t("inventory.onShelfLabel", "On shelf")}:{" "}
