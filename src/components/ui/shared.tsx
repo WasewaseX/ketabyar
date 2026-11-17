@@ -98,7 +98,7 @@ export function SearchableSelect<T>({
   const filterRef = useRef<HTMLInputElement | null>(null);
 
   /* Focus the filter input on open — an effect instead of autoFocus, which
-     breaks screen-reader focus order (jsx-a11y/no-autofocus). */
+    breaks screen-reader focus order (jsx-a11y/no-autofocus). */
   useEffect(() => {
     if (open) filterRef.current?.focus();
   }, [open]);

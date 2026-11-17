@@ -73,8 +73,8 @@ export function ImageUpload({
   } | null>(null);
 
   /* Crop overlay: Escape closes, clicking outside the card dismisses, the
-     stage is draggable / wheel-zoomable / arrow-key nudgeable. All listeners
-     are attached imperatively so the overlay markup stays free of handlers. */
+    stage is draggable / wheel-zoomable / arrow-key nudgeable. All listeners
+    are attached imperatively so the overlay markup stays free of handlers. */
   useEffect(() => {
     if (!cropping) return;
     const onKey = (event: KeyboardEvent) => {

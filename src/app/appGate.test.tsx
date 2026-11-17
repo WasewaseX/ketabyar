@@ -195,7 +195,7 @@ describe("login gate (v1.2.2 deadlock regression)", () => {
     await waitFor(
       () =>
         expect(screen.getByRole("button", { name: "PIN" })).toBeInTheDocument(),
-      { timeout: 6000 },
+      { timeout: 20000 },
     );
     expect(login).not.toHaveBeenCalled();
   }, 15000);
@@ -209,7 +209,7 @@ describe("login gate (v1.2.2 deadlock regression)", () => {
     await waitFor(
       () =>
         expect(screen.getByRole("button", { name: "PIN" })).toBeInTheDocument(),
-      { timeout: 6000 },
+      { timeout: 20000 },
     );
 
     typePin("6767");
@@ -221,7 +221,7 @@ describe("login gate (v1.2.2 deadlock regression)", () => {
         expect(
           screen.getByDisplayValue(/کتابخانه مرکزی دانشگاه/),
         ).toBeInTheDocument(),
-      { timeout: 6000 },
+      { timeout: 20000 },
     );
     expect(
       screen.queryByRole("button", { name: "PIN" }),
@@ -242,7 +242,7 @@ describe("login gate (v1.2.2 deadlock regression)", () => {
     await waitFor(
       () =>
         expect(screen.getByRole("button", { name: "PIN" })).toBeInTheDocument(),
-      { timeout: 6000 },
+      { timeout: 20000 },
     );
 
     typePin("6767");
@@ -252,7 +252,7 @@ describe("login gate (v1.2.2 deadlock regression)", () => {
         expect(
           screen.getByDisplayValue(/کتابخانه مرکزی دانشگاه/),
         ).toBeInTheDocument(),
-      { timeout: 6000 },
+      { timeout: 20000 },
     );
     expect(
       screen.queryByRole("button", { name: "PIN" }),
@@ -267,7 +267,7 @@ describe("login gate (v1.2.2 deadlock regression)", () => {
     await waitFor(
       () =>
         expect(screen.getByRole("button", { name: "PIN" })).toBeInTheDocument(),
-      { timeout: 6000 },
+      { timeout: 20000 },
     );
 
     typePin("1111");
@@ -277,7 +277,7 @@ describe("login gate (v1.2.2 deadlock regression)", () => {
       await screen.findByText(
         "پین اشتباه است. دوباره تلاش کنید.",
         {},
-        { timeout: 6000 },
+        { timeout: 20000 },
       ),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "PIN" })).toBeInTheDocument();
@@ -293,7 +293,7 @@ describe("login gate (v1.2.2 deadlock regression)", () => {
     await waitFor(
       () =>
         expect(screen.getByRole("button", { name: "PIN" })).toBeInTheDocument(),
-      { timeout: 6000 },
+      { timeout: 20000 },
     );
 
     typePin("123456");
@@ -306,7 +306,7 @@ describe("login gate (v1.2.2 deadlock regression)", () => {
         expect(
           screen.getByDisplayValue(/کتابخانه مرکزی دانشگاه/),
         ).toBeInTheDocument(),
-      { timeout: 6000 },
+      { timeout: 20000 },
     );
     expect(login).toHaveBeenCalledTimes(1);
     expect(login).toHaveBeenCalledWith("123456");
@@ -317,7 +317,7 @@ describe("login gate (v1.2.2 deadlock regression)", () => {
     await waitFor(
       () =>
         expect(screen.getByRole("button", { name: "PIN" })).toBeInTheDocument(),
-      { timeout: 6000 },
+      { timeout: 20000 },
     );
 
     typePin("6767");

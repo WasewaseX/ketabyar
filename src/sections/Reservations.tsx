@@ -90,8 +90,8 @@ export function ReservationsPage() {
   const all = resQuery.data ?? NO_RESERVATIONS;
 
   /* Deep links (?action=new-reservation, ?book_id=…) are one-shot: the wizard
-     is derived from the URL so it also opens when the palette fires mid-page,
-     and the param is consumed immediately so back/reload never re-fires it. */
+    is derived from the URL so it also opens when the palette fires mid-page,
+    and the param is consumed immediately so back/reload never re-fires it. */
   const wizardRequested = useMemo(() => {
     const params = new URLSearchParams(location.search);
     return (

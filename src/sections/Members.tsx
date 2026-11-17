@@ -172,8 +172,8 @@ export function MembersPage() {
   const allMembers = membersQuery.data ?? NO_MEMBERS;
 
   /* Deep links (?action=add-member, ?focus=search) are one-shot: the modal is
-     derived from the URL so it also opens when the palette fires mid-page,
-     and the param is consumed immediately so back/reload never re-fires it. */
+    derived from the URL so it also opens when the palette fires mid-page,
+    and the param is consumed immediately so back/reload never re-fires it. */
   const navigate = useNavigate();
   const addRequested = useMemo(
     () => new URLSearchParams(location.search).get("action") === "add-member",
@@ -1021,7 +1021,7 @@ function MemberModal({
   });
 
   /* Render-safe subscriptions (useWatch) — form.watch() during render is
-     incompatible with the React Compiler's purity rules. */
+    incompatible with the React Compiler's purity rules. */
   const firstName = useWatch({ control: form.control, name: "first_name" });
   const lastName = useWatch({ control: form.control, name: "last_name" });
   const avatarPath = useWatch({ control: form.control, name: "avatar_path" });

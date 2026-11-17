@@ -392,7 +392,7 @@ export function AppShell() {
   /* ── Window controls ─────────────────────────────────────────────── */
 
   /* Track maximized state so the titlebar can swap the maximize glyph for
-     the restore glyph (matching native window controls). */
+    the restore glyph (matching native window controls). */
   const [maximized, setMaximized] = useState(false);
   useEffect(() => {
     let unlisten: (() => void) | null = null;
