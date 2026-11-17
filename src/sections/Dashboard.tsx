@@ -12,6 +12,7 @@ import {
   UserPlus,
   UsersRound,
 } from "lucide-react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis } from "recharts";
@@ -135,8 +136,13 @@ export function DashboardPage() {
   const data = dashQuery.data;
   const loading = dashQuery.isLoading;
 
-  const quote =
-    DAILY_QUOTES[Math.floor(Date.now() / 86_400_000) % DAILY_QUOTES.length];
+  // One quote per mount: Date.now() is impure, so it must not be called
+  // during render (Biome react/purity). The lazy useState initializer runs
+  // exactly once, on first mount.
+  const [quote] = useState(
+    () =>
+      DAILY_QUOTES[Math.floor(Date.now() / 86_400_000) % DAILY_QUOTES.length],
+  );
   const readyList = (resQuery.data ?? [])
     .filter((item) => item.status === "ready")
     .slice(0, 5);

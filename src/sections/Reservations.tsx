@@ -68,6 +68,10 @@ import { getMemberInitials, MemberStatusBadge } from "./Members";
 /** Stable empty array — keeps the filter memos from re-running every render. */
 const NO_RESERVATIONS: Reservation[] = [];
 
+/** Stable empties for the wizard memos — same rationale as NO_RESERVATIONS. */
+const EMPTY_MEMBERS: Member[] = [];
+const EMPTY_BOOKS: Book[] = [];
+
 export function ReservationsPage() {
   const { t } = useTranslation();
   const location = useLocation();
@@ -291,6 +295,10 @@ export function ReservationsPage() {
                 <th className="w-10 px-3 py-3">
                   <input
                     type="checkbox"
+                    aria-label={t(
+                      "reservations.selectAll",
+                      "Select all reservations",
+                    )}
                     checked={
                       visible.length > 0 &&
                       visible.every((item) => selectedIds.has(item.id))
@@ -528,6 +536,11 @@ export function ReservationsPage() {
                   <td className="border-b border-ink/6 px-3 py-3 dark:border-white/6">
                     <input
                       type="checkbox"
+                      aria-label={t(
+                        "reservations.selectRow",
+                        "Select reservation {{title}}",
+                        { title: reservation.title ?? "" },
+                      )}
                       checked={selectedIds.has(reservation.id)}
                       onChange={(event) => {
                         const next = new Set(selectedIds);
@@ -1120,7 +1133,7 @@ function Wizard({ onClose }: { onClose: () => void }) {
     enabled: !!bookId,
   });
 
-  const allMembers = membersQuery.data ?? [];
+  const allMembers = membersQuery.data ?? EMPTY_MEMBERS;
   const memberOptions = useMemo(
     () =>
       allMembers
@@ -1142,7 +1155,7 @@ function Wizard({ onClose }: { onClose: () => void }) {
     [allMembers],
   );
 
-  const allBooks = booksQuery.data ?? [];
+  const allBooks = booksQuery.data ?? EMPTY_BOOKS;
   const itemOptions = useMemo(
     () =>
       allBooks
@@ -1203,7 +1216,11 @@ function Wizard({ onClose }: { onClose: () => void }) {
         } as Parameters<typeof saveMember>[0]);
         finalMemberId = created.id;
       }
-      const reservationId = await addReservation(bookId, finalMemberId, scope);
+      const reservationId = await addReservation(
+        bookId,
+        finalMemberId,
+        activeScope,
+      );
       await acceptReservation(reservationId);
       await updateReservation(reservationId, {
         expiresAt: new Date(`${expires}T23:59:59`).toISOString(),
@@ -1238,10 +1255,11 @@ function Wizard({ onClose }: { onClose: () => void }) {
   const externalBlocked =
     memberMode === "visitor" ||
     (selectedBook ? (selectedBook.total_copies ?? 0) <= 1 : false);
-
-  useEffect(() => {
-    if (externalBlocked && scope === "external") setScope("internal");
-  }, [externalBlocked, scope]);
+  // Derive, don't clamp: the raw scope state can still hold "external" while
+  // the wizard is blocked, so every consumer reads the guarded value instead
+  // of an effect writing state back (Biome react/set-state-in-effect).
+  const activeScope: ReservationScope =
+    externalBlocked && scope === "external" ? "internal" : scope;
 
   return (
     <Modal
@@ -1710,7 +1728,7 @@ function Wizard({ onClose }: { onClose: () => void }) {
               disabled={externalBlocked && false}
               className={cn(
                 "rounded-2xl border p-4 text-start transition",
-                scope === "internal"
+                activeScope === "internal"
                   ? "border-accent bg-accent/8 dark:border-accent-dark"
                   : "border-ink/10 dark:border-white/10",
               )}
@@ -1738,7 +1756,7 @@ function Wizard({ onClose }: { onClose: () => void }) {
               className={cn(
                 "rounded-2xl border p-4 text-start transition",
                 externalBlocked && "cursor-not-allowed opacity-45",
-                scope === "external"
+                activeScope === "external"
                   ? "border-accent bg-accent/8 dark:border-accent-dark"
                   : "border-ink/10 dark:border-white/10",
               )}
@@ -1808,7 +1826,7 @@ function Wizard({ onClose }: { onClose: () => void }) {
               </p>
               <p>
                 <b>{t("reservations.addModal.scopeLabel", "Scope")}:</b>{" "}
-                {t(`reservations.scope.${scope}`, scope)}
+                {t(`reservations.scope.${activeScope}`, activeScope)}
               </p>
             </div>
             <p className="mt-2 text-[11px] text-ink/45 dark:text-ivory/45">

@@ -716,6 +716,7 @@ export function AppShell() {
           {/* Resize handle (only while expanded) */}
           {expanded ? (
             <hr
+              role="slider"
               aria-orientation="vertical"
               aria-label={t("nav.sidebarResize", "Sidebar width")}
               aria-valuemin={200}

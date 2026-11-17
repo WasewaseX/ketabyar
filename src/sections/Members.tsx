@@ -431,133 +431,127 @@ export function MembersPage() {
           <>
             <div className="grid grid-cols-2 gap-3 md:grid-cols-3 2xl:grid-cols-4">
               {pageMembers.map((member) => (
-                // biome-ignore lint/a11y/useSemanticElements: the card hosts a nested checkbox — a native button would be invalid HTML; keyboard path below
                 <div
                   key={member.id}
-                  role="button"
-                  tabIndex={0}
-                  aria-label={member.full_name}
-                  onKeyDown={(event) => {
-                    if (
-                      (event.target as HTMLElement).closest(
-                        "input, button, a, label",
-                      )
-                    )
-                      return;
-                    if (event.key === "Enter" || event.key === " ") {
-                      setSelected(member);
-                      setSidebarTab("profile");
-                    }
-                  }}
-                  onClick={(event) => {
-                    if (
-                      (event.target as HTMLElement).closest(
-                        "input, button, a, label",
-                      )
-                    )
-                      return;
-                    setSelected(member);
-                    setSidebarTab("profile");
-                  }}
-                  onContextMenu={(event) =>
-                    showContextMenu(
-                      event,
-                      [
-                        {
-                          id: "view",
-                          label: t("members.viewDetails", "View details"),
-                          onClick: () => {
-                            setSelected(member);
-                            setSidebarTab("profile");
-                          },
-                        },
-                        {
-                          id: "copyNum",
-                          label: t("members.copyNumber", "Copy member number"),
-                          onClick: () => {
-                            void navigator.clipboard.writeText(
-                              member.member_number,
-                            );
-                            toast.success(
-                              t("members.copiedNumber", "Member number copied"),
-                            );
-                          },
-                        },
-                        ...(member.email
-                          ? [
-                              {
-                                id: "copyEmail",
-                                label: t("members.copyEmail", "Copy email"),
-                                onClick: () => {
-                                  void navigator.clipboard.writeText(
-                                    member.email ?? "",
-                                  );
-                                  toast.success(
-                                    t("members.copiedEmail", "Email copied"),
-                                  );
-                                },
-                              },
-                            ]
-                          : []),
-                        ...(member.phone
-                          ? [
-                              {
-                                id: "copyPhone",
-                                label: t("members.copyPhone", "Copy phone"),
-                                onClick: () => {
-                                  void navigator.clipboard.writeText(
-                                    member.phone ?? "",
-                                  );
-                                  toast.success(
-                                    t("members.copiedPhone", "Phone copied"),
-                                  );
-                                },
-                              },
-                            ]
-                          : []),
-                        { id: "d", divider: true },
-                        ...STATUSES.filter(
-                          (status) => status !== member.status,
-                        ).map((status) => ({
-                          id: `set-${status}`,
-                          label: t(
-                            `members.set${status[0].toUpperCase()}${status.slice(1)}`,
-                            status,
-                          ),
-                          onClick: () => setStatus.mutate({ member, status }),
-                        })),
-                        { id: "d2", divider: true },
-                        {
-                          id: "archive",
-                          label: t("members.deleteMember", "Archive member"),
-                          icon: Archive,
-                          variant: "danger",
-                          onClick: () => {
-                            if (
-                              window.confirm(
-                                t(
-                                  "members.confirmDelete",
-                                  'Archive "{{name}}"? Their history is retained.',
-                                  { name: member.full_name },
-                                ),
-                              )
-                            )
-                              archive.mutate(member.id);
-                          },
-                        },
-                      ],
-                      { title: member.full_name },
-                    )
-                  }
                   className="relative cursor-pointer rounded-[var(--radius-card)] border border-ink/8 bg-white p-4 pt-8 shadow-card transition hover:border-accent/30 dark:border-white/8 dark:bg-[#1b2723] dark:hover:border-accent-dark/30"
                 >
+                  {/* Overlay button: opens the profile for the whole card
+                      while the checkbox stays a sibling — a native button
+                      cannot contain an input, and role="button" on the card
+                      trips prefer-tag-over-role. Positioned children paint
+                      above the transparent button; plain content sits
+                      underneath it, so every click lands on the card action. */}
+                  <button
+                    type="button"
+                    aria-label={member.full_name}
+                    onClick={() => {
+                      setSelected(member);
+                      setSidebarTab("profile");
+                    }}
+                    onContextMenu={(event) =>
+                      showContextMenu(
+                        event,
+                        [
+                          {
+                            id: "view",
+                            label: t("members.viewDetails", "View details"),
+                            onClick: () => {
+                              setSelected(member);
+                              setSidebarTab("profile");
+                            },
+                          },
+                          {
+                            id: "copyNum",
+                            label: t(
+                              "members.copyNumber",
+                              "Copy member number",
+                            ),
+                            onClick: () => {
+                              void navigator.clipboard.writeText(
+                                member.member_number,
+                              );
+                              toast.success(
+                                t(
+                                  "members.copiedNumber",
+                                  "Member number copied",
+                                ),
+                              );
+                            },
+                          },
+                          ...(member.email
+                            ? [
+                                {
+                                  id: "copyEmail",
+                                  label: t("members.copyEmail", "Copy email"),
+                                  onClick: () => {
+                                    void navigator.clipboard.writeText(
+                                      member.email ?? "",
+                                    );
+                                    toast.success(
+                                      t("members.copiedEmail", "Email copied"),
+                                    );
+                                  },
+                                },
+                              ]
+                            : []),
+                          ...(member.phone
+                            ? [
+                                {
+                                  id: "copyPhone",
+                                  label: t("members.copyPhone", "Copy phone"),
+                                  onClick: () => {
+                                    void navigator.clipboard.writeText(
+                                      member.phone ?? "",
+                                    );
+                                    toast.success(
+                                      t("members.copiedPhone", "Phone copied"),
+                                    );
+                                  },
+                                },
+                              ]
+                            : []),
+                          { id: "d", divider: true },
+                          ...STATUSES.filter(
+                            (status) => status !== member.status,
+                          ).map((status) => ({
+                            id: `set-${status}`,
+                            label: t(
+                              `members.set${status[0].toUpperCase()}${status.slice(1)}`,
+                              status,
+                            ),
+                            onClick: () => setStatus.mutate({ member, status }),
+                          })),
+                          { id: "d2", divider: true },
+                          {
+                            id: "archive",
+                            label: t("members.deleteMember", "Archive member"),
+                            icon: Archive,
+                            variant: "danger",
+                            onClick: () => {
+                              if (
+                                window.confirm(
+                                  t(
+                                    "members.confirmDelete",
+                                    'Archive "{{name}}"? Their history is retained.',
+                                    { name: member.full_name },
+                                  ),
+                                )
+                              )
+                                archive.mutate(member.id);
+                            },
+                          },
+                        ],
+                        { title: member.full_name },
+                      )
+                    }
+                    className="absolute inset-0 z-0 cursor-pointer rounded-[inherit] focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-accent dark:focus-visible:ring-accent-dark"
+                  />
                   <div className="absolute end-3 top-3">
                     <MemberStatusBadge status={member.status} />
                   </div>
                   <input
                     type="checkbox"
                     className="absolute start-3 top-3"
-                    onClick={(event) => event.stopPropagation()}
                     checked={selectedIds.has(member.id)}
                     onChange={(event) => {
                       const next = new Set(selectedIds);

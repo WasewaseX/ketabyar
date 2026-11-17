@@ -58,6 +58,10 @@ import { cleanBarcode } from "../utils/isbn";
  * condition / status management for individual copies.
  */
 
+/** Stable empties — keeps the shelf-map memos from re-running every render. */
+const EMPTY_COPIES: Copy[] = [];
+const EMPTY_SHELVES: Shelf[] = [];
+
 type ScanResult = {
   barcode: string;
   status: "found" | "misplaced" | "unknown";
@@ -155,8 +159,8 @@ export function InventoryPage() {
     if (!scanPaused) scannerRef.current?.focus();
   }, [scanPaused]);
 
-  const allCopies = copiesQuery.data ?? [];
-  const allShelves = shelvesQuery.data ?? [];
+  const allCopies = copiesQuery.data ?? EMPTY_COPIES;
+  const allShelves = shelvesQuery.data ?? EMPTY_SHELVES;
   const allRooms = roomsQuery.data ?? [];
 
   useEffect(() => {

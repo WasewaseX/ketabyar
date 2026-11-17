@@ -13,6 +13,7 @@ import {
   type InputHTMLAttributes,
   type ReactNode,
   useEffect,
+  useRef,
 } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
@@ -307,31 +308,44 @@ export function Modal({
 }) {
   const { t } = useTranslation();
 
+  const overlayRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     if (!isOpen) return;
+    // Escape closes; a mousedown that lands on the backdrop itself closes.
+    // Both listeners live on window so the backdrop div stays free of
+    // interaction props (Biome a11y: no handlers on static elements).
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
     };
+    const onMouse = (event: MouseEvent) => {
+      if (event.target === overlayRef.current) onClose();
+    };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("mousedown", onMouse);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("mousedown", onMouse);
+    };
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
   return createPortal(
-    // biome-ignore lint/a11y/noStaticElementInteractions: the scroll/position container doubles as the click-outside dismiss; keyboard path is the Escape handler above
     <div
+      ref={overlayRef}
       className="fixed inset-0 z-[900] flex items-start justify-center overflow-y-auto bg-black/60 p-4 pt-[8vh] backdrop-blur-sm"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
     >
-      <div
-        role="dialog"
+      {/* Native <dialog> (non-modal — our own div above is the backdrop):
+          satisfies prefer-tag-over-role. Tailwind preflight resets the UA
+          dialog styles and the `relative` class keeps the element in the
+          flex flow, so layout is identical to the previous div. */}
+      <dialog
+        open
         aria-modal="true"
         aria-label={title}
         className={cn(
-          "w-full overflow-hidden rounded-[var(--radius-card)] border border-ink/10 bg-white shadow-2xl dark:border-white/10 dark:bg-[#1b2723]",
+          "relative w-full overflow-hidden rounded-[var(--radius-card)] border border-ink/10 bg-white text-inherit shadow-2xl dark:border-white/10 dark:bg-[#1b2723]",
           MODAL_SIZES[size],
           className,
         )}
@@ -348,7 +362,7 @@ export function Modal({
           </button>
         </header>
         <div className="max-h-[72vh] overflow-y-auto p-5">{children}</div>
-      </div>
+      </dialog>
     </div>,
     document.body,
   );

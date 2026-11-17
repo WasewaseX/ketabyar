@@ -40,6 +40,9 @@ interface AuditRow {
   after_json?: unknown;
 }
 
+/** Stable empty array — keeps the filter memos from re-running every render. */
+const EMPTY_ROWS: AuditRow[] = [];
+
 function asObject(value: unknown): Record<string, unknown> | null {
   if (value === null || value === undefined) return null;
   if (typeof value === "object") return value as Record<string, unknown>;
@@ -122,7 +125,7 @@ export function ActivityPage() {
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<AuditRow | null>(null);
 
-  const rows = query.data ?? [];
+  const rows = query.data ?? EMPTY_ROWS;
 
   const actors = useMemo(
     () => Array.from(new Set(rows.map((row) => row.actor))).sort(),

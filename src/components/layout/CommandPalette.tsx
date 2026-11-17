@@ -18,7 +18,7 @@ import {
   Warehouse,
   Zap,
 } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -57,6 +57,14 @@ export function CommandPalette() {
       document.removeEventListener("mousedown", onMouseDown);
     };
   }, [paletteOpen, setPaletteOpen]);
+
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Focus the input on open instead of the autoFocus attribute
+  // (Biome a11y: no-autofocus breaks screen-reader focus order).
+  useEffect(() => {
+    if (paletteOpen) inputRef.current?.focus();
+  }, [paletteOpen]);
 
   if (!paletteOpen) return null;
 
@@ -150,7 +158,7 @@ export function CommandPalette() {
         >
           <div className="border-b border-ink/8 px-3 py-2.5 dark:border-white/8">
             <Command.Input
-              autoFocus
+              ref={inputRef}
               placeholder={t(
                 "commandPalette.placeholder",
                 "Type a command or search…",
