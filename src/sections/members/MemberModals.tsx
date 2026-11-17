@@ -332,6 +332,13 @@ export function IdCardModal({
   );
 }
 
+export type MemberReceipt = {
+  kind: "renew" | "return";
+  title: string;
+  date: string;
+  printedAt: string;
+};
+
 export function ReceiptModal({
   receipt,
   onClose,

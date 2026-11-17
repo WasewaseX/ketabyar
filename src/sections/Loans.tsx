@@ -13,7 +13,7 @@ import { FinesPanel } from "./loans/FinesPanel";
 import { LoanDetailsModal } from "./loans/LoanDetailsModal";
 import { LoanRow } from "./loans/LoanRow";
 import { LoansBulkBar, LoansToolbar } from "./loans/LoansControls";
-import { type LoanFilter } from "./loans/loanUtils";
+import type { LoanFilter } from "./loans/loanUtils";
 import { useLoanActions } from "./loans/useLoanActions";
 import { useLoanTableData } from "./loans/useLoanTableData";
 
