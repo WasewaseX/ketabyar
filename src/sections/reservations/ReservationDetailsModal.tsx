@@ -11,7 +11,7 @@ import {
 import type { Reservation } from "../../types";
 import { formatDisplayDate } from "../../utils/dates";
 import { reservationStatusChip } from "./ReservationRow";
-import { holdCancelAction } from "./useReservationsData";
+import { actCancelHold } from "./useReservationsData";
 
 type Act = (
   action: () => Promise<unknown>,
@@ -216,10 +216,7 @@ export function ReservationDetailsModal({
                 <button
                   type="button"
                   onClick={() => {
-                    void act(
-                      holdCancelAction(details.id),
-                      "members.alerts.reservationCancelled",
-                    );
+                    void actCancelHold(act, details.id);
                     onClose();
                   }}
                   className="rounded-xl bg-ink/6 px-4 py-2 text-sm font-bold dark:bg-white/10"

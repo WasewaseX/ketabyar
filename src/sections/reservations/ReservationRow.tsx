@@ -13,7 +13,7 @@ import type { Reservation } from "../../types";
 import { cn } from "../../utils/cn";
 import { formatDisplayDate } from "../../utils/dates";
 import { getMemberInitials, MemberStatusBadge } from "../members/memberHelpers";
-import { holdCancelAction } from "./useReservationsData";
+import { confirmCancelHold } from "./useReservationsData";
 
 type Translate = TFunction<"translation", undefined>;
 type Act = (
@@ -215,14 +215,7 @@ export function ReservationRow({
               </button>
               <button
                 type="button"
-                onClick={() =>
-                  confirmAct(
-                    "reservations.alerts.confirmCancel",
-                    undefined,
-                    holdCancelAction(reservation.id),
-                    "members.alerts.reservationCancelled",
-                  )
-                }
+                onClick={() => confirmCancelHold(confirmAct, reservation.id)}
                 className="rounded-lg bg-ink/6 p-1.5 dark:bg-white/10"
                 title={t("reservations.cancelRes", "Cancel")}
               >

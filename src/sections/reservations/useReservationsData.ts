@@ -63,6 +63,37 @@ export function holdCancelAction(
   return () => cancelReservation(reservationId);
 }
 
+type ConfirmAct = (
+  confirmKey: string,
+  values: Record<string, unknown> | undefined,
+  action: () => Promise<unknown>,
+  successKey: string,
+) => void;
+
+/** Confirm-and-cancel-hold preset shared by the row and wizard. */
+export function confirmCancelHold(
+  confirmAct: ConfirmAct,
+  reservationId: string,
+) {
+  return confirmAct(
+    "reservations.alerts.confirmCancel",
+    undefined,
+    holdCancelAction(reservationId),
+    "members.alerts.reservationCancelled",
+  );
+}
+
+/** Run-and-cancel-hold preset for the details modal (no confirm). */
+export function actCancelHold(
+  act: (action: () => Promise<unknown>, successKey: string) => Promise<unknown>,
+  reservationId: string,
+) {
+  return act(
+    holdCancelAction(reservationId),
+    "members.alerts.reservationCancelled",
+  );
+}
+
 /** The shared "run a hold mutation, toast, refresh" runner + confirm variant. */
 export function useHoldActions(t: Translate, invalidate: () => void) {
   const act = async (action: () => Promise<unknown>, successKey: string) => {
