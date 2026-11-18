@@ -115,21 +115,17 @@ export function MembersCharts({
         barSize={26}
         xKey="name"
       />
-      <BarChartCard
+      <SingleBarChart
         name="activeDepts"
         registerChart={registerChart}
         title={t("reports.charts.activeDepts", "Most active departments")}
         data={activeDepartments}
+        dataKey="count"
+        fill="#c06b3e"
+        barSize={18}
+        radius={[0, 6, 6, 0]}
         xKey="name"
         layout="vertical"
-        bars={[
-          {
-            dataKey: "count",
-            fill: "#c06b3e",
-            barSize: 18,
-            radius: [0, 6, 6, 0],
-          },
-        ]}
       />
       <PieChartCard
         name="memberStatus"

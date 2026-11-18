@@ -24,6 +24,33 @@ import {
   STATUSES,
 } from "./membersShared";
 
+/** The copper asterisk is the app-wide "cannot be blank" marker; keeping it
+ * here stops the member forms from drifting away from that convention. */
+function RequiredInput({
+  label,
+  className,
+  register,
+}: {
+  label: { key: string; fallback: string };
+  className?: string;
+  register: Record<string, unknown>;
+}) {
+  const { t } = useTranslation();
+  return (
+    <label>
+      <span>
+        {t(label.key, label.fallback)}
+        <span className="text-copper"> *</span>
+      </span>
+      <input
+        className={`field-input ${className ?? ""}`}
+        required
+        {...register}
+      />
+    </label>
+  );
+}
+
 export function MemberModal({
   member,
   onClose,
@@ -147,17 +174,11 @@ export function MemberModal({
                 {...form.register("first_name")}
               />
             </label>
-            <label>
-              <span>
-                {t("members.lastName", "Last name")}
-                <span className="text-copper"> *</span>
-              </span>
-              <input
-                className="field-input uppercase"
-                required
-                {...form.register("last_name")}
-              />
-            </label>
+            <RequiredInput
+              label={{ key: "members.lastName", fallback: "Last name" }}
+              className="uppercase"
+              register={form.register("last_name")}
+            />
           </div>
         </div>
 

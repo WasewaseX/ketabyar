@@ -16,8 +16,8 @@ import type { ReactNode } from "react";
 import { cn } from "../../utils/cn";
 
 /**
- * Settings shared pieces: the tab registry, catalogue constants and the
- * field primitives (Card / Field / Toggle / Stepper) used by every tab.
+ * Every tab renders the same primitives — one registry and one set of field
+ * components keep the twelve tabs visually identical and the edits uniform.
  */
 
 export type TabId =

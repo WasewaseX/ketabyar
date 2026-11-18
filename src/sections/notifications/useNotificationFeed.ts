@@ -92,39 +92,17 @@ export function useNotificationFeed(deps: {
 
     const memberLine = t("circulation.selectedMember", "Member");
 
+    const rowFor = (
+      kind: "ready" | "overdue" | "duesoon",
+      item: Loan | Reservation,
+      ts: string,
+    ) => makeLiveRow(kind, item, ts, seen, markSeen, navigate, memberLine);
+
     const live: Row[] = [
-      ...overdue.map((loan: Loan) =>
-        makeLiveRow(
-          "overdue",
-          loan,
-          loan.due_at,
-          seen,
-          markSeen,
-          navigate,
-          memberLine,
-        ),
-      ),
-      ...dueSoon.map((loan: Loan) =>
-        makeLiveRow(
-          "duesoon",
-          loan,
-          loan.due_at,
-          seen,
-          markSeen,
-          navigate,
-          memberLine,
-        ),
-      ),
+      ...overdue.map((loan: Loan) => rowFor("overdue", loan, loan.due_at)),
+      ...dueSoon.map((loan: Loan) => rowFor("duesoon", loan, loan.due_at)),
       ...ready.map((item: Reservation) =>
-        makeLiveRow(
-          "ready",
-          item,
-          item.reserved_at || item.requested_at,
-          seen,
-          markSeen,
-          navigate,
-          memberLine,
-        ),
+        rowFor("ready", item, item.reserved_at || item.requested_at),
       ),
     ];
 

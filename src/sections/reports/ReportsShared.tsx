@@ -552,6 +552,7 @@ export function SingleBarChart({
   dataKey = "value",
   fill = "#c06b3e",
   barSize = 26,
+  radius,
   xKey = "name",
   layout,
 }: {
@@ -562,6 +563,7 @@ export function SingleBarChart({
   dataKey?: string;
   fill?: string;
   barSize?: number;
+  radius?: [number, number, number, number];
   xKey?: string;
   layout?: "vertical";
 }) {
@@ -573,7 +575,7 @@ export function SingleBarChart({
       data={data}
       xKey={xKey}
       layout={layout}
-      bars={[{ dataKey, fill, barSize }]}
+      bars={[{ dataKey, fill, barSize, radius }]}
     />
   );
 }
