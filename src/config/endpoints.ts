@@ -1,11 +1,12 @@
-/** External service endpoints — resolved from build-time env (see .env). */
-export const OPENLIBRARY_BASE = import.meta.env.VITE_OPENLIBRARY_BASE as string;
-export const GROQ_ENDPOINT = import.meta.env.VITE_GROQ_ENDPOINT as string;
-export const GROQ_MODELS_ENDPOINT = import.meta.env
-  .VITE_GROQ_MODELS_ENDPOINT as string;
+/**
+ * External service endpoints. Hosts are configurable per environment via
+ * VITE_OPENLIBRARY_HOST / VITE_GROQ_HOST (see .env); the committed defaults
+ * are the public hosts, composed into full URLs here so no environment
+ * variable is ever required for the app to boot.
+ */
+const OPENLIBRARY_HOST = import.meta.env.VITE_OPENLIBRARY_HOST ?? "openlibrary.org";
+const GROQ_HOST = import.meta.env.VITE_GROQ_HOST ?? "api.groq.com";
 
-if (!OPENLIBRARY_BASE || !GROQ_ENDPOINT) {
-  throw new Error(
-    "Missing VITE_OPENLIBRARY_BASE / VITE_GROQ_ENDPOINT — copy .env to .env.local",
-  );
-}
+export const OPENLIBRARY_BASE = `https://${OPENLIBRARY_HOST}`;
+export const GROQ_ENDPOINT = `https://${GROQ_HOST}/openai/v1/chat/completions`;
+export const GROQ_MODELS_ENDPOINT = `https://${GROQ_HOST}/openai/v1/models`;
