@@ -1,8 +1,6 @@
 {
   "$schema": "https://unpkg.com/knip@5/schema.json",
-  "project": [
-    "src/**/*.{ts,tsx}"
-  ],
+  "project": ["src/**/*.{ts,tsx}"],
   "ignore": [
     "src/types/generated/**",
     "src/data/authRust.ts",
@@ -33,9 +31,7 @@
   ],
   "vitest": {
     "config": "vitest.config.ts",
-    "entry": [
-      "src/**/*.test.{ts,tsx}"
-    ]
+    "entry": ["src/**/*.test.{ts,tsx}"]
   },
   "entry": [
     "src/main.tsx",
@@ -43,7 +39,5 @@
     "vitest.config.ts",
     "scripts/check-i18n.mjs"
   ],
-  "ignoreBinaries": [
-    "cargo"
-  ]
+  "ignoreBinaries": ["cargo"]
 }
