@@ -4,7 +4,8 @@
  * are the public hosts, composed into full URLs here so no environment
  * variable is ever required for the app to boot.
  */
-const OPENLIBRARY_HOST = import.meta.env.VITE_OPENLIBRARY_HOST ?? "openlibrary.org";
+const OPENLIBRARY_HOST =
+  import.meta.env.VITE_OPENLIBRARY_HOST ?? "openlibrary.org";
 const GROQ_HOST = import.meta.env.VITE_GROQ_HOST ?? "api.groq.com";
 
 export const OPENLIBRARY_BASE = `https://${OPENLIBRARY_HOST}`;
