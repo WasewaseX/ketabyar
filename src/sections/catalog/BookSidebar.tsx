@@ -13,7 +13,7 @@ import { formatIsbn } from "../../utils/isbn";
 import { getDisplayTitle } from "../../utils/titles";
 import { AddCopyModal } from "./BookEditorModals";
 
-interface AuditEntry {
+export interface AuditEntry {
   id: string;
   action: string;
   actor: string;

@@ -1,22 +1,15 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { TFunction } from "i18next";
-import { Plus } from "lucide-react";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { CopyEditModal } from "../components/CopyEditModal";
-import { ArtShelf } from "../components/ui/art";
 import { useContextMenu } from "../components/ui/ContextMenu";
-import { EmptyState, PageLoader } from "../components/ui/primitives";
-import { PageTitle } from "../components/ui/shared";
 import { deleteBook } from "../data/repositories/library";
 import { useUiStore } from "../store/uiStore";
 import type { Book } from "../types";
-import { BookEditorModal } from "./catalog/BookEditorModals";
-import { BookSidebar } from "./catalog/BookSidebar";
 import { CatalogBulkBar } from "./catalog/CatalogBulkBar";
-import { CatalogFilters } from "./catalog/CatalogFilters";
-import { CatalogTable } from "./catalog/CatalogTable";
+import { CatalogMain } from "./catalog/CatalogMain";
+import { CatalogSidePanels } from "./catalog/CatalogSidePanels";
 import {
   EMPTY_BOOKS,
   matchesView,
@@ -184,32 +177,17 @@ export function CatalogPage() {
 
   const state = useCatalogPageState();
   const {
-    term,
-    setTerm,
-    typeFilter,
-    setTypeFilter,
-    categoryFilter,
-    setCategoryFilter,
+    selectedBook,
+    setSelectedBook,
+    selectedIds,
+    setSelectedIds,
     languageFilter,
-    setLanguageFilter,
+    categoryFilter,
     view,
-    setView,
     sort,
     setSort,
     page,
-    setPage,
-    selectedBook,
-    setSelectedBook,
-    sidebarTab,
-    setSidebarTab,
-    editorOpen,
-    setEditorOpen,
-    editingBook,
-    setEditingBook,
-    selectedIds,
-    setSelectedIds,
-    editCopy,
-    setEditCopy,
+
     booksQuery,
     shelvesQuery,
     copiesQuery,
@@ -254,147 +232,37 @@ export function CatalogPage() {
   return (
     <div className="flex gap-5">
       <div className="min-w-0 flex-1">
-        <PageTitle
-          title={t("catalog.title", "Catalog")}
-          detail={t("catalog.subtitle", "{{count}} items match your filters", {
-            count: visibleBooks.length,
-          })}
-          action={
-            <button
-              type="button"
-              onClick={() => {
-                setEditingBook(null);
-                setEditorOpen(true);
-              }}
-              className="inline-flex items-center gap-2 rounded-[var(--radius-control)] bg-accent px-3.5 py-2 text-sm font-semibold text-white transition hover:opacity-90 dark:bg-accent-dark"
-            >
-              <Plus size={16} />
-              {t("catalog.addBook", "Add item")}
-            </button>
-          }
-        />
-
-        <CatalogFilters
-          term={term}
-          setTerm={(value) => {
-            setTerm(value);
-            setPage(1);
-          }}
-          typeFilter={typeFilter}
-          setTypeFilter={(value) => {
-            setTypeFilter(value);
-            setPage(1);
-          }}
-          categoryFilter={categoryFilter}
-          setCategoryFilter={(value) => {
-            setCategoryFilter(value);
-            setPage(1);
-          }}
-          languageFilter={languageFilter}
-          setLanguageFilter={(value) => {
-            setLanguageFilter(value);
-            setPage(1);
-          }}
+        <CatalogMain
+          state={state}
+          visibleBooks={visibleBooks}
+          pageBooks={pageBooks}
+          currentPage={currentPage}
+          totalPages={totalPages}
           categories={categories}
-          view={view}
-          setView={(key) => {
-            setView(key);
-            setPage(1);
-          }}
           viewCounts={viewCounts}
-          setPage={setPage}
-        />
-
-        {booksQuery.isLoading ? (
-          <PageLoader label={t("catalog.loading", "Loading the catalog…")} />
-        ) : visibleBooks.length === 0 ? (
-          <EmptyState
-            artwork={<ArtShelf />}
-            title={t("catalog.noBooks", "No items here yet")}
-            description={t(
-              "catalog.noBooksHelp",
-              "Adjust the filters, or add your first title to start the collection.",
-            )}
-          />
-        ) : (
-          <CatalogTable
-            pageBooks={pageBooks}
-            selectedIds={selectedIds}
-            setSelectedIds={setSelectedIds}
-            toggleSort={toggleSort}
-            sortIcon={sortIcon}
-            onSelectBook={(book) => {
-              setSelectedBook(book);
-              setSidebarTab("details");
-            }}
-            showContextMenu={showContextMenu}
-            archiveBook={archiveBook}
-            titlePreference={titlePreference}
-            setSidebarTab={setSidebarTab}
-            currentPage={currentPage}
-            totalPages={totalPages}
-            setPage={setPage}
-            total={visibleBooks.length}
-            pageSize={pageSize}
-          />
-        )}
+          archiveBook={archiveBook}
+          titlePreference={titlePreference}
+          showContextMenu={showContextMenu}
+          pageSize={pageSize}
+          toggleSort={toggleSort}
+          sortIcon={sortIcon}
+        />{" "}
       </div>
-
       <CatalogBulkBar
         selectedIds={selectedIds}
         setSelectedIds={setSelectedIds}
         visibleBooks={visibleBooks}
         onArchiveBulk={(ids) => archiveBulk.mutate(ids)}
       />
-
-      {selectedBook ? (
-        <BookSidebar
-          book={selectedBook}
-          tab={sidebarTab}
-          setTab={setSidebarTab}
-          onClose={() => setSelectedBook(null)}
-          onEdit={() => {
-            setEditingBook(selectedBook);
-            setEditorOpen(true);
-          }}
-          onArchive={() => {
-            if (
-              window.confirm(
-                t("catalog.alerts.confirmDelete", 'Archive "{{title}}"?', {
-                  title: selectedBook.title,
-                }),
-              )
-            )
-              archiveBook.mutate(selectedBook.id);
-          }}
-          copies={copiesQuery.data ?? []}
-          shelves={shelvesQuery.data ?? []}
-          audit={(auditQuery.data ?? [])
-            .filter((row) => row.entity_id === selectedBook.id)
-            .slice(0, 5)}
-          onEditCopy={setEditCopy}
-          onAddCopy={() => setSidebarTab("copies")}
-        />
-      ) : null}
-
-      <BookEditorModal
-        isOpen={editorOpen}
-        book={editingBook}
-        onClose={() => setEditorOpen(false)}
-        onSaved={(saved) => {
-          setSelectedBook(null);
-          setEditorOpen(false);
-          void saved;
-        }}
-      />
-
-      {editCopy ? (
-        <CopyEditModal
-          copy={editCopy}
-          onClose={() => setEditCopy(null)}
-          shelves={shelvesQuery.data ?? []}
-        />
-      ) : null}
+      <CatalogSidePanels
+        state={state}
+        copies={copiesQuery.data ?? []}
+        shelves={shelvesQuery.data ?? []}
+        audit={(auditQuery.data ?? [])
+          .filter((row) => selectedBook && row.entity_id === selectedBook.id)
+          .slice(0, 5)}
+        archiveBook={archiveBook}
+      />{" "}
     </div>
   );
 }
