@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { login } from "../../data/auth";
-import { useLibrarySettingsStore } from "../../store/librarySettingsStore";
 import type { PublicUser } from "../../types";
+import { usePhysicalKeyboard } from "./usePhysicalKeyboard";
+import { usePinSubmit } from "./usePinSubmit";
 
 /** Persian-digit glyphs in keypad order (۱..۹, ۰). */
 export const PERSIAN_DIGITS = [
@@ -25,7 +25,8 @@ function toAsciiDigits(value: string): string {
 }
 
 /** PIN entry state machine: keypad + hidden input + physical keyboard, with
- * submit lock, auto-submit and the authoritative pinRef mirror. */
+ * submit lock, auto-submit and the authoritative pinRef mirror. Submission
+ * lives in usePinSubmit, the window key listener in usePhysicalKeyboard. */
 export function usePinPad(onSuccess: (user: PublicUser) => void) {
   const [pin, setPin] = useState("");
   const [busy, setBusy] = useState(false);
@@ -37,56 +38,16 @@ export function usePinPad(onSuccess: (user: PublicUser) => void) {
   const submitLock = useRef(false);
   const autoTimer = useRef<number | null>(null);
 
-  const clearAutoTimer = useCallback(() => {
-    if (autoTimer.current !== null) {
-      window.clearTimeout(autoTimer.current);
-      autoTimer.current = null;
-    }
-  }, []);
-
-  const submit = useCallback(
-    async (candidate: string) => {
-      if (submitLock.current || candidate.length < 4) return;
-      submitLock.current = true;
-      setBusy(true);
-      setError(null);
-      try {
-        const user: PublicUser = await login(candidate);
-        // The gate in App.tsx re-renders on setUser — navigation happens here.
-        onSuccess(user);
-        // Non-fatal: the dashboard needs library settings, but a failure here
-        // must never mask a successful login (the store carries defaults).
-        useLibrarySettingsStore
-          .getState()
-          .load()
-          .catch((settingsError) =>
-            console.error("library settings load failed", settingsError),
-          );
-      } catch (loginError) {
-        setError(
-          loginError instanceof Error ? loginError.message : String(loginError),
-        );
-        pinRef.current = "";
-        setPin("");
-        inputRef.current?.focus();
-      } finally {
-        submitLock.current = false;
-        setBusy(false);
-      }
-    },
-    [onSuccess],
-  );
-
-  const scheduleAutoSubmit = useCallback(() => {
-    clearAutoTimer();
-    if (pinRef.current.length < 4) return;
-    // Short idle window so 5–8-digit PINs can finish typing before the
-    // automatic attempt fires. Enter always submits immediately.
-    autoTimer.current = window.setTimeout(() => {
-      autoTimer.current = null;
-      void submit(pinRef.current);
-    }, 550);
-  }, [clearAutoTimer, submit]);
+  const { submit, scheduleAutoSubmit, clearAutoTimer } = usePinSubmit({
+    pinRef,
+    submitLock,
+    autoTimer,
+    setBusy,
+    setError,
+    setPin,
+    inputRef,
+    onSuccess,
+  });
 
   const pressDigit = useCallback(
     (asciiDigit: string) => {
@@ -96,7 +57,7 @@ export function usePinPad(onSuccess: (user: PublicUser) => void) {
       setError(null);
       scheduleAutoSubmit();
     },
-    [scheduleAutoSubmit],
+    [submitLock, pinRef, scheduleAutoSubmit],
   );
 
   const pressBackspace = useCallback(() => {
@@ -104,40 +65,19 @@ export function usePinPad(onSuccess: (user: PublicUser) => void) {
     clearAutoTimer();
     pinRef.current = pinRef.current.slice(0, -1);
     setPin(pinRef.current);
-  }, [clearAutoTimer]);
+  }, [submitLock, clearAutoTimer, pinRef]);
 
   const pressEnter = useCallback(() => {
     clearAutoTimer();
     void submit(pinRef.current);
-  }, [clearAutoTimer, submit]);
+  }, [clearAutoTimer, submit, pinRef]);
 
   // Focus the (visually hidden) input on mount so soft keyboards appear.
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
 
-  // Physical keyboard: handle digits, backspace and Enter even when the
-  // hidden input is not focused — the usual case on first launch. Every
-  // handler reads pinRef, so a re-register per render can never go stale.
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if (event.target === inputRef.current) return; // the input handles its own keys
-      if (event.ctrlKey || event.metaKey || event.altKey) return;
-      const key = toAsciiDigits(event.key);
-      if (/^[0-9]$/.test(key)) {
-        pressDigit(key);
-        event.preventDefault();
-      } else if (event.key === "Backspace") {
-        pressBackspace();
-        event.preventDefault();
-      } else if (event.key === "Enter") {
-        pressEnter();
-        event.preventDefault();
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [pressDigit, pressBackspace, pressEnter]);
+  usePhysicalKeyboard({ inputRef, pressDigit, pressBackspace, pressEnter });
 
   /** Change handler for the hidden input (paste / soft keyboard). */
   const onHiddenInputChange = useCallback(
@@ -148,7 +88,7 @@ export function usePinPad(onSuccess: (user: PublicUser) => void) {
       setError(null);
       scheduleAutoSubmit();
     },
-    [scheduleAutoSubmit],
+    [pinRef, scheduleAutoSubmit],
   );
 
   return {
