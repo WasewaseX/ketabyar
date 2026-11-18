@@ -1,39 +1,30 @@
-import { type RefObject, useCallback } from "react";
+import { type RefObject, useCallback, useRef } from "react";
 import { login } from "../../data/auth";
-import { useLibrarySettingsStore } from "../../store/librarySettingsStore";
+import { refreshLibrarySettingsAfterLogin } from "../../store/librarySettingsStore";
 import type { PublicUser } from "../../types";
 
 /**
- * PIN submit + auto-submit: the attempt itself, the submit lock bookkeeping
- * and the 550 ms idle window that lets 5–8-digit PINs finish typing.
+ * PIN submit + auto-submit. Owns the submit lock and the auto-submit timer
+ * refs (their writes live here by design); the PIN mirror and input ref stay
+ * with the caller, whose onFailure callback performs their writes.
  */
 export function usePinSubmit(deps: {
   pinRef: RefObject<string>;
-  submitLock: RefObject<boolean>;
-  autoTimer: RefObject<number | null>;
   setBusy: (value: boolean) => void;
   setError: (value: string | null) => void;
-  setPin: (value: string) => void;
-  inputRef: RefObject<HTMLInputElement | null>;
   onSuccess: (user: PublicUser) => void;
+  onFailure: () => void;
 }) {
-  const {
-    pinRef,
-    submitLock,
-    autoTimer,
-    setBusy,
-    setError,
-    setPin,
-    inputRef,
-    onSuccess,
-  } = deps;
+  const { pinRef, setBusy, setError, onSuccess, onFailure } = deps;
+  const submitLock = useRef(false);
+  const autoTimer = useRef<number | null>(null);
 
   const clearAutoTimer = useCallback(() => {
     if (autoTimer.current !== null) {
       window.clearTimeout(autoTimer.current);
       autoTimer.current = null;
     }
-  }, [autoTimer]);
+  }, []);
 
   const submit = useCallback(
     async (candidate: string) => {
@@ -45,27 +36,19 @@ export function usePinSubmit(deps: {
         const user: PublicUser = await login(candidate);
         // The gate in App.tsx re-renders on setUser — navigation happens here.
         onSuccess(user);
-        // Non-fatal: the dashboard needs library settings, but a failure here
-        // must never mask a successful login (the store carries defaults).
-        useLibrarySettingsStore
-          .getState()
-          .load()
-          .catch((settingsError) =>
-            console.error("library settings load failed", settingsError),
-          );
+        // Non-fatal: the dashboard needs library settings (store has defaults).
+        refreshLibrarySettingsAfterLogin();
       } catch (loginError) {
         setError(
           loginError instanceof Error ? loginError.message : String(loginError),
         );
-        pinRef.current = "";
-        setPin("");
-        inputRef.current?.focus();
+        onFailure();
       } finally {
         submitLock.current = false;
         setBusy(false);
       }
     },
-    [submitLock, setBusy, setError, setPin, pinRef, inputRef, onSuccess],
+    [submitLock, setBusy, setError, onSuccess, onFailure],
   );
 
   const scheduleAutoSubmit = useCallback(() => {
@@ -77,7 +60,7 @@ export function usePinSubmit(deps: {
       autoTimer.current = null;
       void submit(pinRef.current);
     }, 550);
-  }, [clearAutoTimer, autoTimer, pinRef, submit]);
+  }, [clearAutoTimer, submit, pinRef]);
 
   return { submit, scheduleAutoSubmit, clearAutoTimer };
 }

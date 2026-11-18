@@ -1,71 +1,54 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { PublicUser } from "../../types";
+import { normalizePinInput } from "./pinDigits";
 import { usePhysicalKeyboard } from "./usePhysicalKeyboard";
 import { usePinSubmit } from "./usePinSubmit";
 
-/** Persian-digit glyphs in keypad order (۱..۹, ۰). */
-export const PERSIAN_DIGITS = [
-  "۱",
-  "۲",
-  "۳",
-  "۴",
-  "۵",
-  "۶",
-  "۷",
-  "۸",
-  "۹",
-  "۰",
-];
+export { PERSIAN_DIGITS } from "./pinDigits";
 
-function toAsciiDigits(value: string): string {
-  return value.replace(/[\u06F0-\u06F9\u0660-\u0669]/g, (ch) => {
-    const code = ch.charCodeAt(0);
-    return String(code >= 0x06f0 ? code - 0x06f0 : code - 0x0660);
-  });
-}
-
-/** PIN entry state machine: keypad + hidden input + physical keyboard, with
- * submit lock, auto-submit and the authoritative pinRef mirror. Submission
- * lives in usePinSubmit, the window key listener in usePhysicalKeyboard. */
+/**
+ * PIN entry state machine: keypad + hidden input + physical keyboard, with
+ * submit lock, auto-submit and the authoritative pinRef mirror. The submit
+ * lock and timer live in usePinSubmit (their writes stay there); this hook
+ * owns the PIN mirror ref and the hidden-input ref.
+ */
 export function usePinPad(onSuccess: (user: PublicUser) => void) {
   const [pin, setPin] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
-  // Authoritative mirror + locks: render state lags one tick, and the lag is
-  // exactly where the old bugs lived (double submit, resurrected digits).
+  // Authoritative mirror: render state lags one tick, and the lag is exactly
+  // where the old bugs lived (double submit, resurrected digits).
   const pinRef = useRef("");
-  const submitLock = useRef(false);
-  const autoTimer = useRef<number | null>(null);
 
   const { submit, scheduleAutoSubmit, clearAutoTimer } = usePinSubmit({
     pinRef,
-    submitLock,
-    autoTimer,
     setBusy,
     setError,
-    setPin,
-    inputRef,
     onSuccess,
+    onFailure: () => {
+      pinRef.current = "";
+      setPin("");
+      inputRef.current?.focus();
+    },
   });
 
   const pressDigit = useCallback(
     (asciiDigit: string) => {
-      if (submitLock.current) return;
-      pinRef.current = (pinRef.current + asciiDigit).slice(0, 8);
+      if (pinRef.current.length >= 8) return;
+      pinRef.current = pinRef.current + asciiDigit;
       setPin(pinRef.current);
       setError(null);
       scheduleAutoSubmit();
     },
-    [submitLock, pinRef, scheduleAutoSubmit],
+    [pinRef, scheduleAutoSubmit],
   );
 
   const pressBackspace = useCallback(() => {
-    if (submitLock.current) return;
     clearAutoTimer();
     pinRef.current = pinRef.current.slice(0, -1);
     setPin(pinRef.current);
-  }, [submitLock, clearAutoTimer, pinRef]);
+  }, [clearAutoTimer, pinRef]);
 
   const pressEnter = useCallback(() => {
     clearAutoTimer();
@@ -82,7 +65,7 @@ export function usePinPad(onSuccess: (user: PublicUser) => void) {
   /** Change handler for the hidden input (paste / soft keyboard). */
   const onHiddenInputChange = useCallback(
     (raw: string) => {
-      const digits = toAsciiDigits(raw).replace(/\D/g, "").slice(0, 8);
+      const digits = normalizePinInput(raw);
       pinRef.current = digits;
       setPin(digits);
       setError(null);

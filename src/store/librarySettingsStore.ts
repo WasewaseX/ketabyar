@@ -53,6 +53,16 @@ interface LibrarySettingsState {
   update: (values: Partial<LibrarySettings>) => Promise<void>;
 }
 
+/** Non-fatal post-login settings load; the store carries defaults. */
+export function refreshLibrarySettingsAfterLogin(): void {
+  useLibrarySettingsStore
+    .getState()
+    .load()
+    .catch((settingsError) =>
+      console.error("library settings load failed", settingsError),
+    );
+}
+
 export const useLibrarySettingsStore = create<LibrarySettingsState>(
   (set, get) => ({
     settings: defaults,

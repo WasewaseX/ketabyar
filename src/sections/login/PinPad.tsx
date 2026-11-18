@@ -1,7 +1,7 @@
 import { Delete } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { PERSIAN_DIGITS } from "./pinDigits";
 import type { usePinPad } from "./usePinPad";
-import { PERSIAN_DIGITS } from "./usePinPad";
 
 type PinPadApi = ReturnType<typeof usePinPad>;
 
