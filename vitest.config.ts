@@ -1,5 +1,6 @@
 import react from "@vitejs/plugin-react";
-import { defineConfig, loadEnv } from "vitest/config";
+import { loadEnv } from "vite";
+import { defineConfig } from "vitest/config";
 
 // Load the committed .env so endpoint constants resolve in tests on every
 // platform (vitest does not guarantee automatic .env loading in jsdom).
