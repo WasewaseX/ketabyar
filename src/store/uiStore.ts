@@ -12,6 +12,7 @@ export const PREFERENCES_KEY = "ketabyar-preferences";
 
 const defaults: Preferences = {
   onboardingComplete: false,
+  tutorialSeen: false,
   locale: "fa",
   theme: "light",
   accentColor: "#1a4d40",

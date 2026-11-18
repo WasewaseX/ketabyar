@@ -2,6 +2,7 @@ import { Copy, Minus, Search, Square, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Outlet, useNavigate } from "react-router-dom";
+import { useAutoBackupScheduler } from "../../hooks/useAutoBackup";
 import { useAuthStore } from "../../store/authStore";
 import { useUiStore } from "../../store/uiStore";
 import {
@@ -31,6 +32,7 @@ export function AppShell() {
 
   useThemeEngine(preferences);
   useCloseToTray();
+  useAutoBackupScheduler();
   usePreferenceAutosave(
     preferences.autosaveEnabled,
     preferences.autosaveInterval,

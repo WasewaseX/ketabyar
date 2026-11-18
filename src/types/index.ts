@@ -291,6 +291,8 @@ export interface LibrarySettings {
 /** Per-device interface preferences only — shared rules live in LibrarySettings. */
 export interface Preferences {
   onboardingComplete: boolean;
+  /** Whether the first-use guided tour was finished or dismissed. */
+  tutorialSeen: boolean;
   locale: "fa";
   theme: "light" | "dark" | "system";
   accentColor: string;

@@ -12,6 +12,7 @@ import {
 } from "react-router-dom";
 import { AppShell } from "../components/layout/AppShell";
 import { CommandPalette } from "../components/layout/CommandPalette";
+import { TutorialOverlay } from "../components/tutorial/TutorialOverlay";
 import { bootstrapAdminIfNeeded, currentSession } from "../data/auth";
 import { initializeDatabase } from "../data/database";
 import { ActivityPage } from "../sections/Activity";
@@ -259,6 +260,7 @@ function Boot() {
     <HashRouter>
       <TrayListener />
       <CommandPalette />
+      <TutorialOverlay />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/onboarding" element={<OnboardingPage />} />

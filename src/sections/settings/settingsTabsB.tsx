@@ -7,6 +7,7 @@ import {
   importLibraryBackup,
 } from "../../data/repositories/library";
 import { useLibrarySettingsStore } from "../../store/librarySettingsStore";
+import { AutoBackupCard } from "./AutoBackupCard";
 import { Card, Stepper, Toggle } from "./settingsShared";
 
 export function RulesTab() {
@@ -330,6 +331,7 @@ export function BackupTab() {
 
   return (
     <>
+      <AutoBackupCard />
       <Card
         title={t("settings.backup.fullBackupTitle", "Full backup")}
         desc={t(

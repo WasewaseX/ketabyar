@@ -20,7 +20,7 @@
     "tauri": "tauri",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
-    "knip": "knip"
+    "knip": "knip --reporter json"
   },
   "dependencies": {
     "@fontsource/ibm-plex-sans-arabic": "^5.2.9",
