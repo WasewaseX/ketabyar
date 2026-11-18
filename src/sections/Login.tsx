@@ -1,10 +1,11 @@
-import { Delete, ShieldCheck } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { ShieldCheck } from "lucide-react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { changeOwnPassword, login } from "../data/auth";
+import { changeOwnPassword } from "../data/auth";
 import { useAuthStore } from "../store/authStore";
-import { useLibrarySettingsStore } from "../store/librarySettingsStore";
 import type { PublicUser } from "../types";
+import { PinPad } from "./login/PinPad";
+import { usePinPad } from "./login/usePinPad";
 
 /**
  * The shared-PIN gate. A Persian keypad (۰–۹), debounced auto-submit at 4+
@@ -37,130 +38,12 @@ function Shell({ children }: { children: React.ReactNode }) {
   );
 }
 
-const PERSIAN_DIGITS = ["۱", "۲", "۳", "۴", "۵", "۶", "۷", "۸", "۹", "۰"];
-
 /** Persian (۰-۹) and Arabic-Indic (٠-٩) digits → ASCII, so every layout works. */
-function toAsciiDigits(value: string): string {
-  return value.replace(/[\u06F0-\u06F9\u0660-\u0669]/g, (ch) => {
-    const code = ch.charCodeAt(0);
-    return String(code >= 0x06f0 ? code - 0x06f0 : code - 0x0660);
-  });
-}
-
 export function LoginPage() {
   const { t } = useTranslation();
   const setUser = useAuthStore((state) => state.setUser);
-  const [pin, setPin] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const inputRef = useRef<HTMLInputElement | null>(null);
-  // Authoritative mirror + locks: render state lags one tick, and the lag is
-  // exactly where the old bugs lived (double submit, resurrected digits).
-  const pinRef = useRef("");
-  const submitLock = useRef(false);
-  const autoTimer = useRef<number | null>(null);
-
-  const clearAutoTimer = useCallback(() => {
-    if (autoTimer.current !== null) {
-      window.clearTimeout(autoTimer.current);
-      autoTimer.current = null;
-    }
-  }, []);
-
-  const submit = useCallback(
-    async (candidate: string) => {
-      if (submitLock.current || candidate.length < 4) return;
-      submitLock.current = true;
-      setBusy(true);
-      setError(null);
-      try {
-        const user: PublicUser = await login(candidate);
-        // The gate in App.tsx re-renders on setUser — navigation happens here.
-        setUser(user);
-        // Non-fatal: the dashboard needs library settings, but a failure here
-        // must never mask a successful login (the store carries defaults).
-        useLibrarySettingsStore
-          .getState()
-          .load()
-          .catch((settingsError) =>
-            console.error("library settings load failed", settingsError),
-          );
-      } catch (loginError) {
-        setError(
-          loginError instanceof Error ? loginError.message : String(loginError),
-        );
-        pinRef.current = "";
-        setPin("");
-        inputRef.current?.focus();
-      } finally {
-        submitLock.current = false;
-        setBusy(false);
-      }
-    },
-    [setUser],
-  );
-
-  const scheduleAutoSubmit = useCallback(() => {
-    clearAutoTimer();
-    if (pinRef.current.length < 4) return;
-    // Short idle window so 5–8-digit PINs can finish typing before the
-    // automatic attempt fires. Enter always submits immediately.
-    autoTimer.current = window.setTimeout(() => {
-      autoTimer.current = null;
-      void submit(pinRef.current);
-    }, 550);
-  }, [clearAutoTimer, submit]);
-
-  const pressDigit = useCallback(
-    (asciiDigit: string) => {
-      if (submitLock.current) return;
-      pinRef.current = (pinRef.current + asciiDigit).slice(0, 8);
-      setPin(pinRef.current);
-      setError(null);
-      scheduleAutoSubmit();
-    },
-    [scheduleAutoSubmit],
-  );
-
-  const pressBackspace = useCallback(() => {
-    if (submitLock.current) return;
-    clearAutoTimer();
-    pinRef.current = pinRef.current.slice(0, -1);
-    setPin(pinRef.current);
-  }, [clearAutoTimer]);
-
-  const pressEnter = useCallback(() => {
-    clearAutoTimer();
-    void submit(pinRef.current);
-  }, [clearAutoTimer, submit]);
-
-  // Focus the (visually hidden) input on mount so soft keyboards appear.
-  useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
-
-  // Physical keyboard: handle digits, backspace and Enter even when the
-  // hidden input is not focused — the usual case on first launch. Every
-  // handler reads pinRef, so a re-register per render can never go stale.
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if (event.target === inputRef.current) return; // the input handles its own keys
-      if (event.ctrlKey || event.metaKey || event.altKey) return;
-      const key = toAsciiDigits(event.key);
-      if (/^[0-9]$/.test(key)) {
-        pressDigit(key);
-        event.preventDefault();
-      } else if (event.key === "Backspace") {
-        pressBackspace();
-        event.preventDefault();
-      } else if (event.key === "Enter") {
-        pressEnter();
-        event.preventDefault();
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [pressDigit, pressBackspace, pressEnter]);
+  const api = usePinPad(setUser);
+  const { error } = api;
 
   return (
     <Shell>
@@ -184,70 +67,7 @@ export function LoginPage() {
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={() => inputRef.current?.focus()}
-          className="mb-4 flex h-7 items-center justify-center gap-2"
-          aria-label="PIN"
-        >
-          {Array.from({ length: Math.max(4, pin.length) }).map((_, index) => (
-            <span
-              key={index}
-              className={
-                index < pin.length
-                  ? "h-3.5 w-3.5 scale-110 rounded-full bg-[#1a4d40] dark:bg-[#1b9277]"
-                  : "h-3.5 w-3.5 rounded-full border-2 border-ink/25 dark:border-white/25"
-              }
-            />
-          ))}
-        </button>
-
-        <input
-          ref={inputRef}
-          className="sr-only"
-          aria-label={t("auth.pinInput", "Library PIN")}
-          type="password"
-          inputMode="numeric"
-          value={pin}
-          onChange={(event) => {
-            const digits = toAsciiDigits(event.target.value)
-              .replace(/\D/g, "")
-              .slice(0, 8);
-            pinRef.current = digits;
-            setPin(digits);
-            setError(null);
-            scheduleAutoSubmit();
-          }}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") pressEnter();
-          }}
-        />
-
-        <div className="grid grid-cols-3 gap-2" dir="ltr">
-          {PERSIAN_DIGITS.map((glyph, index) => {
-            const ascii = index === 9 ? "0" : String(index + 1);
-            return (
-              <button
-                key={ascii}
-                type="button"
-                disabled={busy}
-                onClick={() => pressDigit(ascii)}
-                className="h-14 rounded-xl border border-ink/8 bg-white text-lg font-semibold text-ink transition hover:bg-[#1a4d40] hover:text-white disabled:opacity-50 dark:border-white/10 dark:bg-white/5 dark:text-ivory dark:hover:bg-[#1b9277]"
-              >
-                {glyph}
-              </button>
-            );
-          })}
-          <button
-            type="button"
-            aria-label="backspace"
-            disabled={busy}
-            onClick={pressBackspace}
-            className="flex h-14 items-center justify-center rounded-xl text-copper transition hover:bg-copper/10 disabled:opacity-50"
-          >
-            <Delete size={19} />
-          </button>
-        </div>
+        <PinPad api={api} />
 
         {error ? (
           <div className="mt-4 rounded-xl border border-red-500/25 bg-red-500/10 px-3.5 py-2.5 text-[13px] font-medium text-red-700 dark:text-red-400">
