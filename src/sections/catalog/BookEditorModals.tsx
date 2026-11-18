@@ -32,6 +32,46 @@ import {
   metadataToForm,
 } from "./shared";
 
+/** Shared Cancel/submit row for the item modals. */
+function ModalActions({
+  onClose,
+  pending,
+  cancelLabel,
+  saveLabel,
+  bordered,
+}: {
+  onClose: () => void;
+  pending: boolean;
+  cancelLabel: string;
+  saveLabel: string;
+  bordered?: boolean;
+}) {
+  return (
+    <div
+      className={
+        bordered
+          ? "flex justify-end gap-2 border-t border-ink/8 pt-4 dark:border-white/8"
+          : "flex justify-end gap-2"
+      }
+    >
+      <button
+        type="button"
+        onClick={onClose}
+        className="rounded-[var(--radius-control)] px-4 py-2 text-sm font-semibold text-ink/60 hover:bg-ink/5 dark:text-ivory/60 dark:hover:bg-white/5"
+      >
+        {cancelLabel}
+      </button>
+      <button
+        type="submit"
+        disabled={pending}
+        className="rounded-[var(--radius-control)] bg-accent px-5 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50 dark:bg-accent-dark"
+      >
+        {saveLabel}
+      </button>
+    </div>
+  );
+}
+
 export function AddCopyModal({
   book,
   shelves,
@@ -141,22 +181,12 @@ export function AddCopyModal({
             ))}
           </select>
         </label>
-        <div className="flex justify-end gap-2">
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-[var(--radius-control)] px-4 py-2 text-sm font-semibold text-ink/60 hover:bg-ink/5 dark:text-ivory/60 dark:hover:bg-white/5"
-          >
-            {t("catalog.addModal.cancel", "Cancel")}
-          </button>
-          <button
-            type="submit"
-            disabled={mutation.isPending}
-            className="rounded-[var(--radius-control)] bg-accent px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50 dark:bg-accent-dark"
-          >
-            {t("catalog.addModal.save", "Add copy")}
-          </button>
-        </div>
+        <ModalActions
+          onClose={onClose}
+          pending={mutation.isPending}
+          cancelLabel={t("catalog.addModal.cancel", "Cancel")}
+          saveLabel={t("catalog.addModal.save", "Add copy")}
+        />
       </form>
     </Modal>
   );
@@ -600,22 +630,13 @@ export function BookEditorModal({
         </label>
         {gapHint("description")}
 
-        <div className="flex justify-end gap-2 border-t border-ink/8 pt-4 dark:border-white/8">
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-[var(--radius-control)] px-4 py-2 text-sm font-semibold text-ink/60 hover:bg-ink/5 dark:text-ivory/60 dark:hover:bg-white/5"
-          >
-            {t("catalog.addModal.cancel", "Cancel")}
-          </button>
-          <button
-            type="submit"
-            disabled={mutation.isPending}
-            className="rounded-[var(--radius-control)] bg-accent px-5 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50 dark:bg-accent-dark"
-          >
-            {t("catalog.addModal.save", "Save item")}
-          </button>
-        </div>
+        <ModalActions
+          onClose={onClose}
+          pending={mutation.isPending}
+          cancelLabel={t("catalog.addModal.cancel", "Cancel")}
+          saveLabel={t("catalog.addModal.save", "Save item")}
+          bordered
+        />
       </form>
     </Modal>
   );
