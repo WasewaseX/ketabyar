@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { TFunction } from "i18next";
 import { Plus } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { CopyEditModal } from "../components/CopyEditModal";
@@ -9,16 +9,9 @@ import { ArtShelf } from "../components/ui/art";
 import { useContextMenu } from "../components/ui/ContextMenu";
 import { EmptyState, PageLoader } from "../components/ui/primitives";
 import { PageTitle } from "../components/ui/shared";
-import {
-  auditLog,
-  books,
-  deleteBook,
-  getCopiesForBook,
-  getShelves,
-} from "../data/repositories/library";
-import { useQuery } from "../hooks/useLibraryQuery";
+import { deleteBook } from "../data/repositories/library";
 import { useUiStore } from "../store/uiStore";
-import type { Book, Copy } from "../types";
+import type { Book } from "../types";
 import { BookEditorModal } from "./catalog/BookEditorModals";
 import { BookSidebar } from "./catalog/BookSidebar";
 import { CatalogBulkBar } from "./catalog/CatalogBulkBar";
@@ -30,6 +23,7 @@ import {
   SAVED_VIEWS,
   type SavedView,
 } from "./catalog/shared";
+import { useCatalogPageState } from "./catalog/useCatalogPageState";
 
 /**
  * The bibliographic catalog screen. Filtering/paging logic lives here; the
@@ -188,27 +182,39 @@ export function CatalogPage() {
     (state) => state.preferences.titlePreference,
   );
 
-  const [term, setTerm] = useState(
-    () => new URLSearchParams(window.location.search).get("q") ?? "",
-  );
-  const [typeFilter, setTypeFilter] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("");
-  const [languageFilter, setLanguageFilter] = useState("");
-  const [view, setView] = useState<SavedView>("allBooks");
-  const [sort, setSort] = useState<{ key: string; dir: 1 | -1 }>({
-    key: "created_at",
-    dir: -1,
-  });
-  const [page, setPage] = useState(1);
-  const [selectedBook, setSelectedBook] = useState<Book | null>(null);
-  const [sidebarTab, setSidebarTab] = useState<"details" | "copies">("details");
-  const [editorOpen, setEditorOpen] = useState(
-    () =>
-      new URLSearchParams(window.location.search).get("action") === "add-book",
-  );
-  const [editingBook, setEditingBook] = useState<Book | null>(null);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [editCopy, setEditCopy] = useState<Copy | null>(null);
+  const state = useCatalogPageState();
+  const {
+    term,
+    setTerm,
+    typeFilter,
+    setTypeFilter,
+    categoryFilter,
+    setCategoryFilter,
+    languageFilter,
+    setLanguageFilter,
+    view,
+    setView,
+    sort,
+    setSort,
+    page,
+    setPage,
+    selectedBook,
+    setSelectedBook,
+    sidebarTab,
+    setSidebarTab,
+    editorOpen,
+    setEditorOpen,
+    editingBook,
+    setEditingBook,
+    selectedIds,
+    setSelectedIds,
+    editCopy,
+    setEditCopy,
+    booksQuery,
+    shelvesQuery,
+    copiesQuery,
+    auditQuery,
+  } = state;
 
   const { archiveBook, archiveBulk } = useCatalogMutations({
     setSelectedBook,
@@ -217,13 +223,7 @@ export function CatalogPage() {
     t,
   });
 
-  const booksQuery = useQuery({
-    queryKey: ["books", term, typeFilter],
-    queryFn: () => books(term, typeFilter),
-  });
-  const shelvesQuery = useQuery({ queryKey: ["shelves"], queryFn: getShelves });
   const allBooks = booksQuery.data ?? EMPTY_BOOKS;
-
   const {
     categories,
     viewCounts,
@@ -239,27 +239,6 @@ export function CatalogPage() {
     sort,
     page,
     pageSize,
-  });
-
-  /* Deep-link consumption: the ?q= / ?action=add-book state is initialized
-    lazily above, so this effect only focuses the search box and strips the
-    parameters from the URL — no setState inside an effect. */
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("focus") === "search")
-      document.getElementById("catalog-page-search")?.focus();
-    if (params.get("q") || params.get("action") || params.get("focus"))
-      history.replaceState(null, "", window.location.pathname);
-  }, []);
-
-  const copiesQuery = useQuery({
-    queryKey: ["copies-for", selectedBook?.id],
-    queryFn: () => getCopiesForBook(selectedBook!.id),
-    enabled: !!selectedBook,
-  });
-  const auditQuery = useQuery({
-    queryKey: ["activity"],
-    queryFn: () => auditLog(500),
   });
 
   const toggleSort = (key: string) =>
