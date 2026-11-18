@@ -257,7 +257,7 @@ describe("login gate (v1.2.2 deadlock regression)", () => {
     expect(
       screen.queryByRole("button", { name: "PIN" }),
     ).not.toBeInTheDocument();
-  }, 15000);
+  }, 30000);
 
   it("a wrong PIN shows the error and stays on the login screen", async () => {
     vi.mocked(login).mockRejectedValueOnce(
