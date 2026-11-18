@@ -1,19 +1,8 @@
-import {
-  BarChart3,
-  BookOpen,
-  CheckCircle2,
-  Copy,
-  Download,
-  Info,
-  Printer,
-  RefreshCw,
-  TrendingUp,
-} from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Copy, Download, Printer, RefreshCw } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { useContextMenu } from "../components/ui/ContextMenu";
-import { PageLoader } from "../components/ui/primitives";
 import { PageTitle } from "../components/ui/shared";
 import {
   dashboard,
@@ -23,32 +12,16 @@ import {
 import { useQuery } from "../hooks/useLibraryQuery";
 import { useLibrarySettingsStore } from "../store/librarySettingsStore";
 import { useUiStore } from "../store/uiStore";
-import type { Loan } from "../types";
 import { cn } from "../utils/cn";
-import { daysLate } from "../utils/dates";
-import {
-  InventoryCharts,
-  MembersCharts,
-} from "./reports/InventoryMembersCharts";
-import {
-  CirculationCharts,
-  OverviewCharts,
-} from "./reports/OverviewCirculationCharts";
-import {
-  buildReportZip,
-  countBy,
-  runReportsPdfExport,
-  TAB_CHARTS,
-  type TabId,
-} from "./reports/ReportsShared";
-
-/** Stable empty array — keeps hook deps from changing every render. */
-const EMPTY_LOANS: Loan[] = [];
+import { ReportsChartsGrid } from "./reports/ReportsChartsGrid";
+import { TAB_CHARTS, type TabId } from "./reports/ReportsShared";
+import { ReportsToolbar } from "./reports/ReportsToolbar";
+import { useReportData, useReportsExports } from "./reports/useReportData";
 
 /**
- * Analytics: 4 tabs × 4 charts, a KPI strip, CSV (ZIP) export and a printed
- * PDF report. The chart panels live in ./reports/*; this page owns the
- * queries, the derived data sets and the exporters.
+ * Reports root: queries and tab state; derivations live in useReportData,
+ * the CSV/PDF exports in useReportsExports and the chart grid in
+ * reports/ReportsChartsGrid.
  */
 export function ReportsPage() {
   const { t } = useTranslation();
@@ -64,59 +37,11 @@ export function ReportsPage() {
     queryKey: ["loans-reports"],
     queryFn: () => loans(false),
   });
-
   // All GROUP BY aggregates arrive in one repository round-trip.
   const breakdownsQuery = useQuery({
     queryKey: ["report-breakdowns"],
     queryFn: reportBreakdowns,
   });
-  const bd = breakdownsQuery.data;
-
-  const categoriesData = useMemo(
-    () =>
-      countBy(
-        (bd?.loanCategories ?? []).map((row) => row.label),
-        t("catalog.uncategorized", "Uncategorized"),
-      ).slice(0, 6),
-    [bd, t],
-  );
-  const conditionsData = bd?.copyConditions ?? [];
-  const rolesData = useMemo(
-    () =>
-      countBy(
-        (bd?.memberRoles ?? []).map((row) => row.label),
-        t("members.roles.other", "Member"),
-      ),
-    [bd, t],
-  );
-  const copyStatusData = bd?.copyStatuses ?? [];
-  const itemTypesData = useMemo(
-    () =>
-      countBy(
-        (bd?.itemTypes ?? []).map((row) => row.label),
-        "book",
-      ),
-    [bd],
-  );
-  const inventoryCategoriesData = useMemo(
-    () =>
-      countBy(
-        (bd?.inventoryCategories ?? []).map((row) => row.label),
-        t("catalog.uncategorized", "Uncategorized"),
-      ).slice(0, 6),
-    [bd, t],
-  );
-  const memberStatusData = useMemo(
-    () =>
-      countBy(
-        (bd?.memberStatuses ?? []).map((row) => row.label),
-        "active",
-      ),
-    [bd],
-  );
-  const memberJoinsData = (bd?.memberJoins ?? [])
-    .slice(-12)
-    .map((row) => ({ name: row.label, joins: row.n }));
 
   const [activeTab, setActiveTab] = useState<TabId>("overview");
   const [range, setRange] = useState<"7d" | "30d" | "1y" | "all">("30d");
@@ -131,132 +56,30 @@ export function ReportsPage() {
     [],
   );
 
-  const allLoans = loansQuery.data ?? EMPTY_LOANS;
-  const openLoans = allLoans.filter((loan) => !loan.returned_at);
-  const overdueOpen = openLoans.filter((loan) => daysLate(loan.due_at) > 0);
-  const overdueRate =
-    openLoans.length > 0
-      ? `${((overdueOpen.length / openLoans.length) * 100).toFixed(1)}%`
-      : "0.0%";
-  const loanCounts = {
-    total: allLoans.length,
-    open: openLoans.length,
-    overdue: overdueOpen.length,
-  };
+  const data = useReportData({
+    t,
+    locale,
+    bd: breakdownsQuery.data,
+    dashData: dashQuery.data,
+    loansData: loansQuery.data,
+    range,
+  });
+  const { allLoans, overdueRate } = data;
 
-  const trendData = useMemo(() => {
-    const weekdayTag =
-      locale === "fa"
-        ? "fa-IR"
-        : locale === "ar"
-          ? "ar-DZ"
-          : locale === "fr"
-            ? "fr-FR"
-            : "en-US";
-    return (dashQuery.data?.activity ?? []).map((point) => ({
-      name: new Intl.DateTimeFormat(weekdayTag, { weekday: "short" }).format(
-        new Date(point.date),
-      ),
-      circulation: point.count,
-    }));
-  }, [dashQuery.data, locale]);
-
-  const trendBadge = useMemo(() => {
-    if (trendData.length < 4) return null;
-    const half = Math.floor(trendData.length / 2);
-    const first = trendData
-      .slice(0, half)
-      .reduce((sum, point) => sum + point.circulation, 0);
-    const second = trendData
-      .slice(half)
-      .reduce((sum, point) => sum + point.circulation, 0);
-    if (first === 0) return second > 0 ? "+100%" : null;
-    const delta = Math.round(((second - first) / first) * 100);
-    return `${delta >= 0 ? "+" : ""}${delta}%`;
-  }, [trendData]);
-
-  const rhythm = dashQuery.data?.circulationRhythm ?? [];
-
-  const kpis = [
-    {
-      icon: BookOpen,
-      label: t("reports.metrics.totalCheckouts", "Total checkouts"),
-      sub: t("reports.metrics.totalCheckoutsSub", "all-time loans"),
-      value: allLoans.length,
-    },
-    {
-      icon: CheckCircle2,
-      label: t("reports.metrics.activeBorrowers", "Active borrowers"),
-      sub: t("reports.metrics.activeBorrowersSub", "current members"),
-      value: dashQuery.data?.members ?? 0,
-    },
-    {
-      icon: TrendingUp,
-      label: t("reports.metrics.overdueRate", "Overdue rate"),
-      sub: t("reports.metrics.overdueRateSub", "of open loans"),
-      value: overdueRate,
-    },
-    {
-      icon: BarChart3,
-      label: t("reports.metrics.physicalHoldings", "Physical holdings"),
-      sub: t("reports.metrics.physicalHoldingsSub", "copies on record"),
-      value: dashQuery.data?.copies ?? 0,
-    },
-  ];
-
-  const rangeLabels: Record<typeof range, string> = {
-    "7d": t("reports.ranges.7d", "Last 7 days"),
-    "30d": t("reports.ranges.30d", "Last 30 days"),
-    "1y": t("reports.ranges.1y", "Last year"),
-    all: t("reports.ranges.all", "All time"),
-  };
-
-  const exportZip = () => {
-    buildReportZip({
-      t,
-      kpis,
-      trendData,
-      categoriesData,
-      copyStatusData,
-      conditionsData,
-      itemTypesData,
-      rolesData,
-      memberStatusData,
-      memberJoinsData,
-      rhythm,
-    });
-  };
-
-  const exportPdf = async () => {
-    if (pdfExporting) return;
-    setPdfExporting(true);
-    const originalTab = activeTab;
-    try {
-      await runReportsPdfExport({
-        setActiveTab,
-        chartRefs,
-        libraryName: settings.library_name || "KetabYar Library",
-        librarySubtitle:
-          settings.library_description || "Library Analytics & Reports",
-        locale,
-        rangeLabel: rangeLabels[range],
-        kpis,
-        t,
-      });
-    } finally {
-      setActiveTab(originalTab);
-      setPdfExporting(false);
-    }
-  };
+  const { exportZip, exportPdf, exportPdfRef } = useReportsExports({
+    t,
+    locale,
+    settings,
+    activeTab,
+    setActiveTab,
+    chartRefs,
+    pdfExporting,
+    setPdfExporting,
+    range,
+    data,
+  });
 
   const loading = dashQuery.isLoading || loansQuery.isLoading;
-
-  // Latest-export mirror: the window context-menu listener below stays
-  // registered with stable deps while always calling the current exporter.
-  const exportPdfRef = useRef<() => Promise<void>>(async () => {});
-  useEffect(() => {
-    exportPdfRef.current = exportPdf;
-  });
 
   // Region context menu on a window listener: the page container stays free
   // of interaction props (Biome a11y); the keyboard menu key still fires
@@ -313,6 +136,7 @@ export function ReportsPage() {
     breakdownsQuery,
     allLoans,
     overdueRate,
+    exportPdfRef,
   ]);
 
   return (
@@ -346,119 +170,23 @@ export function ReportsPage() {
         }
       />
 
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap gap-1.5">
-          {(Object.keys(TAB_CHARTS) as TabId[]).map((tab) => (
-            <button
-              type="button"
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={cn(
-                "rounded-full px-4 py-1.5 text-sm font-semibold transition",
-                activeTab === tab
-                  ? "bg-accent text-white dark:bg-accent-dark"
-                  : "bg-ink/5 text-ink/60 hover:bg-ink/10 dark:bg-white/5 dark:text-ivory/60 dark:hover:bg-white/10",
-              )}
-            >
-              {t(`reports.tabs.${tab}`, tab)}
-            </button>
-          ))}
-        </div>
-        <select
-          aria-label={t("reports.filterRange", "Date-range filter")}
-          className="field-select max-w-40"
-          value={range}
-          onChange={(event) => setRange(event.target.value as typeof range)}
-        >
-          <option value="7d">{rangeLabels["7d"]}</option>
-          <option value="30d">{rangeLabels["30d"]}</option>
-          <option value="1y">{rangeLabels["1y"]}</option>
-          <option value="all">{rangeLabels.all}</option>
-        </select>
-      </div>
+      <ReportsToolbar
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        range={range}
+        setRange={setRange}
+        rangeLabels={data.rangeLabels}
+      />
 
-      {loading ? (
-        <PageLoader label={t("reports.loading", "Crunching the numbers…")} />
-      ) : (
-        <>
-          <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
-            {kpis.map((kpi) => (
-              <div
-                key={kpi.label}
-                className="rounded-[var(--radius-card)] border border-ink/8 bg-white p-4 shadow-card dark:border-white/8 dark:bg-[#1b2723]"
-              >
-                <div className="flex items-center gap-2 text-ink/55 dark:text-ivory/55">
-                  <kpi.icon size={15} />
-                  <p className="text-xs font-semibold">{kpi.label}</p>
-                </div>
-                <p className="mt-2 font-display text-2xl font-bold tabular-nums">
-                  {typeof kpi.value === "number"
-                    ? kpi.value.toLocaleString(
-                        locale === "fa" ? "fa-IR" : "en-US",
-                      )
-                    : kpi.value}
-                </p>
-                <p className="text-[11px] text-ink/45 dark:text-ivory/45">
-                  {kpi.sub}
-                </p>
-              </div>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            {activeTab === "overview" ? (
-              <OverviewCharts
-                trendData={trendData}
-                trendBadge={trendBadge}
-                categoriesData={categoriesData}
-                rhythm={rhythm}
-                loanCounts={loanCounts}
-                registerChart={registerChart}
-              />
-            ) : null}
-
-            {activeTab === "circulation" ? (
-              <CirculationCharts
-                trendData={trendData}
-                rhythm={rhythm}
-                itemTypesData={itemTypesData}
-                loanCounts={loanCounts}
-                registerChart={registerChart}
-              />
-            ) : null}
-
-            {activeTab === "inventory" ? (
-              <InventoryCharts
-                copyStatusData={copyStatusData}
-                conditionsData={conditionsData}
-                inventoryCategoriesData={inventoryCategoriesData}
-                itemTypesData={itemTypesData}
-                registerChart={registerChart}
-              />
-            ) : null}
-
-            {activeTab === "members" ? (
-              <MembersCharts
-                rolesData={rolesData}
-                activeDepartments={dashQuery.data?.activeDepartments ?? []}
-                memberStatusData={memberStatusData}
-                memberJoinsData={memberJoinsData}
-                registerChart={registerChart}
-              />
-            ) : null}
-
-            <div className="md:col-span-2">
-              <p className="flex items-center gap-2 text-xs text-ink/45 dark:text-ivory/45">
-                <Info size={13} />
-                {t(
-                  "reports.emptyChartNote",
-                  "Charts with no data stay empty — KetabYar never invents numbers.",
-                )}
-              </p>
-            </div>
-          </div>
-        </>
-      )}
+      <ReportsChartsGrid
+        loading={loading}
+        kpis={data.kpis}
+        locale={locale}
+        activeTab={activeTab}
+        registerChart={registerChart}
+        data={data}
+        activeDepartments={dashQuery.data?.activeDepartments ?? []}
+      />
     </div>
   );
 }
