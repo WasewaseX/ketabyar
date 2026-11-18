@@ -542,3 +542,38 @@ export function PieChartCard({
     </ChartWidget>
   );
 }
+
+/** One-series bar chart: the standard bars array assembled for you. */
+export function SingleBarChart({
+  name,
+  registerChart,
+  title,
+  data,
+  dataKey = "value",
+  fill = "#c06b3e",
+  barSize = 26,
+  xKey = "name",
+  layout,
+}: {
+  name: ChartName;
+  registerChart: Register;
+  title: string;
+  data: { name: string; value: number }[] | { name: string; count: number }[];
+  dataKey?: string;
+  fill?: string;
+  barSize?: number;
+  xKey?: string;
+  layout?: "vertical";
+}) {
+  return (
+    <BarChartCard
+      name={name}
+      registerChart={registerChart}
+      title={title}
+      data={data}
+      xKey={xKey}
+      layout={layout}
+      bars={[{ dataKey, fill, barSize }]}
+    />
+  );
+}

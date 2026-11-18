@@ -5,6 +5,7 @@ import {
   type LoanCounts,
   PIE_COLORS,
   PieChartCard,
+  SingleBarChart,
 } from "./ReportsShared";
 
 type TrendPoint = { name: string; circulation: number };
@@ -134,33 +135,25 @@ export function CirculationCharts({
   const { t } = useTranslation();
   return (
     <>
-      <BarChartCard
+      <SingleBarChart
         name="peakHours"
         registerChart={registerChart}
         title={t("reports.charts.peakHours", "Peak hours")}
         data={rhythm}
+        dataKey="checkouts"
+        fill="var(--color-accent)"
+        barSize={22}
         xKey="time"
-        bars={[
-          {
-            dataKey: "checkouts",
-            fill: "var(--color-accent)",
-            barSize: 22,
-          },
-        ]}
       />
-      <BarChartCard
+      <SingleBarChart
         name="mediaTypeDist"
         registerChart={registerChart}
         title={t("reports.charts.mediaTypeDist", "Loans by media type")}
         data={itemTypesData}
+        dataKey="value"
+        fill="#c06b3e"
+        barSize={28}
         xKey="name"
-        bars={[
-          {
-            dataKey: "value",
-            fill: "#c06b3e",
-            barSize: 28,
-          },
-        ]}
       />
       <BarChartCard
         name="fulfillmentStatus"

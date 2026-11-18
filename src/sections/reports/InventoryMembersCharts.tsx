@@ -30,7 +30,7 @@ export function InventoryCharts({
   const { t } = useTranslation();
   return (
     <>
-      <BarChartCard
+      <SingleBarChart
         name="copyStatusDist"
         registerChart={registerChart}
         title={t("reports.charts.copyStatusDist", "Copy status distribution")}
@@ -38,16 +38,12 @@ export function InventoryCharts({
           name: reportStatusLabel(t, row.label),
           value: row.n,
         }))}
+        dataKey="value"
+        fill="var(--color-accent)"
+        barSize={26}
         xKey="name"
-        bars={[
-          {
-            dataKey: "value",
-            fill: "var(--color-accent)",
-            barSize: 26,
-          },
-        ]}
       />
-      <BarChartCard
+      <SingleBarChart
         name="conditionHealth"
         registerChart={registerChart}
         title={t("reports.charts.conditionHealth", "Condition health")}
@@ -55,14 +51,10 @@ export function InventoryCharts({
           name: reportConditionLabel(t, row.label),
           value: row.n,
         }))}
+        dataKey="value"
+        fill="#c06b3e"
+        barSize={26}
         xKey="name"
-        bars={[
-          {
-            dataKey: "value",
-            fill: "#c06b3e",
-            barSize: 26,
-          },
-        ]}
       />
       <BarChartCard
         name="categoryShare"
@@ -80,19 +72,15 @@ export function InventoryCharts({
           },
         ]}
       />
-      <BarChartCard
+      <SingleBarChart
         name="formatHoldingsCount"
         registerChart={registerChart}
         title={t("reports.charts.formatHoldingsCount", "Holdings by format")}
         data={itemTypesData}
+        dataKey="value"
+        fill="#6d3fa8"
+        barSize={28}
         xKey="name"
-        bars={[
-          {
-            dataKey: "value",
-            fill: "#6d3fa8",
-            barSize: 28,
-          },
-        ]}
       />
     </>
   );
@@ -115,7 +103,7 @@ export function MembersCharts({
   const { t } = useTranslation();
   return (
     <>
-      <BarChartCard
+      <SingleBarChart
         name="membersByRole"
         registerChart={registerChart}
         title={t("reports.charts.membersByRole", "Members by role")}
@@ -123,14 +111,10 @@ export function MembersCharts({
           name: reportRoleLabel(t, row.name),
           value: row.value,
         }))}
+        dataKey="value"
+        fill="var(--color-accent)"
+        barSize={26}
         xKey="name"
-        bars={[
-          {
-            dataKey: "value",
-            fill: "var(--color-accent)",
-            barSize: 26,
-          },
-        ]}
       />
       <BarChartCard
         name="activeDepts"
