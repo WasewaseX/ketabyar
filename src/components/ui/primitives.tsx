@@ -110,25 +110,6 @@ export const Input = forwardRef<
   );
 });
 
-export function Card({
-  children,
-  className,
-}: {
-  children: ReactNode;
-  className?: string;
-}) {
-  return (
-    <div
-      className={cn(
-        "rounded-[var(--radius-card)] border border-ink/5 bg-white p-5 shadow-card dark:border-white/5 dark:bg-[#1b2723]",
-        className,
-      )}
-    >
-      {children}
-    </div>
-  );
-}
-
 const STATUS_TONES: Record<string, string> = {
   available: "bg-accent/12 text-accent dark:text-accent-dark",
   active: "bg-accent/12 text-accent dark:text-accent-dark",

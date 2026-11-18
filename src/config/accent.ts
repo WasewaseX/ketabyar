@@ -38,8 +38,6 @@ export const ACCENT_PRESETS: AccentPreset[] = [
   },
 ];
 
-export const DEFAULT_ACCENT = ACCENT_PRESETS[0];
-
 export function accentDarkPair(value: string): string {
   return ACCENT_PRESETS.find((preset) => preset.value === value)?.dark ?? value;
 }

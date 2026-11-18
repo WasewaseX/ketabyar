@@ -19,7 +19,8 @@
     "preview": "vite preview",
     "tauri": "tauri",
     "lint": "biome check .",
-    "lint:fix": "biome check --write ."
+    "lint:fix": "biome check --write .",
+    "knip": "knip"
   },
   "dependencies": {
     "@fontsource/ibm-plex-sans-arabic": "^5.2.9",
@@ -78,6 +79,7 @@
     "@vitejs/plugin-react": "^6.0.2",
     "cross-env": "^10.1.0",
     "jsdom": "^29.1.1",
+    "knip": "^5.45.0",
     "tailwindcss": "^4.3.2",
     "typescript": "~6.0.3",
     "vite": "^8.0.16",

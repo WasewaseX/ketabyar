@@ -20,24 +20,17 @@ import * as RUST from "./authRust";
 import * as SQL from "./authSql";
 
 declare const __KETABYAR_BACKEND__: "ts" | "rust";
-export const activeAuthBackend: "ts" | "rust" = __KETABYAR_BACKEND__;
 
 const impl: typeof SQL = __KETABYAR_BACKEND__ === "rust" ? RUST : SQL;
 
-export const getLoginAccounts = impl.getLoginAccounts;
+export const activeAuthBackend: "ts" | "rust" = __KETABYAR_BACKEND__;
+
 export const bootstrapAdminIfNeeded = impl.bootstrapAdminIfNeeded;
-export const hasPin = impl.hasPin;
-export const setPin = impl.setPin;
-export const checkPin = impl.checkPin;
 export const login = impl.login;
 export const logout = impl.logout;
 export const currentSession = impl.currentSession;
 export const changeOwnPassword = impl.changeOwnPassword;
 export const listUsers = impl.listUsers;
-export const createUser = impl.createUser;
-export const updateUser = impl.updateUser;
 export const resetPassword = impl.resetPassword;
-export const deleteUser = impl.deleteUser;
-export const applicationDiagnostics = impl.applicationDiagnostics;
 
 export type { LoginAccount } from "./authSql";

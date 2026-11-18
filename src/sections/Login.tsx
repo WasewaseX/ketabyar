@@ -1,9 +1,7 @@
 import { ShieldCheck } from "lucide-react";
-import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { changeOwnPassword } from "../data/auth";
 import { useAuthStore } from "../store/authStore";
-import type { PublicUser } from "../types";
+import type {} from "../types";
 import { PinPad } from "./login/PinPad";
 import { usePinPad } from "./login/usePinPad";
 
@@ -85,102 +83,3 @@ export function LoginPage() {
 }
 
 /** Shown when the account must rotate its PIN before continuing (rare). */
-export function ForcedPasswordChangePage({ user }: { user: PublicUser }) {
-  const { t } = useTranslation();
-  const setUser = useAuthStore((state) => state.setUser);
-  const [current, setCurrent] = useState("");
-  const [next, setNext] = useState("");
-  const [confirm, setConfirm] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  const submit = async () => {
-    if (next.length < 4) {
-      setError(
-        t("settings.account.passwordTooShort", "پین باید حداقل ۴ رقم باشد."),
-      );
-      return;
-    }
-    if (next !== confirm) {
-      setError(t("settings.account.passwordMismatch", "پین‌ها یکسان نیستند."));
-      return;
-    }
-    setBusy(true);
-    try {
-      await changeOwnPassword(current, next);
-      setUser({ ...user, must_change_password: false });
-    } catch (changeError) {
-      setError(
-        changeError instanceof Error
-          ? changeError.message
-          : String(changeError),
-      );
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <Shell>
-      <div className="rounded-2xl bg-[#f9f8f4]/95 p-8 text-[#17211f] shadow-2xl dark:bg-[#1b2723]/95 dark:text-[#f9f8f4]">
-        <h1 className="font-display text-lg font-bold">
-          {t("auth.forcedChangeTitle", "تغییر پین")}
-        </h1>
-        <p className="mt-1 text-[13px] text-ink/60 dark:text-ivory/60">
-          {t(
-            "auth.forcedChangeSubtitle",
-            "سلام {{name}}، برای ادامه پین جدیدی انتخاب کنید.",
-            { name: user.full_name },
-          )}
-        </p>
-        <div className="mt-5 grid gap-3">
-          <input
-            className="field-input"
-            type="password"
-            inputMode="numeric"
-            aria-label={t("settings.account.currentPassword", "پین فعلی")}
-            placeholder={t("settings.account.currentPassword", "پین فعلی")}
-            value={current}
-            onChange={(event) => setCurrent(event.target.value)}
-          />
-          <input
-            className="field-input"
-            type="password"
-            inputMode="numeric"
-            aria-label={t("settings.account.newPassword", "پین جدید")}
-            placeholder={t("settings.account.newPassword", "پین جدید")}
-            value={next}
-            onChange={(event) => setNext(event.target.value)}
-          />
-          <input
-            className="field-input"
-            type="password"
-            inputMode="numeric"
-            aria-label={t("settings.account.confirmPassword", "تکرار پین جدید")}
-            placeholder={t(
-              "settings.account.confirmPassword",
-              "تکرار پین جدید",
-            )}
-            value={confirm}
-            onChange={(event) => setConfirm(event.target.value)}
-          />
-        </div>
-        {error ? (
-          <div className="mt-3 rounded-xl border border-red-500/25 bg-red-500/10 px-3 py-2 text-[13px] text-red-700 dark:text-red-400">
-            {error}
-          </div>
-        ) : null}
-        <button
-          type="button"
-          onClick={() => void submit()}
-          disabled={busy}
-          className="mt-5 w-full rounded-xl bg-[#1a4d40] py-2.5 text-sm font-semibold text-white hover:bg-[#153d33] disabled:opacity-60"
-        >
-          {busy
-            ? t("settings.account.saving", "…")
-            : t("settings.account.savePassword", "ذخیره پین")}
-        </button>
-      </div>
-    </Shell>
-  );
-}

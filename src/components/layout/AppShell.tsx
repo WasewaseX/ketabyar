@@ -1,12 +1,4 @@
-import {
-  ChevronLeft,
-  ChevronRight,
-  Copy,
-  Minus,
-  Search,
-  Square,
-  X,
-} from "lucide-react";
+import { Copy, Minus, Search, Square, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Outlet, useNavigate } from "react-router-dom";
@@ -208,16 +200,3 @@ function HeaderSearch({
 }
 
 /** Chevron helper for RTL-aware pagination arrows. */
-export function ChevronFlip({ back }: { back?: boolean }) {
-  return document.documentElement.dir === "rtl" ? (
-    back ? (
-      <ChevronRight size={15} />
-    ) : (
-      <ChevronLeft size={15} />
-    )
-  ) : back ? (
-    <ChevronLeft size={15} />
-  ) : (
-    <ChevronRight size={15} />
-  );
-}

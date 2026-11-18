@@ -1,0 +1,49 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "project": [
+    "src/**/*.{ts,tsx}"
+  ],
+  "ignore": [
+    "src/types/generated/**",
+    "src/data/authRust.ts",
+    "src/data/authSql.ts",
+    "src/data/repositories/libraryRust.ts",
+    "src/data/repositories/librarySqlPlaces.ts",
+    "src/data/repositories/librarySqlReservations.ts",
+    "src/data/repositories/librarySqlSystem.ts",
+    "src/data/repositories/librarySqlCatalog.ts",
+    "src/data/repositories/librarySqlLoans.ts",
+    "src/data/schemaRust.ts",
+    "src/data/auth.ts"
+  ],
+  "ignoreExportsUsedInFile": true,
+  "ignoreDependencies": [
+    "@tanstack/react-table",
+    "@tanstack/react-virtual",
+    "@tauri-apps/plugin-clipboard-manager",
+    "@tauri-apps/plugin-global-shortcut",
+    "@tauri-apps/plugin-log",
+    "@tauri-apps/plugin-notification",
+    "@tauri-apps/plugin-store",
+    "@tauri-apps/plugin-window-state",
+    "@zxing/browser",
+    "class-variance-authority",
+    "@testing-library/user-event",
+    "tailwindcss"
+  ],
+  "vitest": {
+    "config": "vitest.config.ts",
+    "entry": [
+      "src/**/*.test.{ts,tsx}"
+    ]
+  },
+  "entry": [
+    "src/main.tsx",
+    "vite.config.ts",
+    "vitest.config.ts",
+    "scripts/check-i18n.mjs"
+  ],
+  "ignoreBinaries": [
+    "cargo"
+  ]
+}

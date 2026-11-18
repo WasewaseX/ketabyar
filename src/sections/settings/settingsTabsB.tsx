@@ -211,6 +211,39 @@ export function NotificationsTab() {
 
 /* ── Backup & restore ────────────────────────────────────────────────── */
 
+/** One-table JSON import: validate generic rows, merge, toast the count. */
+function SingleTableImport({
+  label,
+  table,
+  successKey,
+  successFallback,
+}: {
+  label: string;
+  table: "books" | "members";
+  successKey: string;
+  successFallback: string;
+}) {
+  const { t } = useTranslation();
+  return (
+    <ImportJsonButton
+      label={label}
+      validate={(parsed) =>
+        Array.isArray(parsed) && parsed.every((row) => typeof row === "object")
+      }
+      onImport={async (rows) => {
+        const result = await importLibraryBackup({
+          _version: 1,
+          _exported_at: new Date().toISOString(),
+          tables: { [table]: rows },
+        });
+        toast.success(
+          t(successKey, successFallback, { count: result[table] ?? 0 }),
+        );
+      }}
+    />
+  );
+}
+
 export function BackupTab() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -333,47 +366,17 @@ export function BackupTab() {
           "Import books / members (JSON)",
         )}
       >
-        <ImportJsonButton
+        <SingleTableImport
           label={t("settings.backup.importBooks", "Import books JSON")}
-          validate={(parsed) =>
-            Array.isArray(parsed) &&
-            parsed.every((row) => typeof row === "object")
-          }
-          onImport={async (rows) => {
-            const result = await importLibraryBackup({
-              _version: 1,
-              _exported_at: new Date().toISOString(),
-              tables: { books: rows },
-            });
-            toast.success(
-              t(
-                "settings.backup.importBooksSuccess",
-                "Imported {{count}} books",
-                { count: result.books ?? 0 },
-              ),
-            );
-          }}
+          table="books"
+          successKey="settings.backup.importBooksSuccess"
+          successFallback="Imported {{count}} books"
         />
-        <ImportJsonButton
+        <SingleTableImport
           label={t("settings.backup.importMembers", "Import members JSON")}
-          validate={(parsed) =>
-            Array.isArray(parsed) &&
-            parsed.every((row) => typeof row === "object")
-          }
-          onImport={async (rows) => {
-            const result = await importLibraryBackup({
-              _version: 1,
-              _exported_at: new Date().toISOString(),
-              tables: { members: rows },
-            });
-            toast.success(
-              t(
-                "settings.backup.importMembersSuccess",
-                "Imported {{count}} members",
-                { count: result.members ?? 0 },
-              ),
-            );
-          }}
+          table="members"
+          successKey="settings.backup.importMembersSuccess"
+          successFallback="Imported {{count}} members"
         />
       </Card>
     </>

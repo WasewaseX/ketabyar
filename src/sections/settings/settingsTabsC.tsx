@@ -27,13 +27,15 @@ export function DatabaseTab() {
   const settings = useLibrarySettingsStore((state) => state.settings);
   const [dangerVisible, setDangerVisible] = useState(false);
 
+  /** Localized confirm wrapper — one line per confirmation site. */
+  const confirmKeyed = (key: string, fallback: string) =>
+    window.confirm(t(key, fallback));
+
   const clearLoans = async () => {
     if (
-      !window.confirm(
-        t(
-          "settings.database.clearLoansConfirm",
-          "Delete ALL loans (open and returned)? Copies return to the shelves.",
-        ),
+      !confirmKeyed(
+        "settings.database.clearLoansConfirm",
+        "Delete ALL loans (open and returned)? Copies return to the shelves.",
       )
     )
       return;
@@ -55,20 +57,16 @@ export function DatabaseTab() {
 
   const factoryReset = async () => {
     if (
-      !window.confirm(
-        t(
-          "settings.database.factoryResetConfirm1",
-          "FIRST CONFIRMION — this deletes every book, member, loan, hold, fine, shelf and notification in this database.",
-        ),
+      !confirmKeyed(
+        "settings.database.factoryResetConfirm1",
+        "FIRST CONFIRMION — this deletes every book, member, loan, hold, fine, shelf and notification in this database.",
       )
     )
       return;
     if (
-      !window.confirm(
-        t(
-          "settings.database.factoryResetConfirm2",
-          "SECOND CONFIRMATION — absolutely sure? There is no undo.",
-        ),
+      !confirmKeyed(
+        "settings.database.factoryResetConfirm2",
+        "SECOND CONFIRMATION — absolutely sure? There is no undo.",
       )
     )
       return;

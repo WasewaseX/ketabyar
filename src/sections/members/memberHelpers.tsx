@@ -48,12 +48,6 @@ export function splitFullName(fullName: string): {
   };
 }
 
-export function formatMemberShortName(fullName: string): string {
-  const { first, last } = splitFullName(fullName);
-  if (!first) return last || "—";
-  return last ? `${first[0]}. ${last}` : first;
-}
-
 export function getMemberInitials(fullName: string): string {
   const { first, last } = splitFullName(fullName);
   return ((first[0] ?? "") + (last[0] ?? "")).toUpperCase() || "ک";

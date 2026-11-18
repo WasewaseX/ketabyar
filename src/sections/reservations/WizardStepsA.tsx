@@ -13,6 +13,30 @@ export type VisitorDraft = {
 };
 
 /** Wizard step 1 — pick a registered member or capture a visitor. */
+/** Search box shared by the wizard steps (label doubles as placeholder). */
+function WizardSearch({
+  labelKey,
+  fallback,
+  value,
+  onChange,
+}: {
+  labelKey: string;
+  fallback: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <input
+      aria-label={t(labelKey, fallback)}
+      className="field-input max-w-xs"
+      placeholder={t(labelKey, fallback)}
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+    />
+  );
+}
+
 export function WizardStepMember({
   memberMode,
   setMemberMode,
@@ -73,18 +97,11 @@ export function WizardStepMember({
       {memberMode === "registered" ? (
         <>
           <div className="mb-3 flex flex-wrap gap-2">
-            <input
-              aria-label={t(
-                "reservations.addModal.searchMemberPlaceholder",
-                "Search members…",
-              )}
-              className="field-input max-w-xs"
-              placeholder={t(
-                "reservations.addModal.searchMemberPlaceholder",
-                "Search members…",
-              )}
+            <WizardSearch
+              labelKey="reservations.addModal.searchMemberPlaceholder"
+              fallback="Search members…"
               value={memberTerm}
-              onChange={(event) => setMemberTerm(event.target.value)}
+              onChange={setMemberTerm}
             />
             <select
               aria-label={t(
@@ -270,18 +287,11 @@ export function WizardStepItem({
   return (
     <div>
       <div className="mb-3 flex flex-wrap gap-2">
-        <input
-          aria-label={t(
-            "reservations.addModal.searchItemPlaceholder",
-            "Search the catalog…",
-          )}
-          className="field-input max-w-xs"
-          placeholder={t(
-            "reservations.addModal.searchItemPlaceholder",
-            "Search the catalog…",
-          )}
+        <WizardSearch
+          labelKey="reservations.addModal.searchItemPlaceholder"
+          fallback="Search the catalog…"
           value={itemTerm}
-          onChange={(event) => setItemTerm(event.target.value)}
+          onChange={setItemTerm}
         />
         <select
           aria-label={t(

@@ -47,9 +47,7 @@ export const members = impl.members;
 export const saveMember = impl.saveMember;
 export const updateMember = impl.updateMember;
 export const deleteMember = impl.deleteMember;
-export const hardDeleteMember = impl.hardDeleteMember;
 export const banMember = impl.banMember;
-export const unbanMember = impl.unbanMember;
 
 // ── Circulation ──
 export const loans = impl.loans;

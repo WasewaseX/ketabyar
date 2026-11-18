@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Wand2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -69,6 +69,32 @@ function ModalActions({
         {saveLabel}
       </button>
     </div>
+  );
+}
+
+/** Required text field with the app-wide copper asterisk marker; children
+ * render inside the label (e.g. a validation hint). */
+function RequiredField({
+  labelKey,
+  fallback,
+  register,
+  children,
+}: {
+  labelKey: string;
+  fallback: string;
+  register: Record<string, unknown>;
+  children?: ReactNode;
+}) {
+  const { t } = useTranslation();
+  return (
+    <label>
+      <span>
+        {t(labelKey, fallback)}
+        <span className="text-copper"> *</span>
+      </span>
+      <input className="field-input" required {...register} />
+      {children}
+    </label>
   );
 }
 
@@ -450,22 +476,17 @@ export function BookEditorModal({
                 onChange={(value) => form.setValue("item_type", value)}
               />
             </div>
-            <label>
-              <span>
-                {t("catalog.addModal.titleLabel", "Title")}
-                <span className="text-copper"> *</span>
-              </span>
-              <input
-                className="field-input"
-                required
-                {...form.register("title")}
-              />
+            <RequiredField
+              labelKey="catalog.addModal.titleLabel"
+              fallback="Title"
+              register={form.register("title")}
+            >
               {form.formState.errors.title ? (
                 <p className="mt-1 text-[11px] text-red-600">
                   {t("catalog.alerts.titleRequired", "A title is required")}
                 </p>
               ) : null}
-            </label>
+            </RequiredField>
           </div>
         </div>
 
@@ -549,17 +570,11 @@ export function BookEditorModal({
               : t("catalog.addModal.categoryLabel", "Category"),
           )}
 
-          <label>
-            <span>
-              {t("catalog.addModal.langLabel", "Language")}
-              <span className="text-copper"> *</span>
-            </span>
-            <input
-              className="field-input"
-              required
-              {...form.register("language")}
-            />
-          </label>
+          <RequiredField
+            labelKey="catalog.addModal.langLabel"
+            fallback="Language"
+            register={form.register("language")}
+          />
 
           {itemType !== "fyp" ? (
             <label>
