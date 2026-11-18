@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { cn } from "../../utils/cn";
-import type { TabId } from "./ReportsShared";
+import { TAB_CHARTS, type TabId } from "./ReportsShared";
 
 /** Tab pills and the date-range select. */
 export function ReportsToolbar({
@@ -42,10 +42,10 @@ export function ReportsToolbar({
         value={range}
         onChange={(event) => setRange(event.target.value as typeof range)}
       >
-        <option value="7d">{data.rangeLabels["7d"]}</option>
-        <option value="30d">{data.rangeLabels["30d"]}</option>
-        <option value="1y">{data.rangeLabels["1y"]}</option>
-        <option value="all">{data.rangeLabels.all}</option>
+        <option value="7d">{rangeLabels["7d"]}</option>
+        <option value="30d">{rangeLabels["30d"]}</option>
+        <option value="1y">{rangeLabels["1y"]}</option>
+        <option value="all">{rangeLabels.all}</option>
       </select>
     </div>
   );

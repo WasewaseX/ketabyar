@@ -12,9 +12,8 @@ import {
 import { useQuery } from "../hooks/useLibraryQuery";
 import { useLibrarySettingsStore } from "../store/librarySettingsStore";
 import { useUiStore } from "../store/uiStore";
-import { cn } from "../utils/cn";
 import { ReportsChartsGrid } from "./reports/ReportsChartsGrid";
-import { TAB_CHARTS, type TabId } from "./reports/ReportsShared";
+import type { TabId } from "./reports/ReportsShared";
 import { ReportsToolbar } from "./reports/ReportsToolbar";
 import { useReportData, useReportsExports } from "./reports/useReportData";
 
