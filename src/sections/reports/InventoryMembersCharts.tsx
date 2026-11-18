@@ -2,11 +2,13 @@ import { useTranslation } from "react-i18next";
 import {
   AreaChartCard,
   BarChartCard,
+  labelledData,
   PieChartCard,
   reportConditionLabel,
   reportMemberStatusLabel,
   reportRoleLabel,
   reportStatusLabel,
+  SingleBarChart,
 } from "./ReportsShared";
 
 type Datum = { name: string; value: number };
@@ -107,10 +109,7 @@ export function MembersCharts({
         name="membersByRole"
         registerChart={registerChart}
         title={t("reports.charts.membersByRole", "Members by role")}
-        data={rolesData.map((row) => ({
-          name: reportRoleLabel(t, row.name),
-          value: row.value,
-        }))}
+        data={labelledData(rolesData, (row) => reportRoleLabel(t, row.name))}
         dataKey="value"
         fill="var(--color-accent)"
         barSize={26}

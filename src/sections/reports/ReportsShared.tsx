@@ -577,3 +577,17 @@ export function SingleBarChart({
     />
   );
 }
+
+/** Map label/value rows into chart datum with a label formatter. */
+export function labelledData<Row>(
+  rows: Row[],
+  label: (row: Row) => string,
+): { name: string; value: number }[] {
+  return rows.map((row) => ({
+    name: label(row),
+    value:
+      (row as { value?: number; n?: number }).value ??
+      (row as { n?: number }).n ??
+      0,
+  }));
+}

@@ -135,15 +135,19 @@ export function CirculationCharts({
   const { t } = useTranslation();
   return (
     <>
-      <SingleBarChart
+      <BarChartCard
         name="peakHours"
         registerChart={registerChart}
         title={t("reports.charts.peakHours", "Peak hours")}
         data={rhythm}
-        dataKey="checkouts"
-        fill="var(--color-accent)"
-        barSize={22}
         xKey="time"
+        bars={[
+          {
+            dataKey: "checkouts",
+            fill: "var(--color-accent)",
+            barSize: 22,
+          },
+        ]}
       />
       <SingleBarChart
         name="mediaTypeDist"
